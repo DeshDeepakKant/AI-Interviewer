@@ -47,11 +47,41 @@ const fieldStyle = {
   '& .MuiOutlinedInput-root': {
     borderRadius: 16,
     background: 'rgba(255,255,255,0.05)',
-    '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-    '&:hover fieldset': { borderColor: 'rgba(29,233,182,0.7)' },
-    '&.Mui-focused fieldset': { borderColor: '#1de9b6' }
+    '& fieldset': { 
+      borderColor: 'rgba(255,255,255,0.2)',
+      transition: 'border-color 0.3s ease'
+    },
+    '&:hover fieldset': { 
+      borderColor: 'rgba(29,233,182,0.7)' 
+    },
+    '&.Mui-focused fieldset': { 
+      borderColor: '#1de9b6' 
+    },
+    '& input:-webkit-autofill': {
+      WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.05) inset',
+      WebkitTextFillColor: 'white',
+      caretColor: 'white',
+      borderRadius: 15,
+    },
+    '& input:-webkit-autofill:focus': {
+      WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.05) inset',
+      WebkitTextFillColor: 'white',
+    },
   },
-  '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' }
+  '& .MuiInputLabel-root': { 
+    color: 'rgba(255,255,255,0.7)',
+    '&.Mui-focused': {
+      color: '#1de9b6',
+    },
+  },
+  '& .MuiOutlinedInput-input': {
+    color: 'white',
+    '&:-webkit-autofill': {
+      transition: 'background-color 5000s ease-in-out 0s',
+      WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.05) inset',
+      WebkitTextFillColor: 'white',
+    },
+  },
 };
 
 function LoginForm({ onShowPassword, showPassword }) {
@@ -147,7 +177,7 @@ function SignupForm({ onShowPassword, showPassword }) {
           sx={{ mt: 3, borderRadius: 16, boxShadow: '0 0 20px rgba(0,191,165,0.5)' }}
           endIcon={<PersonAdd />}
         >
-          Create Admin Account
+          Create Account
         </Button>
       </Box>
     </Fade>
@@ -201,7 +231,7 @@ export default function LoginPage() {
           }}
         >
           <Typography variant="h4" align="center" sx={{ color: '#fff', mb: 2, fontWeight: 600 }}>
-            {tab === 0 ? 'Admin Login' : 'Admin Signup'}
+            {tab === 0 ? 'Login' : 'Signup'}
           </Typography>
           <Tabs value={tab} onChange={onTabChange} variant="fullWidth" sx={{ mb: 2, '& .MuiTabs-indicator': { backgroundColor: '#1de9b6', height: 4, borderRadius: 2 } }}>
             <Tab label="Login" sx={{ color: 'rgba(255,255,255,0.7)' }} />
