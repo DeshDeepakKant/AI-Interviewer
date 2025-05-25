@@ -1,6 +1,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-
+import {Link} from "react-router-dom";
+import { Button } from "@mui/material";
 function Testing() {
 
     const [test, setTest] = useState("")
@@ -14,8 +15,12 @@ function Testing() {
     })
     return (
         <div>
+            <br />
+            <br />
+            <br />
             <h1>Testing</h1>
             {test}
+            <Button component={Link} to="/login">Loign</Button>
         </div>
     );
 }

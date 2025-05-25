@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ThemeProvider,
   createTheme,
@@ -25,6 +25,7 @@ import {
   Badge,
   Lock
 } from '@mui/icons-material';
+import { useSearchParams } from 'react-router-dom';
 
 // Dark theme
 const theme = createTheme({
@@ -35,7 +36,7 @@ const theme = createTheme({
     background: { default: '#0a0f1a' }
   },
   typography: { fontFamily: 'Roboto, sans-serif', button: { textTransform: 'none' } },
-  shape: { borderRadius: 24 }
+  shape: { borderRadius: 10 }
 });
 
 const tabVariants = {
@@ -45,43 +46,43 @@ const tabVariants = {
 
 const fieldStyle = {
   '& .MuiOutlinedInput-root': {
-    borderRadius: 16,
+    borderRadius: 10,
     background: 'rgba(255,255,255,0.05)',
-    '& fieldset': { 
+    '& fieldset': {
       borderColor: 'rgba(255,255,255,0.2)',
       transition: 'border-color 0.3s ease'
     },
-    '&:hover fieldset': { 
-      borderColor: 'rgba(29,233,182,0.7)' 
+    '&:hover fieldset': {
+      borderColor: 'rgba(29,233,182,0.7)'
     },
-    '&.Mui-focused fieldset': { 
-      borderColor: '#1de9b6' 
+    '&.Mui-focused fieldset': {
+      borderColor: '#1de9b6'
     },
     '& input:-webkit-autofill': {
       WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.05) inset',
       WebkitTextFillColor: 'white',
       caretColor: 'white',
-      borderRadius: 15,
+      borderRadius: 10
     },
     '& input:-webkit-autofill:focus': {
       WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.05) inset',
-      WebkitTextFillColor: 'white',
-    },
+      WebkitTextFillColor: 'white'
+    }
   },
-  '& .MuiInputLabel-root': { 
+  '& .MuiInputLabel-root': {
     color: 'rgba(255,255,255,0.7)',
     '&.Mui-focused': {
-      color: '#1de9b6',
-    },
+      color: '#1de9b6'
+    }
   },
   '& .MuiOutlinedInput-input': {
     color: 'white',
     '&:-webkit-autofill': {
       transition: 'background-color 5000s ease-in-out 0s',
       WebkitBoxShadow: '0 0 0 1000px rgba(255,255,255,0.05) inset',
-      WebkitTextFillColor: 'white',
-    },
-  },
+      WebkitTextFillColor: 'white'
+    }
+  }
 };
 
 function LoginForm({ onShowPassword, showPassword }) {
@@ -185,35 +186,54 @@ function SignupForm({ onShowPassword, showPassword }) {
 }
 
 export default function LoginPage() {
-  const [tab, setTab] = useState(0); // Default to Login
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
-  const onTabChange = (e, v) => { setTab(v); setShowPassword(false); };
-  const togglePwd = () => setShowPassword(p => !p);
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'signup') {
+      setTab(1);
+    } else {
+      setTab(0);
+    }
+  }, [searchParams]);
+
+  const onTabChange = (e, v) => {
+    setTab(v);
+    setShowPassword(false);
+  };
+
+  const togglePwd = () => setShowPassword((p) => !p);
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{
-        position: 'relative',
-        minHeight: '100vh',
-        backgroundColor: '#0a0f1a',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-        p: 2,
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: '10%',
-          left: '10%',
-          width: '60vw',
-          height: '60vw',
-          background: 'radial-gradient(circle at center, #00bfa5, transparent 70%)',
-          filter: 'blur(200px)',
-          zIndex: 1
-        }
-      }}>
+      <Box
+        sx={{
+          position: 'relative',
+          minHeight: '100vh',
+          backgroundColor: '#0a0f1a',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          pt: '80px',
+          pb: 2,
+          px: 2,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: '10%',
+            left: '10%',
+            width: '60vw',
+            height: '60vw',
+            background: 'radial-gradient(circle at center, #00bfa5, transparent 70%)',
+            filter: 'blur(200px)',
+            zIndex: 1
+          }
+        }}
+      >
         <Paper
           component={motion.div}
           initial={{ scale: 0.8, opacity: 0 }}
@@ -233,14 +253,23 @@ export default function LoginPage() {
           <Typography variant="h4" align="center" sx={{ color: '#fff', mb: 2, fontWeight: 600 }}>
             {tab === 0 ? 'Login' : 'Signup'}
           </Typography>
-          <Tabs value={tab} onChange={onTabChange} variant="fullWidth" sx={{ mb: 2, '& .MuiTabs-indicator': { backgroundColor: '#1de9b6', height: 4, borderRadius: 2 } }}>
+          <Tabs
+            value={tab}
+            onChange={onTabChange}
+            variant="fullWidth"
+            sx={{
+              mb: 2,
+              '& .MuiTabs-indicator': { backgroundColor: '#1de9b6', height: 4, borderRadius: 2 }
+            }}
+          >
             <Tab label="Login" sx={{ color: 'rgba(255,255,255,0.7)' }} />
             <Tab label="Sign Up" sx={{ color: 'rgba(255,255,255,0.7)' }} />
           </Tabs>
-          {tab === 0
-            ? <LoginForm onShowPassword={togglePwd} showPassword={showPassword} />
-            : <SignupForm onShowPassword={togglePwd} showPassword={showPassword} />
-          }
+          {tab === 0 ? (
+            <LoginForm onShowPassword={togglePwd} showPassword={showPassword} />
+          ) : (
+            <SignupForm onShowPassword={togglePwd} showPassword={showPassword} />
+          )}
         </Paper>
       </Box>
     </ThemeProvider>

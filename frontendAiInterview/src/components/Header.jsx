@@ -103,7 +103,7 @@ const Header = () => {
             <Button 
               variant="contained" 
               component={RouterLink}
-              to="/testing"
+              to="/login"
               sx={{
                 ml: 2,
                 background: 'linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)',
@@ -193,7 +193,7 @@ const Header = () => {
                   variant="contained" 
                   fullWidth
                   component={RouterLink}
-                  to="/testing"
+                  to="/login"
                   sx={{
                     background: 'linear-gradient(90deg, #00bfa5, #00acc1)',
                     color: '#fff',
