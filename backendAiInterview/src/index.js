@@ -20,25 +20,3 @@ connectDB()
   .catch((error) => {
     console.error("MONGO db connection faild !!! ", error);
   });
-
-/* This is first approch 
-import express from "express";
-PORT = process.env.PORT || 8000;
-async () => {
-  try {
-    await mongoose.connect(`${process.env.MONGODB_URL}/${DB_Name}`);
-    app.on("error", (error) => {
-      console.error("Error: ", error);
-      throw error;
-    });
-
-    app.listen(PORT, () => {
-      console.log(`App is running on ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Error: ", error);
-    throw error;
-  }
-};
-
-*/
