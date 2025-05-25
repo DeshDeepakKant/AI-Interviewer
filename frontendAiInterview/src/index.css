@@ -1,0 +1,44 @@
+/* app.css */
+
+/* Make sure root takes full height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* The page-wide teal-glow background */
+.page-background {
+  position: relative;
+  min-height: 100vh;
+  background-color: #0a0f1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 16px; /* match your p:2 in sx */
+}
+.page-background::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  left: 10%;
+  width: 60vw;
+  height: 60vw;
+  background: radial-gradient(circle at center, #00bfa5, transparent 70%);
+  filter: blur(200px);
+  z-index: 1;
+}
+
+/* Glass-morphic card styling */
+.glass-card {
+  position: relative;
+  z-index: 2;
+  padding: 24px;       /* roughly your xs:3, sm:5 */
+  width: 100%;
+  max-width: 380px;
+  border-radius: 12px; /* half of the sx borderRadius:3*/
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 0 60px rgba(29, 233, 182, 0.4);
+  border: 1px solid rgba(29, 233, 182, 0.5);
+}
