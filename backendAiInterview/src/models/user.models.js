@@ -24,7 +24,8 @@ const userSchema = new mongoose.Schema({
         index: true,
     },
     avatar: {
-        type: String,
+        url:      { type: String },
+        publicId: { type: String }
     },
     password: {
         type: String,
