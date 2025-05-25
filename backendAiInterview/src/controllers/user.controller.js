@@ -163,9 +163,14 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
     }
 })
 
+const test = asyncHandler(async(req, res)=>{
+    return res.json("ALl good")
+})
+
 export {
     userSignUp,
     userLogin,
     userLogout,
-    getCurrentUser
+    getCurrentUser,
+    test
 }
