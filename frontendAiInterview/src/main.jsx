@@ -8,15 +8,21 @@ import Layout from './components/Layout.jsx'
 import LoginPage from './components/loginPage.jsx'
 import Testing from './components/testing.jsx'
 import AIInterview from './components/AIInterview.jsx'
+import LayoutWithoutFooter from './components/LayoutWithoutFooter.jsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route path='/' element={<Layout/>}>
-      <Route path="" element={<HomePage/>}/>
-      <Route path="login" element={<LoginPage/>}/>
-      <Route path="testing" element={<Testing/>}/>
-      <Route path="interview" element={<AIInterview/>}/>
-    </Route>
+    <> {/* Add this wrapper */}
+      <Route path='/' element={<Layout/>}>
+        <Route path="" element={<HomePage/>}/>
+        <Route path="login" element={<LoginPage/>}/>
+        <Route path="testing" element={<Testing/>}/>
+      </Route>
+
+      <Route path="/interview" element={<LayoutWithoutFooter/>}>
+        <Route index element={<AIInterview />} />
+      </Route>
+    </> // Close the wrapper
   )
 )
 

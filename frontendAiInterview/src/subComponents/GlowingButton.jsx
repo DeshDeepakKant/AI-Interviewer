@@ -1,10 +1,13 @@
 import {Button} from "@mui/material";
 import BusinessIcon from "@mui/icons-material/Business";
 import SchoolIcon from '@mui/icons-material/School';
+
 function GlowingButton(props) {
 return <Button 
 variant="contained" 
 size="large"
+component={props.component}
+to={props.to}
 startIcon={
   <props.icon sx={{ 
     fontSize: '1.3rem',

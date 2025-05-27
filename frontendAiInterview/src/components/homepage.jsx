@@ -76,7 +76,7 @@ const HeroSection = () => (
       </Typography>
       <Stack direction="row" spacing={2} justifyContent="center">
       <GlowingButton name="Explore Companies" icon={BusinessIcon}/> 
-      <GlowingButton name="Mock Interview" icon={SchoolIcon}/>
+      <GlowingButton name="Mock Interview" icon={SchoolIcon} component={NavLink} to="/interview"/>
       </Stack>
     </Container>
   </Box>

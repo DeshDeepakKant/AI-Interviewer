@@ -9,13 +9,14 @@ import {
   IconButton,
   useTheme,
   Paper,
-  styled
+  styled,
+  Stack,
 } from '@mui/material';
 import VideocamIcon from '@mui/icons-material/Videocam';
 import MicIcon from '@mui/icons-material/Mic';
 import MicOffIcon from '@mui/icons-material/MicOff';
 import VideocamOffIcon from '@mui/icons-material/VideocamOff';
-
+import ai from "../../public/ai.jpeg"
 const GlassCard = styled(Card)(({ theme }) => ({
   background: 'rgba(255, 255, 255, 0.05)',
   backdropFilter: 'blur(10px)',
@@ -111,24 +112,31 @@ const AIInterview = () => {
         <Typography 
           variant="h4" 
           sx={{ 
-            mb: 4, 
+            mt: 5,
+            mb: 3, 
+            pt: 2,
             fontWeight: 700, 
             background: 'linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             textAlign: 'center',
-            pt: 2
+            position: 'relative',
+            zIndex: 1
           }}
         >
           AI Interview Session
         </Typography>
 
-        <Grid container spacing={3} sx={{ height: 'calc(100% - 100px)' }}>
+        <Stack justifyContent="center" alignItems="center">
+        <Grid container spacing={3} sx={{ minHeight: 'calc(100vh - 160px)' }}>
           {/* Left column */}
+
+          {/* fix this */}
           <Grid item xs={12} md={7} sx={{ display: 'flex', flexDirection: 'column' }}>
             {/* AI Assistant */}
-            <GlassCard sx={{ mb: 3, flex: '0 0 25%' }}>
+            <GlassCard sx={{ mb: 3, width: "fit-content", flex: '0 0 auto' }}>
               <CardContent>
+                <Box sx={{ width: 500 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                   <Box sx={{ 
                     width: 8, 
@@ -142,11 +150,48 @@ const AIInterview = () => {
                     AI Assistant
                   </Typography>
                 </Box>
+
                 <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.8)', mt: 1 }}>
                   {isRecording 
-                    ? "I'm listening to your response. Please speak clearly and take your time."
+                    ? <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        position: 'relative',
+                        width: 'fit-content',
+                        margin: '0 auto',
+                        padding: '8px',
+                        borderRadius: '50%',
+                        animation: 'glow 2s infinite alternate'
+                      }}>
+                      <style>
+                        {`
+                          @keyframes glow {
+                            from {
+                              box-shadow: 0 0 5px 2px rgba(0, 191, 165, 0.5);
+                            }
+                            to {
+                              box-shadow: 0 0 20px 8px rgba(0, 191, 165, 0.8);
+                            }
+                          }
+                        `}
+                      </style>
+                      <img
+                        src={ai}
+                        alt="AI Listening"
+                        width={40}
+                        style={{
+                          borderRadius: '50%',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          zIndex: 1
+                        }}
+                      />
+                    </div>
+                  
                     : "Click the start button to begin your interview. I'll ask you a series of questions."}
                 </Typography>
+                </Box>
               </CardContent>
             </GlassCard>
 
@@ -261,14 +306,26 @@ const AIInterview = () => {
 
           {/* Right column - Transcript */}
           <Grid item xs={12} md={5}>
-            <GlassCard sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <GlassCard sx={{ 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              maxHeight: 'calc(100vh - 200px)',
+              overflow: 'hidden' 
+            }}>
+              <Box
+                sx={{
+                  width: 500,            // fix width if needed
+                  height: 500,           // fixed height for the entire card
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}>
               <CardContent sx={{ flex: 1, p: 0, display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ 
                   p: 2, 
                   borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                  bgcolor: 'rgba(0, 0, 0, 0.2)'
                 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#00bfa5' }}>
                     Interview Transcript
                   </Typography>
                 </Box>
@@ -328,9 +385,11 @@ const AIInterview = () => {
                   )}
                 </Box>
               </CardContent>
+              </Box>
             </GlassCard>
           </Grid>
         </Grid>
+        </Stack>
       </Box>
       
       {/* Global styles */}
