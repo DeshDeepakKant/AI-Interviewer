@@ -74,7 +74,7 @@ const userLogin = asyncHandler(async(req, res)=>{
     })
 
     if(!user){
-        return sendError(res, 404, "User already exits")
+        return sendError(res, 404, "User Not Found")
     }
 
     const isPasswordCorect = await user.isPasswordCorrect(password)
