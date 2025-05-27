@@ -10,6 +10,7 @@ import Testing from './components/testing.jsx'
 import AIInterview from './components/AIInterview.jsx'
 import LayoutWithoutFooter from './components/LayoutWithoutFooter.jsx'
 import Features from './components/Features.jsx'
+import Pricing from './components/Pricing.jsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -19,10 +20,14 @@ const router = createBrowserRouter(
         <Route path="login" element={<LoginPage/>}/>
         <Route path="testing" element={<Testing/>}/>
         <Route path="features" element={<Features/>}/>
+        
       </Route>
 
       <Route path="/interview" element={<LayoutWithoutFooter/>}>
         <Route index element={<AIInterview />} />
+      </Route>
+      <Route path="/pricing" element={<LayoutWithoutFooter/>}>
+        <Route index element={<Pricing />} />
       </Route>
     </> // Close the wrapper
   )

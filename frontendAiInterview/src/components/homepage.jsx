@@ -15,7 +15,6 @@ import {
 
 import BusinessIcon from '@mui/icons-material/Business';
 import { motion } from 'framer-motion';
-import Features from './Features';
 
 const HeroSection = () => (
   <Box className="page-background" sx={{ textAlign: 'center', py: 8 }}>
@@ -310,10 +309,10 @@ const FeaturesSection = () => {
 
 const HomePage = () => {
   return (
-    <Box>
+    <>
       <HeroSection />
-      <Features />
-    </Box>
+      <FeaturesSection />
+    </>
   );
 };
 
