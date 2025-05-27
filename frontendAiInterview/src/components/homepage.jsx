@@ -75,7 +75,7 @@ const HeroSection = () => (
         Select a company, take an AI interview, and get one step closer to the job.
       </Typography>
       <Stack direction="row" spacing={2} justifyContent="center">
-      <GlowingButton name="Explore Companies" icon={BusinessIcon}/> 
+      <GlowingButton name="Explore Companies" icon={BusinessIcon} component={NavLink} to="/comingSoon"/> 
       <GlowingButton name="Mock Interview" icon={SchoolIcon} component={NavLink} to="/interview"/>
       </Stack>
     </Container>

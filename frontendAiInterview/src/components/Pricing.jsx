@@ -3,6 +3,7 @@ import {useEffect} from 'react';
 import { Box, Container, Typography, Button, Grid, Paper, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { NavLink } from 'react-router-dom';
 
 const Pricing = () => {
   const theme = useTheme();
@@ -219,6 +220,9 @@ const Pricing = () => {
                           boxShadow: `0 4px 12px ${theme.palette.primary.main}40`,
                         },
                       }}
+                      // Link to login page
+                      component={NavLink}
+                      to="/login"
                     >
                       {plan.buttonText}
                     </Button>
@@ -258,7 +262,7 @@ const Pricing = () => {
 
         <Box textAlign="center" mt={6}>
           <Typography variant="body2" color="text.secondary" sx={{ color: '#94a3b8' }}>
-            Need a custom plan? Contact us at support@aiinterviewprep.com
+            Need a custom plan? Contact us at patelsurlko20@gmail.com
           </Typography>
         </Box>
         <Box sx={{ flexGrow: 1 }} />

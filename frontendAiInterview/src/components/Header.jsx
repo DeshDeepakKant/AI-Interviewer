@@ -14,7 +14,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 
 const navItems = [
-  { name: 'Companies', path: '/companies' },
+  { name: 'Companies', path: '/comingSoon' },
   { name: 'Features', path: '/features' },
   { name: 'Pricing', path: '/pricing' }
 ];

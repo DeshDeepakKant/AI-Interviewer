@@ -11,6 +11,7 @@ import AIInterview from './components/AIInterview.jsx'
 import LayoutWithoutFooter from './components/LayoutWithoutFooter.jsx'
 import Features from './components/Features.jsx'
 import Pricing from './components/Pricing.jsx'
+import ComingSoong from './components/ComingSoong.jsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -20,7 +21,7 @@ const router = createBrowserRouter(
         <Route path="login" element={<LoginPage/>}/>
         <Route path="testing" element={<Testing/>}/>
         <Route path="features" element={<Features/>}/>
-        
+        <Route path="comingSoon" element={<ComingSoong/>}/>
       </Route>
 
       <Route path="/interview" element={<LayoutWithoutFooter/>}>

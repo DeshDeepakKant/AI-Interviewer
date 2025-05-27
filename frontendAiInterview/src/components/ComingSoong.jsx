@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+import { Box, Container, Typography, Grid } from '@mui/material';
 function ComingSoong() {
     return (
                   <Box sx={{ mt: 12, textAlign: 'center' }}>
@@ -113,6 +115,7 @@ function ComingSoong() {
                         </Grid>
                       ))}
                     </Grid>
+                    <br />  
                   </Box>
     )
 }
