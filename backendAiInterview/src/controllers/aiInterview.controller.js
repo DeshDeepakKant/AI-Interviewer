@@ -3,9 +3,13 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import model from "../utils/ai/index.js";
 import { asyncHandler } from "../utils/aysncHandler.js";
+import fileLoading from "./loader.js";
+
+
 
 const aiInterviewStart = asyncHandler(async(req, res)=>{
     try {
+        
         const {message} = req.body
         console.log(message)
         const ai = await model(message)
