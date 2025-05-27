@@ -12,6 +12,7 @@ import LayoutWithoutFooter from './components/LayoutWithoutFooter.jsx'
 import Features from './components/Features.jsx'
 import Pricing from './components/Pricing.jsx'
 import ComingSoong from './components/ComingSoong.jsx'
+import UserDashboard from './components/UserDashboard.jsx'
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -22,6 +23,7 @@ const router = createBrowserRouter(
         <Route path="testing" element={<Testing/>}/>
         <Route path="features" element={<Features/>}/>
         <Route path="comingSoon" element={<ComingSoong/>}/>
+        <Route path="dashboard" element={<UserDashboard/>}/>
       </Route>
 
       <Route path="/interview" element={<LayoutWithoutFooter/>}>
