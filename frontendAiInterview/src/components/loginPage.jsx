@@ -26,6 +26,11 @@ import {
   Lock
 } from '@mui/icons-material';
 import { useSearchParams } from 'react-router-dom';
+import axios from 'axios';
+import { Alert } from '@mui/material';
+import { SnackbarProvider } from 'notistack'
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 // Dark theme
 const theme = createTheme({
@@ -43,6 +48,8 @@ const tabVariants = {
   initial: { opacity: 0, y: 30 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
+
+
 
 const fieldStyle = {
   '& .MuiOutlinedInput-root': {
@@ -85,16 +92,83 @@ const fieldStyle = {
   }
 };
 
+
 function LoginForm({ onShowPassword, showPassword }) {
+  const navigate = useNavigate();
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const [loginInfo, setLogInfio] = useState({
+    emailOrUsername: '',
+    password: ''
+  })
+  const [errors, setErrors] = useState({
+    emailOrUsername: '',
+    password: ''
+  })
+  const handleChange = (e) => {
+    const {name, value} = e.target
+    const copyLoginInfo = {...loginInfo}
+    copyLoginInfo[name] = value
+    setLogInfio(copyLoginInfo)
+    if (value.trim() !== "") {
+      setErrors({ ...errors, [name]: '' });
+    }
+  }
+
+  const handleSubmit = async() => {
+    const newErrors = {};
+
+    if (!loginInfo.emailOrUsername.trim()) {
+      newErrors.emailOrUsername = "This field is required.";
+    }
+    if (!loginInfo.password.trim()) {
+      newErrors.password = "This field is required.";
+    }
+
+    setErrors(newErrors);
+
+    // If no errors, proceed
+    if (Object.keys(newErrors).length === 0) {
+      console.log("Login Info:", loginInfo);
+      try {
+        const payload = {
+          username: loginInfo.emailOrUsername,
+          email: loginInfo.emailOrUsername,
+          password: loginInfo.password
+        }
+        const api = "https://backend-ai-interview.vercel.app/api/v1/user/login";
+        const response = await axios.post(api, payload, {
+          withCredentials: true
+        })
+        console.log("Login response:", response.data);
+
+        if (response.data.success) {
+          toast.success('Login successful!');
+          navigate("/interview");
+        } else {
+          toast.error(response.data.message || 'Login failed');
+        }
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Something went wrong.');
+      }
+    }
+    
+  };
   return (
     <Fade in timeout={400}>
       <Box component={motion.div} variants={tabVariants} initial="initial" animate="animate" sx={{ mt: 1 }}>
         <TextField
-          label="Email"
+          label="Email or Username"
           variant="outlined"
           fullWidth
           margin="dense"
+          onChange={handleChange}
+          name="emailOrUsername"
           autoComplete="email"
+          required
+          value={loginInfo.emailOrUsername}
+          error={!!errors.emailOrUsername}
+          helperText={errors.emailOrUsername}
           sx={fieldStyle}
           InputProps={{ startAdornment: <InputAdornment position="start"><Email /></InputAdornment> }}
         />
@@ -103,8 +177,14 @@ function LoginForm({ onShowPassword, showPassword }) {
           variant="outlined"
           fullWidth
           margin="dense"
+          name="password"
+          onChange={handleChange}
           type={showPassword ? 'text' : 'password'}
           autoComplete="current-password"
+          value={loginInfo.password}
+          error={!!errors.password}
+          required
+          helperText={errors.password}
           sx={fieldStyle}
           InputProps={{
             startAdornment: <InputAdornment position="start"><Lock /></InputAdornment>,
@@ -118,10 +198,14 @@ function LoginForm({ onShowPassword, showPassword }) {
           size="large"
           sx={{ mt: 3, borderRadius: 16, boxShadow: '0 0 20px rgba(29,233,182,0.5)' }}
           endIcon={<Login />}
+          onClick={handleSubmit}
         >
           Login
         </Button>
+    
+
       </Box>
+      
     </Fade>
   );
 }
@@ -165,6 +249,7 @@ function SignupForm({ onShowPassword, showPassword }) {
           type={showPassword ? 'text' : 'password'}
           autoComplete="new-password"
           sx={fieldStyle}
+          onChange={handleChange}
           InputProps={{
             startAdornment: <InputAdornment position="start"><Lock /></InputAdornment>,
             endAdornment: <InputAdornment position="end"><IconButton onClick={onShowPassword}>{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment>

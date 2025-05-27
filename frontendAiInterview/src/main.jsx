@@ -13,6 +13,8 @@ import Features from './components/Features.jsx'
 import Pricing from './components/Pricing.jsx'
 import ComingSoong from './components/ComingSoong.jsx'
 import UserDashboard from './components/UserDashboard.jsx'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -38,7 +40,30 @@ const router = createBrowserRouter(
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <>
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        toastStyle={{
+          backgroundColor: '#1a1f2e',
+          color: '#ffffff',
+          border: '1px solid #1de9b6',
+          boxShadow: '0 4px 20px rgba(29, 233, 182, 0.15)'
+        }}
+        progressStyle={{
+          background: 'linear-gradient(to right, #1de9b6, #00bfa5)'
+        }}
+      />
+      <RouterProvider router={router} />
+    </>
   </StrictMode>
 )
     
