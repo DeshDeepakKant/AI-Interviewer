@@ -1,15 +1,15 @@
-import { Outlet } from "react-router-dom";
+import { Outlet } from "react-router";
 import Header from "./Header";
 import React from "react";
 
-
 function LayoutWithoutFooter() {
-    return(
-        <>
-            <Header/>
-            <Outlet/>
-        </>
-    )
+  return (
+    <>
+      <Header />
+      <Outlet />
+    </>
+  );
 }
 
-export default LayoutWithoutFooter
+export default LayoutWithoutFooter;
+

@@ -1,5 +1,5 @@
 import React from "react";
-import { NavLink, Link as RouterLink } from "react-router-dom";
+import { NavLink, Link as RouterLink } from "react-router";
 import GlowingButton from "../subComponents/GlowingButton";
 import SchoolIcon from "@mui/icons-material/School";
 

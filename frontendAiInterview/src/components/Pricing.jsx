@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { motion } from "framer-motion";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 
 const Pricing = () => {
   const theme = useTheme();
