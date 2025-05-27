@@ -114,6 +114,12 @@ function LoginForm({ onShowPassword, showPassword }) {
       setErrors({ ...errors, [name]: '' });
     }
   }
+  
+  const handleKeyButton = (e) => {
+    if (e.key === 'Enter') {
+      handleSubmit();
+    }
+  }
 
   const handleSubmit = async() => {
     const newErrors = {};
@@ -156,7 +162,8 @@ function LoginForm({ onShowPassword, showPassword }) {
   };
   return (
     <Fade in timeout={400}>
-      <Box component={motion.div} variants={tabVariants} initial="initial" animate="animate" sx={{ mt: 1 }}>
+      <Box component="form" onSubmit={(e)=>{e.preventDefault(); handleSubmit();}}>
+      <Box  component={motion.div} variants={tabVariants} initial="initial" animate="animate" sx={{ mt: 1 }}>
         <TextField
           label="Email or Username"
           variant="outlined"
@@ -198,14 +205,14 @@ function LoginForm({ onShowPassword, showPassword }) {
           size="large"
           sx={{ mt: 3, borderRadius: 16, boxShadow: '0 0 20px rgba(29,233,182,0.5)' }}
           endIcon={<Login />}
-          onClick={handleSubmit}
+          type='submit'
         >
           Login
         </Button>
     
 
       </Box>
-      
+      </Box>
     </Fade>
   );
 }
