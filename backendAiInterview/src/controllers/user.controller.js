@@ -27,7 +27,7 @@ const userSignUp = asyncHandler(async(req, res)=>{
     const {username, fullName, email, password, role} = req.body
 
     if(
-        [username, fullName, email, password, role].some((field)=> field?.trim() === "")
+        [username, fullName, email, password].some((field)=> field?.trim() === "")
     ){
         throw new ApiError(400, "All field is required")
     }
@@ -164,7 +164,11 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
 })
 
 const test = asyncHandler(async(req, res)=>{
-    return res.json("ALl good")
+    try {
+        return res.json("ALl good")
+    } catch (error) {
+        throw new ApiError(401, "Unauthorized access")
+    }
 })
 
 

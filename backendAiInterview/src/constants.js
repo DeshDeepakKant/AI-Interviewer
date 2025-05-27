@@ -1,1 +1,1 @@
-export const DB_Name = "aiInterview";
+export const DB_Name = "AiInterview-new";

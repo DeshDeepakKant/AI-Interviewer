@@ -36,8 +36,9 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
+        enum: ["student", "company"],
+        default: "student",
         required: true, 
-        enum: ["student", "company"]
     }
 },{timestamps: true})
 
@@ -58,7 +59,7 @@ userSchema.methods.generateAccessToken = function(){
         {
             _id: this._id,
         },
-        process.env.REFRESH_ACCESS_SECRET,
+        process.env.ACCESS_TOKEN_SECRET,
         {
             expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
