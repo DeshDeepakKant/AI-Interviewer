@@ -3,6 +3,7 @@ import { ApiResponse} from "../utils/ApiResponse.js"
 import { ApiError }  from "../utils/ApiError.js"
 import { User } from "../models/user.models.js"
 import jwt from "jsonwebtoken"
+import sendError from "../utils/errorResponseHelper.js"
 
 const generateAccessAndRefreshToken  = async(userId)=>{
     try {
@@ -65,7 +66,7 @@ const userLogin = asyncHandler(async(req, res)=>{
     const {username, email, password} = req.body
 
     if(!(username || email)){
-        throw new ApiError(400, "username or email is required")
+        return sendError(res, 400, "username or email is required")
     }
 
     const user = await User.findOne({
@@ -73,13 +74,13 @@ const userLogin = asyncHandler(async(req, res)=>{
     })
 
     if(!user){
-        throw new ApiError(404, "User already exits")
+        return sendError(res, 404, "User already exits")
     }
 
     const isPasswordCorect = await user.isPasswordCorrect(password)
 
     if(!isPasswordCorect){
-        throw new ApiError(401, "Password is incorrect")
+        return sendError(res, 401, "Password is incorrect")
     }
 
     const {accessToken, refreshToken } = await generateAccessAndRefreshToken(user?._id)
