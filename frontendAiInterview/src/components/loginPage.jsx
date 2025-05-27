@@ -114,12 +114,6 @@ function LoginForm({ onShowPassword, showPassword }) {
       setErrors({ ...errors, [name]: '' });
     }
   }
-  
-  const handleKeyButton = (e) => {
-    if (e.key === 'Enter') {
-      handleSubmit();
-    }
-  }
 
   const handleSubmit = async() => {
     const newErrors = {};
