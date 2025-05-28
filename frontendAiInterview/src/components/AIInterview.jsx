@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import {
   Box,
   Grid,
@@ -17,6 +17,10 @@ import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import ai from "../assets/ai.jpeg";
+
+// Initialize MediaRecorder and other variables
+let mediaRecorder;
+let recordedChunks = [];
 const GlassCard = styled(Card)(({ theme }) => ({
   background: "rgba(255, 255, 255, 0.05)",
   backdropFilter: "blur(10px)",
@@ -63,9 +67,94 @@ const AIInterview = () => {
   const [isRecording, setIsRecording] = React.useState(false);
   const [isVideoOn, setIsVideoOn] = React.useState(true);
   const [isAudioOn, setIsAudioOn] = React.useState(true);
+  const [stream, setStream] = React.useState(null);
+  const videoRef = useRef(null);
+  const videoPreviewRef = useRef(null);
 
+  useEffect(() => {
+    // Clean up function to stop all media tracks when component unmounts
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
+  const startRecording = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: isVideoOn,
+        audio: isAudioOn
+      });
+      
+      setStream(mediaStream);
+      
+      // Display the camera feed
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      
+      // Start recording
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(mediaStream, {
+        mimeType: 'video/webm;codecs=vp9,opus'
+      });
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+      
+      // mediaRecorder.onstop = () => {
+      //   const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      //   const url = URL.createObjectURL(blob);
+        
+      //   // Show preview of the recorded video
+      //   if (videoPreviewRef.current) {
+      //     videoPreviewRef.current.src = url;
+      //     videoPreviewRef.current.controls = true;
+      //   }
+        
+      //   // Create download link
+      //   const a = document.createElement('a');
+      //   a.href = url;
+      //   a.download = `interview-${new Date().toISOString()}.webm`;
+      //   document.body.appendChild(a);
+      //   a.click();
+      //   document.body.removeChild(a);
+        
+      //   // Clean up
+      //   if (stream) {
+      //     stream.getTracks().forEach(track => track.stop());
+      //     setStream(null);
+      //   }
+      // };
+      
+      mediaRecorder.start(100); // Collect 100ms of data
+      setIsRecording(true);
+      
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+      alert('Could not access camera/microphone. Please check your permissions.');
+    }
+  };
+  
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      setIsVideoOn(false);
+      setIsAudioOn(false);
+    }
+  };
+  
   const toggleRecording = () => {
-    setIsRecording(!isRecording);
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   };
 
   const toggleVideo = () => {
@@ -115,7 +204,7 @@ const AIInterview = () => {
           variant="h4"
           sx={{
             mt: 5,
-            mb: 3,
+            mb: 1,
             pt: 2,
             fontWeight: 700,
             background: "linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)",
@@ -214,7 +303,7 @@ const AIInterview = () => {
               </GlassCard>
 
               {/* Video Feed */}
-              <GlassCard sx={{ flex: 1, mb: 3, overflow: "hidden" }}>
+              <GlassCard sx={{mb: 3,height: 280, overflow: "hidden",display: "flex", flexDirection: "column" }}>
                 <CardContent
                   sx={{
                     height: "100%",
@@ -227,20 +316,29 @@ const AIInterview = () => {
                 >
                   {isVideoOn ? (
                     <Box
+                      component="video"
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
                       sx={{
                         width: "100%",
                         height: "100%",
-                        bgcolor: "rgba(0, 180, 165, 0.1)",
+                        bgcolor: "rgba(0, 0, 0, 0.5)",
                         borderRadius: 2,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        border: "2px dashed rgba(0, 180, 165, 0.3)",
+                        border: "2px solid rgba(0, 180, 165, 0.5)",
+                        objectFit: 'cover',
+                        transform: 'scaleX(-1)' // Mirror the video
                       }}
                     >
-                      <VideocamIcon
-                        sx={{ fontSize: 60, color: "rgba(255, 255, 255, 0.2)" }}
-                      />
+                      {!stream && (
+                        <VideocamIcon
+                          sx={{ fontSize: 60, color: "rgba(255, 255, 255, 0.2)", position: 'absolute' }}
+                        />
+                      )}
                     </Box>
                   ) : (
                     <Box
@@ -265,12 +363,15 @@ const AIInterview = () => {
                     sx={{
                       position: "absolute",
                       bottom: 16,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
                       display: "flex",
                       gap: 2,
-                      bgcolor: "rgba(0, 0, 0, 0.5)",
+                      bgcolor: "rgba(0, 0, 0, 0.6)",
                       p: 1,
                       borderRadius: 4,
                       backdropFilter: "blur(8px)",
+                      zIndex: 2,
                     }}
                   >
                     <IconButton

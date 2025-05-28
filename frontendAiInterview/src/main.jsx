@@ -41,6 +41,7 @@ const router = createBrowserRouter(
       <Route path="/pricing" element={<LayoutWithoutFooter />}>
         <Route index element={<Pricing />} />
       </Route>
+  
     </>, // Close the wrapper
   ),
 );
