@@ -266,19 +266,16 @@ function SignupForm({ onShowPassword, showPassword }) {
 
   useEffect(() => {
     if (shouldNavigate) {
-      // Get the base URL from environment variables or use current origin
-      const baseUrl = process.env.PUBLIC_URL || '';
       // Use relative path for navigation
-      const loginPath = `${baseUrl}/login`;
+      const loginPath = "/login";
       
       // Try programmatic navigation first
-      const success = navigate("/login", { replace: true });
+      navigate(loginPath, { replace: true });
       
-      // Fallback to window.location
+      // Fallback to window.location after a short delay
       const timer = setTimeout(() => {
-        if (!success) {
-          window.location.href = loginPath;
-        }
+        // Use relative URL for client-side routing
+        window.location.pathname = loginPath;
       }, 100);
       
       return () => clearTimeout(timer);
