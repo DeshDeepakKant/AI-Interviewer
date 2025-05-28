@@ -27,11 +27,8 @@ import {
 } from "@mui/icons-material";
 import { useSearchParams } from "react-router";
 import axios from "axios";
-import { Alert } from "@mui/material";
-import { SnackbarProvider } from "notistack";
 import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
-
 // Dark theme
 const theme = createTheme({
   palette: {
@@ -95,7 +92,6 @@ const fieldStyle = {
 
 function LoginForm({ onShowPassword, showPassword }) {
   const navigate = useNavigate();
-  const [errorMessage, setErrorMessage] = useState(null);
 
   const [loginInfo, setLogInfio] = useState({
     emailOrUsername: "",
