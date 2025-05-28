@@ -78,14 +78,32 @@ const Header = () => {
     try {
       await axios.post(
         "/api/v1/user/logout",
-        {},
-        { withCredentials: true }
+        {}, // Empty body
+        {
+          withCredentials: true,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+          }
+        }
       );
+      
+      // Clear local storage
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      
+      // Clear user state
       setUser(null);
       handleProfileMenuClose();
+      
+      // Navigate to login
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);
+      // Even if there's an error, clear the local state
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+      navigate("/login");
     }
   };
 
