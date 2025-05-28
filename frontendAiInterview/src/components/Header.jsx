@@ -71,7 +71,12 @@ const Header = () => {
   const handleMenu = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  const handleProfileMenuOpen = (e) => setProfileAnchorEl(e.currentTarget);
+  const handleProfileMenuOpen = (e) => {
+    e.stopPropagation();
+    setProfileAnchorEl(e.currentTarget);
+    // Navigate to dashboard when profile is clicked
+    navigate('/dashboard');
+  };
   const handleProfileMenuClose = () => setProfileAnchorEl(null);
 
   const handleLogout = async () => {
@@ -366,7 +371,7 @@ const Header = () => {
                     transition={{ delay: 0.1 }}
                     onClick={() => {
                       handleProfileMenuClose();
-                      navigate("/profile");
+                      navigate("/dashboard");
                     }}
                   >
                     <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
