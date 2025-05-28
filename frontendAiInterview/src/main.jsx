@@ -73,6 +73,8 @@ createRoot(document.getElementById("root")).render(
   </StrictMode>,
 );
 
+// TEST ONLY
+
 // createRoot(document.getElementById('root')).render(
 //   <StrictMode>
 //     <App />
