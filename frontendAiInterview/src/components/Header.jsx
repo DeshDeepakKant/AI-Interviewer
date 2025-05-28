@@ -1,5 +1,5 @@
-import React from "react";
-import { Link as RouterLink } from "react-router";
+import React, { useState, useEffect } from "react";
+import { Link as RouterLink, useNavigate } from "react-router";
 import {
   AppBar,
   Toolbar,
@@ -10,8 +10,12 @@ import {
   Menu,
   MenuItem,
   Container,
+  Avatar,
+  Tooltip,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import axios from "axios";
 
 const navItems = [
   { name: "Companies", path: "/comingSoon" },
@@ -20,10 +24,51 @@ const navItems = [
 ];
 
 const Header = () => {
-  const [anchorEl, setAnchorEl] = React.useState(null);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [user, setUser] = useState(null);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const navigate = useNavigate();
   const open = Boolean(anchorEl);
+  const profileMenuOpen = Boolean(profileAnchorEl);
+  
   const handleMenu = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
+  
+  const handleProfileMenuOpen = (event) => {
+    setProfileAnchorEl(event.currentTarget);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await axios.post('/api/v1/user/logout', {}, { withCredentials: true });
+      setUser(null);
+      handleProfileMenuClose();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const response = await axios.get('/api/v1/user/me', {
+          withCredentials: true
+        });
+        if (response.data.user) {
+          setUser(response.data.user);
+        }
+      } catch (error) {
+        console.error('Authentication check failed:', error);
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
 
   return (
     <AppBar
@@ -89,44 +134,118 @@ const Header = () => {
                 {item.name}
               </Button>
             ))}
-            <Button
-              component={RouterLink}
-              to="/login"
-              sx={{
-                ml: 1,
-                color: "rgba(255, 255, 255, 0.9)",
-                textTransform: "none",
-                fontWeight: 500,
-                "&:hover": {
-                  color: "#00e5c9",
-                  background: "rgba(0, 191, 165, 0.15)",
-                  borderRadius: 1,
-                },
-              }}
-            >
-              Login
-            </Button>
-            <Button
-              variant="contained"
-              component={RouterLink}
-              to="/login"
-              sx={{
-                ml: 2,
-                background: "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                "&:hover": {
-                  background:
-                    "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
-                },
-              }}
-            >
-              Sign Up
-            </Button>
+            {user ? (
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+                <Tooltip title="Account settings">
+                  <IconButton
+                    onClick={handleProfileMenuOpen}
+                    size="small"
+                    sx={{ ml: 2 }}
+                    aria-controls={profileMenuOpen ? 'account-menu' : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={profileMenuOpen ? 'true' : undefined}
+                  >
+                    <Avatar 
+                      sx={{ 
+                        width: 32, 
+                        height: 32,
+                        bgcolor: 'primary.main',
+                        '&:hover': {
+                          transform: 'scale(1.1)',
+                          transition: 'transform 0.2s',
+                        }
+                      }}
+                    >
+                      {user.name ? user.name.charAt(0).toUpperCase() : <AccountCircle />}
+                    </Avatar>
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={profileAnchorEl}
+                  id="account-menu"
+                  open={profileMenuOpen}
+                  onClose={handleProfileMenuClose}
+                  onClick={handleProfileMenuClose}
+                  PaperProps={{
+                    elevation: 0,
+                    sx: {
+                      overflow: 'visible',
+                      filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                      mt: 1.5,
+                      '& .MuiAvatar-root': {
+                        width: 32,
+                        height: 32,
+                        ml: -0.5,
+                        mr: 1,
+                      },
+                      '&:before': {
+                        content: '""',
+                        display: 'block',
+                        position: 'absolute',
+                        top: 0,
+                        right: 14,
+                        width: 10,
+                        height: 10,
+                        bgcolor: 'background.paper',
+                        transform: 'translateY(-50%) rotate(45deg)',
+                        zIndex: 0,
+                      },
+                      background: 'rgba(10, 15, 26, 0.98)',
+                      backdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: 2,
+                    },
+                  }}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                  <MenuItem onClick={() => navigate('/profile')}>
+                    <Avatar /> Profile
+                  </MenuItem>
+                  <MenuItem onClick={handleLogout}>
+                    <Avatar /> Logout
+                  </MenuItem>
+                </Menu>
+              </Box>
+            ) : (
+              <>
+                <Button
+                  component={RouterLink}
+                  to="/login"
+                  sx={{
+                    ml: 1,
+                    color: "rgba(255, 255, 255, 0.9)",
+                    textTransform: "none",
+                    fontWeight: 500,
+                    "&:hover": {
+                      color: "#00e5c9",
+                      background: "rgba(0, 191, 165, 0.15)",
+                      borderRadius: 1,
+                    },
+                  }}
+                >
+                  Login
+                </Button>
+                <Button
+                  variant="contained"
+                  component={RouterLink}
+                  to="/signup"
+                  sx={{
+                    ml: 2,
+                    background: "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
+                    "&:hover": {
+                      background: "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                    },
+                  }}
+                >
+                  Sign Up
+                </Button>
+              </>
+            )}
           </Box>
 
           {/* Mobile Navigation */}
-          <Box
-            sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}
-          >
+          <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}>
             <IconButton
               edge="end"
               onClick={handleMenu}
@@ -176,49 +295,82 @@ const Header = () => {
                   {item.name}
                 </MenuItem>
               ))}
-              <MenuItem
-                component={RouterLink}
-                to="/login"
-                onClick={handleClose}
-                sx={{
-                  color: "#e0e0e0",
-                  "&:hover": {
-                    background: "rgba(0, 191, 165, 0.1)",
-                    color: "#00bfa5",
-                  },
-                }}
-              >
-                Login
-              </MenuItem>
-              <MenuItem
-                onClick={handleClose}
-                sx={{
-                  "&:hover": {
-                    background: "transparent",
-                  },
-                }}
-              >
-                <Button
-                  variant="contained"
-                  fullWidth
-                  component={RouterLink}
-                  to="/login"
-                  sx={{
-                    background: "linear-gradient(90deg, #00bfa5, #00acc1)",
-                    color: "#fff",
-                    textTransform: "none",
-                    fontWeight: 500,
-                    py: 1,
-                    "&:hover": {
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 4px 12px rgba(0, 191, 165, 0.3)",
-                      background: "linear-gradient(90deg, #00a591, #0097a7)",
-                    },
-                  }}
-                >
-                  Sign Up
-                </Button>
-              </MenuItem>
+              {user ? (
+                <>
+                  <MenuItem 
+                    onClick={() => {
+                      handleClose();
+                      navigate('/profile');
+                    }}
+                    sx={{
+                      color: "#e0e0e0",
+                      "&:hover": {
+                        background: "rgba(0, 191, 165, 0.1)",
+                        color: "#00bfa5",
+                      },
+                    }}
+                  >
+                    Profile
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => {
+                      handleClose();
+                      handleLogout();
+                    }}
+                    sx={{
+                      color: "#e0e0e0",
+                      "&:hover": {
+                        background: "rgba(0, 191, 165, 0.1)",
+                        color: "#00bfa5",
+                      },
+                    }}
+                  >
+                    Logout
+                  </MenuItem>
+                </>
+              ) : (
+                <>
+                  <MenuItem
+                    component={RouterLink}
+                    to="/login"
+                    onClick={handleClose}
+                    sx={{
+                      color: "#e0e0e0",
+                      "&:hover": {
+                        background: "rgba(0, 191, 165, 0.1)",
+                        color: "#00bfa5",
+                      },
+                    }}
+                  >
+                    Login
+                  </MenuItem>
+                  <MenuItem
+                    onClick={handleClose}
+                    sx={{
+                      "&:hover": {
+                        background: "transparent",
+                      },
+                    }}
+                  >
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      component={RouterLink}
+                      to="/signup"
+                      sx={{
+                        background:
+                          "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
+                        "&:hover": {
+                          background:
+                            "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                        },
+                      }}
+                    >
+                      Sign Up
+                    </Button>
+                  </MenuItem>
+                </>
+              )}
             </Menu>
           </Box>
         </Toolbar>
