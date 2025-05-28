@@ -369,15 +369,15 @@ const Header = () => {
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    onClick={() => {
-                      handleProfileMenuClose();
-                      navigate("/dashboard");
-                    }}
+
                   >
                     <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
                       <PersonIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText>My Profile</ListItemText>
+                    <ListItemText onClick={() => {
+                      handleProfileMenuClose();
+                      navigate("/dashboard");
+                    }}>My Profile</ListItemText>
                   </MenuItem>
                   
                   <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.05)' }} />
