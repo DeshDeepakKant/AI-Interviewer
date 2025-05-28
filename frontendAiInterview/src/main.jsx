@@ -20,29 +20,46 @@ import ComingSoong from "./components/ComingSoong.jsx";
 import UserDashboard from "./components/UserDashboard.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       {" "}
       {/* Add this wrapper */}
-      <Route path="/" element={<Layout />}>
-        <Route path="" element={<HomePage />} />
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="dashboard" element={<UserDashboard />} />
+        </Route>
+      </Route>
+
+      {/* Public layout with header/footer */}
+      <Route element={<Layout />}>
+        <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
-        <Route path="testing" element={<Testing />} />
         <Route path="features" element={<Features />} />
         <Route path="comingSoon" element={<ComingSoong />} />
-        <Route path="dashboard" element={<UserDashboard />} />
-        
+        <Route path="testing" element={<Testing />} />
       </Route>
-      <Route path="/interview" element={<LayoutWithoutFooter />}>
-        <Route index element={<AIInterview />} />
+
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<Layout />}>
+          <Route path="dashboard" element={<UserDashboard />} />
+        </Route>
+      </Route>
+
+      {/* Special layout without footer */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<LayoutWithoutFooter />}>
+          <Route path="interview" element={<AIInterview/>} />
+        </Route>
       </Route>
       <Route path="/pricing" element={<LayoutWithoutFooter />}>
         <Route index element={<Pricing />} />
       </Route>
   
-    </>, // Close the wrapper
+    </>,
   ),
 );
 
