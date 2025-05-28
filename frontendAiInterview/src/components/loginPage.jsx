@@ -114,10 +114,13 @@ function LoginForm({ onShowPassword, showPassword }) {
   const handleSubmit = async () => {
     const newErrors = {};
 
+    // Validate email/username
     if (!loginInfo.emailOrUsername.trim()) {
-      newErrors.emailOrUsername = "This field is required.";
+      newErrors.emailOrUsername = "Email or username is required.";
     }
-    if (!loginInfo.password.trim()) {
+
+    // Validate password
+    if (!loginInfo.password) {
       newErrors.password = "This field is required.";
     }
 
@@ -125,28 +128,44 @@ function LoginForm({ onShowPassword, showPassword }) {
 
     // If no errors, proceed
     if (Object.keys(newErrors).length === 0) {
-      console.log("Login Info:", loginInfo);
-      try {
-        const payload = {
-          username: loginInfo.emailOrUsername,
-          email: loginInfo.emailOrUsername,
-          password: loginInfo.password,
-        };
-        const api = "https://backend-ai-interview.vercel.app/api/v1/user/login";
-        const response = await axios.post(api, payload, {
-          withCredentials: true,
-        });
-        console.log("Login response:", response.data);
-
-        if (response.data.success) {
-          toast.success("Login successful!");
-          navigate("/interview");
-        } else {
-          toast.error(response.data.message || "Login failed");
+      const loginPromise = new Promise(async (resolve, reject) => {
+        try {
+          const payload = {
+            username: loginInfo.emailOrUsername,
+            email: loginInfo.emailOrUsername,
+            password: loginInfo.password,
+          };
+          const api = "https://backend-ai-interview.vercel.app/api/v1/user/login";
+          const response = await axios.post(api, payload, {
+            withCredentials: true,
+          });
+          
+          if (response.data.success) {
+            resolve(response.data);
+            navigate("/interview");
+          } else {
+            reject(new Error(response.data.message || "Login failed"));
+          }
+        } catch (error) {
+          reject(new Error(error.response?.data?.message || "Something went wrong."));
         }
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Something went wrong.");
-      }
+      });
+
+      toast.promise(loginPromise, {
+        pending: 'Logging in...',
+        success: {
+          render({ data }) {
+            return `Welcome back!`;
+          },
+          icon: '🟢',
+        },
+        error: {
+          render({ data }) {
+            return data?.message || 'Login failed. Please try again.';
+          },
+          icon: '🔴',
+        },
+      });
     }
   };
   return (

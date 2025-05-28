@@ -1,4 +1,5 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import { startLiveTranscription } from "./SpeechTranscrib";
 import {
   Box,
   Grid,
@@ -17,6 +18,9 @@ import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import ai from "../assets/ai.jpeg";
+import {useNavigate} from "react-router";
+import {toast} from "react-toastify";
+
 
 // Initialize MediaRecorder and other variables
 let mediaRecorder;
@@ -64,12 +68,15 @@ const SecondaryButton = styled(Button)(({ theme }) => ({
 
 const AIInterview = () => {
   const theme = useTheme();
-  const [isRecording, setIsRecording] = React.useState(false);
-  const [isVideoOn, setIsVideoOn] = React.useState(true);
-  const [isAudioOn, setIsAudioOn] = React.useState(true);
-  const [stream, setStream] = React.useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [isAudioOn, setIsAudioOn] = useState(true);
+  const [stream, setStream] = useState(null);
+  const [transcript, setTranscript] = useState("");
+  const transcriptionRef = useRef(null);
   const videoRef = useRef(null);
   const videoPreviewRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Clean up function to stop all media tracks when component unmounts
@@ -79,6 +86,22 @@ const AIInterview = () => {
       }
     };
   }, [stream]);
+
+  const handleTranscriptionUpdate = (interimTranscript) => {
+    // Update the transcript with the latest interim results
+    setTranscript(prev => {
+      const finalPart = prev.split('|')[0];
+      return `${finalPart}|${interimTranscript}`;
+    });
+  };
+
+  const handleTranscriptionComplete = (finalTranscript) => {
+    // Update the final transcript
+    setTranscript(prev => {
+      const currentFinal = prev.split('|')[0];
+      return `${currentFinal} ${finalTranscript}`.trim() + ' |';
+    });
+  };
 
   const startRecording = async () => {
     try {
@@ -131,6 +154,26 @@ const AIInterview = () => {
       //   }
       // };
       
+      // Start live transcription
+      setTranscript('');
+      transcriptionRef.current = startLiveTranscription(
+        60000, // 1 minute timeout (will auto-renew)
+        handleTranscriptionUpdate,
+        (final) => {
+          handleTranscriptionComplete(final);
+          // Restart transcription if still recording
+          if (isRecording) {
+            transcriptionRef.current = startLiveTranscription(
+              60000,
+              handleTranscriptionUpdate,
+              handleTranscriptionComplete,
+              console.error
+            );
+          }
+        },
+        console.error
+      );
+      
       mediaRecorder.start(100); // Collect 100ms of data
       setIsRecording(true);
       
@@ -143,6 +186,10 @@ const AIInterview = () => {
   const stopRecording = () => {
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
+      // Stop any ongoing transcription
+      if (transcriptionRef.current && transcriptionRef.current.stop) {
+        transcriptionRef.current.stop();
+      }
       setIsRecording(false);
       setIsVideoOn(false);
       setIsAudioOn(false);
@@ -152,8 +199,11 @@ const AIInterview = () => {
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
+      toast.success("Interview has been completed, Analyzing your responses and it is available in your dashboard");
+      navigate('/dashboard');
     } else {
       startRecording();
+      toast.success("Interview Begins");
     }
   };
 
@@ -533,34 +583,59 @@ const AIInterview = () => {
                             animation: "fadeIn 0.3s ease-in-out",
                           }}
                         >
-                          <Box
-                            sx={{
-                              width: 8,
-                              height: 8,
-                              bgcolor: "#00bfa5",
-                              borderRadius: "50%",
-                              mr: 1.5,
-                              flexShrink: 0,
-                              animation: "pulse 2s infinite",
-                            }}
-                          />
-                          <Box>
-                            <Typography
-                              variant="body2"
-                              sx={{ color: "rgba(255, 255, 255, 0.7)" }}
-                            >
-                              AI: What are your greatest strengths?
-                            </Typography>
-                            <Typography
-                              variant="caption"
+                          <Box sx={{ width: '100%' }}>
+                          {/* AI Message */}
+                          <Box sx={{ 
+                            display: 'flex', 
+                            alignItems: 'center',
+                            mb: 2
+                          }}>
+                            <Box
                               sx={{
-                                color: "rgba(255, 255, 255, 0.5)",
-                                display: "block",
-                                mt: 0.5,
+                                width: 8,
+                                height: 8,
+                                bgcolor: "#00bfa5",
+                                borderRadius: "50%",
+                                mr: 1.5,
+                                flexShrink: 0,
+                                animation: "pulse 2s infinite",
                               }}
-                            >
-                              Just now
-                            </Typography>
+                            />
+                            <Box sx={{
+                              bgcolor: 'rgba(0, 0, 0, 0.1)',
+                              p: 2,
+                              borderRadius: '16px 16px 16px 4px',
+                              maxWidth: '80%'
+                            }}>
+                              <Typography variant="body2" sx={{ color: 'white' }}>
+                                AI: What are your greatest strengths?
+                              </Typography>
+                            </Box>
+                            </Box>
+                            
+                            {/* User Message */}
+                            <Box sx={{ 
+                              display: 'flex', 
+                              justifyContent: 'flex-end',
+                              mb: 2
+                            }}>
+                              <Box sx={{
+                                bgcolor: 'rgba(0, 191, 165, 0.2)',
+                                p: 2,
+                                borderRadius: '16px 16px 4px 16px',
+                                maxWidth: '80%',
+                                border: '1px solid rgba(0, 191, 165, 0.3)'
+                              }}>
+                                <Typography variant="body2" sx={{ color: 'white' }}>
+                                  {transcript.replace(/\|.*$/, '')}
+                                  {transcript.includes('|') && (
+                                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                                      {transcript.split('|')[1]}
+                                    </span>
+                                  )}
+                                </Typography>
+                              </Box>
+                            </Box>
                           </Box>
                         </Box>
                       ) : (
