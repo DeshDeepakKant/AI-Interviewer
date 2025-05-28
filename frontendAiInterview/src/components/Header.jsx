@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link as RouterLink, useNavigate } from "react-router";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   AppBar,
   Toolbar,
@@ -12,10 +13,43 @@ import {
   Container,
   Avatar,
   Tooltip,
+  Badge,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Fade,
+  Zoom,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import LogoutIcon from "@mui/icons-material/Logout";
+import PersonIcon from "@mui/icons-material/Person";
+import SettingsIcon from "@mui/icons-material/Settings";
 import axios from "axios";
+
+// Animation variants
+const fadeIn = {
+  hidden: { opacity: 0, y: -10 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.3, ease: "easeOut" }
+  },
+  exit: { 
+    opacity: 0, 
+    y: -10,
+    transition: { duration: 0.2 }
+  }
+};
+
+const scaleUp = {
+  hover: { 
+    scale: 1.05,
+    transition: { type: "spring", stiffness: 400, damping: 10 }
+  },
+  tap: { scale: 0.98 }
+};
 
 const navItems = [
   { name: "Companies", path: "/comingSoon" },
@@ -86,13 +120,18 @@ const Header = () => {
   return (
     <AppBar
       position="fixed"
-      elevation={0}
       sx={{
-        background: "rgba(10, 15, 26, 0.98)",
+        background: "rgba(16, 20, 30, 0.98)",
         backdropFilter: "blur(10px)",
         color: "#fff",
         zIndex: 1200,
-        borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
+        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        transition: "all 0.3s ease",
+        '&:hover': {
+          background: "rgba(20, 25, 35, 0.98)",
+          boxShadow: "0 6px 35px rgba(0, 0, 0, 0.15)"
+        }
       }}
     >
       <Container maxWidth="lg">
@@ -145,79 +184,193 @@ const Header = () => {
             ))}
 
             {!isLoading && user ? (
-              <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
-                <Tooltip title="Account settings">
-                  <IconButton
-                    onClick={handleProfileMenuOpen}
-                    size="small"
-                    sx={{ ml: 2 }}
-                    aria-controls={
-                      profileMenuOpen ? "account-menu" : undefined
-                    }
-                    aria-haspopup="true"
-                    aria-expanded={profileMenuOpen ? "true" : undefined}
-                  >
-                    <Avatar
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                {/* Notifications */}
+                <Tooltip title="Notifications" arrow>
+                  <motion.div whileHover="hover" whileTap="tap" variants={scaleUp}>
+                    <IconButton
                       sx={{
-                        width: 32,
-                        height: 32,
-                        bgcolor: "primary.main",
-                        "&:hover": {
-                          transform: "scale(1.1)",
-                          transition: "transform 0.2s",
-                        },
+                        color: "rgba(255,255,255,0.8)",
+                        position: "relative",
+                        "&:hover": { 
+                          color: "#00e5c9",
+                          background: "rgba(0,191,165,0.1)" 
+                        }
                       }}
                     >
-                      {user.fullName
-                        ? user.fullName.charAt(0).toUpperCase()
-                        : <AccountCircle />}
-                    </Avatar>
-                  </IconButton>
+                      <Badge 
+                        badgeContent={3} 
+                        color="error" 
+                        variant="dot"
+                        overlap="circular"
+                      >
+                        <NotificationsIcon />
+                      </Badge>
+                    </IconButton>
+                  </motion.div>
+                </Tooltip>
+                
+                {/* User Profile */}
+                <Tooltip title="Account settings" arrow>
+                  <motion.div 
+                    variants={scaleUp}
+                    whileHover="hover"
+                    whileTap="tap"
+                    style={{ display: 'flex', alignItems: 'center' }}
+                  >
+                    <Box 
+                      onClick={handleProfileMenuOpen}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        p: 0.5,
+                        pr: 1.5,
+                        borderRadius: 4,
+                        border: `1px solid ${profileMenuOpen ? 'rgba(0,191,165,0.3)' : 'rgba(255,255,255,0.05)'}`,
+                        background: profileMenuOpen ? 'rgba(0,191,165,0.1)' : 'transparent',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          background: 'rgba(0,191,165,0.15)',
+                          borderColor: 'rgba(0,191,165,0.5)'
+                        }
+                      }}
+                    >
+                      <Avatar
+                        sx={{
+                          width: 36,
+                          height: 36,
+                          bgcolor: "primary.main",
+                          background: "linear-gradient(135deg, #00bfa5 0%, #00acc1 100%)",
+                          fontWeight: 600,
+                          fontSize: "1rem",
+                          boxShadow: "0 4px 12px rgba(0,191,165,0.2)",
+                          border: "2px solid rgba(255,255,255,0.1)",
+                          transition: "all 0.3s ease",
+                        }}
+                      >
+                        {user.fullName
+                          ? user.fullName.charAt(0).toUpperCase()
+                          : <AccountCircle />}
+                      </Avatar>
+                      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+                        <Typography 
+                          variant="subtitle2" 
+                          sx={{ 
+                            fontWeight: 600,
+                            color: "rgba(255,255,255,0.9)",
+                            lineHeight: 1.2,
+                            fontSize: '0.85rem'
+                          }}
+                        >
+                          {user.fullName || 'User'}
+                        </Typography>
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            display: 'block', 
+                            color: "rgba(255,255,255,0.6)",
+                            fontSize: '0.7rem',
+                            lineHeight: 1.2
+                          }}
+                        >
+                          {user.email || 'Premium Member'}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </motion.div>
                 </Tooltip>
                 <Menu
                   anchorEl={profileAnchorEl}
-                  id="account-menu"
                   open={profileMenuOpen}
                   onClose={handleProfileMenuClose}
                   onClick={handleProfileMenuClose}
                   PaperProps={{
                     elevation: 0,
                     sx: {
+                      minWidth: 220,
                       overflow: "visible",
-                      filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
+                      filter: "drop-shadow(0 10px 25px rgba(0,0,0,0.2))",
                       mt: 1.5,
-                      background: "rgba(10, 15, 26, 0.98)",
+                      background: "rgba(22, 28, 42, 0.98)",
                       backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,255,255,0.1)",
-                      borderRadius: 2,
+                      border: "1px solid rgba(255,255,255,0.08)",
+                      borderRadius: '12px',
+                      py: 0.5,
+                      "& .MuiMenuItem-root": {
+                        px: 2,
+                        py: '10px',
+                        color: "rgba(255,255,255,0.8)",
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                          background: 'rgba(0, 191, 165, 0.1)',
+                          color: '#00e5c9',
+                          '& .MuiSvgIcon-root': {
+                            color: '#00e5c9',
+                          }
+                        },
+                      },
                       "&:before": {
                         content: '""',
                         display: "block",
                         position: "absolute",
-                        top: 0,
-                        right: 14,
-                        width: 10,
-                        height: 10,
-                        bgcolor: "background.paper",
+                        top: -6,
+                        right: 20,
+                        width: 12,
+                        height: 12,
+                        bgcolor: "rgba(22, 28, 42, 0.98)",
+                        borderTop: "1px solid rgba(255,255,255,0.1)",
+                        borderLeft: "1px solid rgba(255,255,255,0.1)",
                         transform: "translateY(-50%) rotate(45deg)",
                         zIndex: 0,
-                      },
-                      "& .MuiAvatar-root": {
-                        width: 32,
-                        height: 32,
-                        ml: -0.5,
-                        mr: 1,
                       },
                     },
                   }}
                   transformOrigin={{ horizontal: "right", vertical: "top" }}
                   anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                  TransitionComponent={Fade}
+                  transitionDuration={150}
                 >
-                  <MenuItem onClick={() => navigate("/profile")}>
-                    <Avatar /> Profile
+                  <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Typography variant="subtitle2" sx={{ color: '#00e5c9', fontWeight: 600, fontSize: '0.9rem' }}>
+                      {user.fullName || 'Welcome Back'}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.75rem' }}>
+                      {user.email || 'Premium Member'}
+                    </Typography>
+                  </Box>
+                  
+                  <MenuItem 
+                    component={motion.div}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    onClick={() => {
+                      handleProfileMenuClose();
+                      navigate("/profile");
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                      <PersonIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>My Profile</ListItemText>
                   </MenuItem>
-                  <MenuItem onClick={handleLogout}>
-                    <Avatar /> Logout
+                  
+                  <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.05)' }} />
+                  
+                  <MenuItem 
+                    component={motion.div}
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    onClick={handleLogout}
+                    sx={{ color: '#ff6b6b' }}
+                  >
+                    <ListItemIcon sx={{ color: 'inherit' }}>
+                      <LogoutIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Logout</ListItemText>
                   </MenuItem>
                 </Menu>
               </Box>
