@@ -172,6 +172,11 @@ const test = asyncHandler(async(req, res)=>{
     }
 })
 
+const verifyToken = asyncHandler(async(req, res)=>{
+    return res.status(200).json({
+        "valid":true,
+    })
+})
 
 
 export {
@@ -179,5 +184,6 @@ export {
     userLogin,
     userLogout,
     getCurrentUser,
-    test
+    test,
+    verifyToken
 }
