@@ -8,17 +8,11 @@ const ProtectedRoute = () => {
 
   useEffect(() => {
     const verifyToken = async () => {
-      const token = localStorage.getItem("jwt");
-      if (!token) {
-        setIsValid(false);
-        return;
-      }
-
       try {
-        const response = await axios.get("http://localhost:8000/api/verify-token", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
+        const response = await axios.get(
+          "https://backend-ai-interview.vercel.app/api/v1/user/verify-token",
+          { withCredentials: true } // ✅ Send cookies
+        );
         setIsValid(response.data.valid);
       } catch (err) {
         setIsValid(false);
