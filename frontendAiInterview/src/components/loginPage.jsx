@@ -134,7 +134,7 @@ function LoginForm({ onShowPassword, showPassword }) {
             email: loginInfo.emailOrUsername,
             password: loginInfo.password,
           };
-          const api = "https://backend-ai-interview.vercel.app/api/v1/user/login";
+          const api = "/api/v1/user/login";
           const response = await axios.post(api, payload, {
             withCredentials: true,
           });
