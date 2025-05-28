@@ -27,6 +27,7 @@ const Header = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [user, setUser] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const open = Boolean(anchorEl);
   const profileMenuOpen = Boolean(profileAnchorEl);
@@ -56,14 +57,23 @@ const Header = () => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        const response = await axios.get('/api/v1/user/me', {
-          withCredentials: true
+        const response = await axios.get('/api/v1/user/currentUser', {
+          withCredentials: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
-        if (response.data.user) {
+        
+        if (response.data && response.data.user) {
           setUser(response.data.user);
+        } else {
+          setUser(null);
         }
       } catch (error) {
         console.error('Authentication check failed:', error);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -134,7 +144,7 @@ const Header = () => {
                 {item.name}
               </Button>
             ))}
-            {user ? (
+            {!isLoading && user ? (
               <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
                 <Tooltip title="Account settings">
                   <IconButton
@@ -295,7 +305,7 @@ const Header = () => {
                   {item.name}
                 </MenuItem>
               ))}
-              {user ? (
+              {!isLoading && user ? (
                 <>
                   <MenuItem 
                     onClick={() => {
