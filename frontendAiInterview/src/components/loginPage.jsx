@@ -25,9 +25,8 @@ import {
   Badge,
   Lock,
 } from "@mui/icons-material";
-import { useSearchParams } from "react-router";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 // Dark theme
 const theme = createTheme({
@@ -256,7 +255,81 @@ function LoginForm({ onShowPassword, showPassword }) {
 }
 
 function SignupForm({ onShowPassword, showPassword }) {
+  const navigate = useNavigate();
+  const [shouldNavigate, setShouldNavigate] = useState(false);
+  const [signupInfo, setSignupInfo] = useState({
+    fullName: "",
+    username: "",
+    email: "",
+    password: "",
+  })
+
+  useEffect(() => {
+    if (shouldNavigate) {
+      // Try programmatic navigation first
+      navigate("/login", { replace: true });
+      // Fallback to window.location after a short delay
+      const timer = setTimeout(() => {
+        window.location.href = "/login";
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldNavigate]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const copySignupInfo = { ...signupInfo };
+    copySignupInfo[name] = value;
+    setSignupInfo(copySignupInfo)
+  }
+
+  const handleSubmit = () => {
+    console.log(signupInfo);
+    const signupPromise = new Promise(async (resolve, reject) => {
+      try {
+        const payload = { ...signupInfo };
+        const api = "https://backend-ai-interview.vercel.app/api/v1/user/signup";
+        const response = await axios.post(api, payload, {
+          withCredentials: true,
+        });
+  
+        if (response.data.success) {
+          resolve(response.data); 
+        } else {
+          reject(new Error(response.data.message || "Signup failed"));
+        }
+      } catch (error) {
+        reject(new Error(error.response?.data?.message || "Something went wrong."));
+      }
+    });
+  
+    toast.promise(signupPromise, {
+      pending: 'Signing up...',
+      success: {
+        render({ data }) {
+          // Set state to trigger navigation in useEffect
+          setShouldNavigate(true);
+          return `Signed up successfully! Redirecting to login...`;
+        },
+        icon: '🟢',
+      },
+      error: {
+        render({ data }) {
+          return data?.message || 'Signup failed. Please try again.';
+        },
+        icon: '🔴',
+      },
+    });
+  };
+  
   return (
+    <Box
+    component="form"
+    onSubmit={(e) => {
+      e.preventDefault();
+      handleSubmit();
+    }}
+  >
     <Fade in timeout={400}>
       <Box
         component={motion.div}
@@ -269,7 +342,10 @@ function SignupForm({ onShowPassword, showPassword }) {
           label="Full Name"
           variant="outlined"
           fullWidth
+          name="fullName"
+          required
           margin="dense"
+          onChange={handleChange}
           autoComplete="name"
           sx={fieldStyle}
           InputProps={{
@@ -281,9 +357,13 @@ function SignupForm({ onShowPassword, showPassword }) {
           }}
         />
         <TextField
+
           label="User Name"
+          name="username"
           variant="outlined"
+          required
           fullWidth
+          onChange={handleChange}
           margin="dense"
           autoComplete="username"
           sx={fieldStyle}
@@ -297,9 +377,12 @@ function SignupForm({ onShowPassword, showPassword }) {
         />
         <TextField
           label="Email Address"
+          required
           variant="outlined"
           fullWidth
           margin="dense"
+          name="email"
+          onChange={handleChange}
           autoComplete="email"
           sx={fieldStyle}
           InputProps={{
@@ -313,8 +396,10 @@ function SignupForm({ onShowPassword, showPassword }) {
         <TextField
           label="Password"
           variant="outlined"
+          required
           fullWidth
           margin="dense"
+          name="password"
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
           sx={fieldStyle}
@@ -337,6 +422,7 @@ function SignupForm({ onShowPassword, showPassword }) {
         <Button
           fullWidth
           variant="contained"
+          type="submit"
           color="secondary"
           size="large"
           sx={{
@@ -350,6 +436,7 @@ function SignupForm({ onShowPassword, showPassword }) {
         </Button>
       </Box>
     </Fade>
+    </Box>
   );
 }
 
@@ -377,6 +464,7 @@ export default function LoginPage() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      
       <Box
         sx={{
           position: "relative",
