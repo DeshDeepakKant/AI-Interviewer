@@ -21,7 +21,6 @@ import UserDashboard from "./components/UserDashboard.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MockInterviewWay from "./components/MockInterviewWay.jsx";
-import { Analytics } from "@vercel/analytics/next"
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
