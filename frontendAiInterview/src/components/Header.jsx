@@ -19,6 +19,7 @@ import {
   ListItemText,
   Fade,
   Zoom,
+  Skeleton,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountCircle from "@mui/icons-material/AccountCircle";
@@ -150,21 +151,42 @@ const Header = () => {
     fetchCurrentUser();
   }, []);
 
+  // Show loading skeleton while verifying authentication
+  if (isLoading) {
+    return (
+      <AppBar position="fixed" sx={{
+        background: "rgba(16, 20, 30, 0.98)",
+        backdropFilter: "blur(10px)",
+        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.2)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+      }}>
+        <Container maxWidth="lg">
+          <Toolbar disableGutters sx={{ justifyContent: 'space-between' }}>
+            <Skeleton variant="rounded" width={150} height={32} />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Skeleton variant="circular" width={40} height={40} />
+            </Box>
+          </Toolbar>
+        </Container>
+      </AppBar>
+    );
+  }
+
   return (
     <AppBar
       position="fixed"
       sx={{
         background: "rgba(16, 20, 30, 0.98)",
         backdropFilter: "blur(10px)",
-        color: "#fff",
-        zIndex: 1200,
-        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
+        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.2)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        zIndex: (theme) => theme.zIndex.drawer + 1,
         transition: "all 0.3s ease",
-        '&:hover': {
-          background: "rgba(20, 25, 35, 0.98)",
-          boxShadow: "0 6px 35px rgba(0, 0, 0, 0.15)"
-        }
+        "&.scrolled": {
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.3)",
+          background: "rgba(16, 20, 30, 0.95)",
+        },
       }}
     >
       <Container maxWidth="lg">
@@ -235,7 +257,7 @@ const Header = () => {
               );
             })}
 
-            {!isLoading && user ? (
+            {user ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 {/* Notifications */}
                 <Tooltip title="Notifications" arrow>
@@ -263,6 +285,7 @@ const Header = () => {
                 </Tooltip>
                 
                 {/* User Profile */}
+                
                 <Tooltip title="Account settings" arrow>
                   <motion.div 
                     variants={scaleUp}
@@ -425,46 +448,42 @@ const Header = () => {
                   </MenuItem>
                 </Menu>
               </Box>
-            ) : (
-              <>
-              {!isLoading && !user && (
-                <Button
-                  component={RouterLink}
-                  to="/login"
-                  sx={{
-                    ml: 1,
-                    color: "rgba(255,255,255,0.9)",
-                    textTransform: "none",
-                    fontWeight: 500,
-                    "&:hover": {
-                      color: "#00e5c9",
-                      background: "rgba(0,191,165,0.15)",
-                      borderRadius: 1,
-                    },
-                  }}
-                >
-                  Login
-                </Button>
-              )}
-              {!isLoading && !user && (
-                <Button
-                  variant="contained"
-                  component={RouterLink}
-                  to="/signup"
-                  sx={{
-                    ml: 2,
-                    background:
-                      "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                    "&:hover": {
-                      background:
-                        "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
-                    },
-                  }}
-                >
-                  Sign Up
-                </Button>
-                 )}
-              </>
+            ): (
+              !isLoading && (
+                <>
+                  <Button
+                    component={RouterLink}
+                    to="/login"
+                    sx={{
+                      ml: 1,
+                      color: "rgba(255,255,255,0.9)",
+                      textTransform: "none",
+                      fontWeight: 500,
+                      "&:hover": {
+                        color: "#00e5c9",
+                        background: "rgba(0,191,165,0.15)",
+                        borderRadius: 1,
+                      },
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    component={RouterLink}
+                    to="/signup"
+                    variant="contained"
+                    sx={{
+                      ml: 2,
+                      background: "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                      "&:hover": {
+                        background: "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                      },
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              )
             )}
           </Box>
 
