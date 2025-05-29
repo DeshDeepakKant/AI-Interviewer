@@ -80,11 +80,26 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Get user from localStorage to maintain during verification
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('user');
-    return savedUser ? JSON.parse(savedUser) : null;
-  });
+  const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -786,43 +801,49 @@ const Header = () => {
               </Box>
             ) : (
               <>
-              {!isLoading && !user ? (
-                <Button
-                  component={RouterLink}
-                  to="/login"
-                  sx={{
-                    ml: 1,
-                    color: "rgba(255,255,255,0.9)",
-                    textTransform: "none",
-                    fontWeight: 500,
-                    "&:hover": {
-                      color: "#00e5c9",
-                      background: "rgba(0,191,165,0.15)",
-                      borderRadius: 1,
-                    },
-                  }}
-                >
-                  Login
-                </Button>
-              ) : null}
-              {!isLoading && !user ? (
-                <Button
-                  variant="contained"
-                  component={RouterLink}
-                  to="/signup"
-                  sx={{
-                    ml: 2,
-                    background:
-                      "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                    "&:hover": {
+              {isLoading ? (
+                // Show loading skeleton or nothing while checking auth state
+                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
+                  <Box sx={{ width: 80, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
+                  <Box sx={{ width: 100, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
+                </Box>
+              ) : !user ? (
+                <>
+                  <Button
+                    component={RouterLink}
+                    to="/login"
+                    sx={{
+                      ml: 1,
+                      color: "rgba(255,255,255,0.9)",
+                      textTransform: "none",
+                      fontWeight: 500,
+                      "&:hover": {
+                        color: "#00e5c9",
+                        background: "rgba(0,191,165,0.15)",
+                        borderRadius: 1,
+                      },
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button
+                    variant="contained"
+                    component={RouterLink}
+                    to="/signup"
+                    sx={{
+                      ml: 2,
                       background:
-                        "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
-                    },
-                  }}
-                >
-                  Sign Up
-                </Button>
-                 ) : null}
+                        "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
+                      "&:hover": {
+                        background:
+                          "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                      },
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </>
+              ) : null}
               </>
             )}
           </Box>
