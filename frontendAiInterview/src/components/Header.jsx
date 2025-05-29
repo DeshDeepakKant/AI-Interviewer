@@ -26,6 +26,12 @@ import NotificationsIcon from "@mui/icons-material/Notifications";
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import CircleIcon from '@mui/icons-material/Circle';
+import CircularProgress from '@mui/material/CircularProgress';
 import axios from "axios";
 
 // Animation variants
@@ -51,6 +57,29 @@ const scaleUp = {
   tap: { scale: 0.98 }
 };
 
+// Keyframes for pulse animation
+const pulseKeyframes = `
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.7;
+    }
+    70% {
+      transform: scale(1.8);
+      opacity: 0;
+    }
+    100% {
+      transform: scale(1);
+      opacity: 0;
+    }
+  }
+`;
+
+// Add global styles for the pulse animation
+const styleElement = document.createElement('style');
+styleElement.textContent = pulseKeyframes;
+document.head.appendChild(styleElement);
+
 const navItems = [
   { name: "Companies", path: "/comingSoon" },
   { name: "Mock Interview", path: "/mockInterviewWay" },
@@ -61,6 +90,9 @@ const navItems = [
 const Header = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const [notificationAnchorEl, setNotificationAnchorEl] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   // Get user from localStorage to maintain during verification
   const [user, setUser] = useState(() => {
@@ -73,6 +105,7 @@ const Header = () => {
   const location = useLocation();
   const open = Boolean(anchorEl);
   const profileMenuOpen = Boolean(profileAnchorEl);
+  const notificationMenuOpen = Boolean(notificationAnchorEl);
   
   // Check if current path matches nav item path
   const isActive = (path) => {
@@ -86,6 +119,36 @@ const Header = () => {
 
   const handleMenu = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
+  
+  const handleNotificationMenuOpen = (event) => {
+    setNotificationAnchorEl(event.currentTarget);
+    // Fetch notifications when the menu is opened
+    if (user) {
+      fetchNotifications();
+    }
+  };
+
+  const handleNotificationMenuClose = () => {
+    setNotificationAnchorEl(null);
+  };
+  
+  const fetchNotifications = async () => {
+    try {
+      setIsLoadingNotifications(true);
+      const response = await axios.get('/api/v1/notifications', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+      if (response.data.success) {
+        setNotifications(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setIsLoadingNotifications(false);
+    }
+  };
 
   const handleProfileMenuOpen = (e) => {
     e.stopPropagation();
@@ -248,8 +311,9 @@ const Header = () => {
                 <Tooltip title="Notifications" arrow>
                   <motion.div whileHover="hover" whileTap="tap" variants={scaleUp}>
                     <IconButton
+                      onClick={handleNotificationMenuOpen}
                       sx={{
-                        color: "rgba(255,255,255,0.8)",
+                        color: notificationMenuOpen ? "#00e5c9" : "rgba(255,255,255,0.8)",
                         position: "relative",
                         "&:hover": { 
                           color: "#00e5c9",
@@ -258,16 +322,266 @@ const Header = () => {
                       }}
                     >
                       <Badge 
-                        badgeContent={3} 
+                        badgeContent={notifications.length > 0 ? notifications.length : 0} 
                         color="error" 
-                        variant="dot"
+                        variant={notifications.length > 0 ? "standard" : "dot"}
                         overlap="circular"
+                        max={9}
                       >
-                        <NotificationsIcon />
+                        {notifications.length > 0 ? (
+                          <NotificationsIcon />
+                        ) : (
+                          <NotificationsNoneIcon />
+                        )}
                       </Badge>
                     </IconButton>
                   </motion.div>
                 </Tooltip>
+                
+                {/* Notification Menu */}
+                <Menu
+                  anchorEl={notificationAnchorEl}
+                  open={notificationMenuOpen}
+                  onClose={handleNotificationMenuClose}
+                  onClick={handleNotificationMenuClose}
+                  PaperProps={{
+                    elevation: 8,
+                    sx: {
+                      minWidth: 360,
+                      maxWidth: '90vw',
+                      maxHeight: '60vh',
+                      overflow: 'hidden',
+                      mt: 1.5,
+                      background: 'linear-gradient(135deg, rgba(22, 28, 42, 0.95) 0%, rgba(15, 20, 34, 0.98) 100%)',
+                      backdropFilter: 'blur(16px)',
+                      border: '1px solid rgba(0, 191, 165, 0.15)',
+                      borderRadius: '12px',
+                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                      '& .MuiMenu-list': {
+                        p: 0,
+                      },
+                      '& .MuiMenuItem-root': {
+                        px: 2.5,
+                        py: 1.75,
+                        borderBottom: '1px solid rgba(255,255,255,0.03)',
+                        transition: 'all 0.2s ease',
+                        '&:last-child': {
+                          borderBottom: 'none',
+                        },
+                        '&:hover': {
+                          background: 'linear-gradient(90deg, rgba(0, 191, 165, 0.08) 0%, rgba(0, 191, 165, 0.03) 100%)',
+                          transform: 'translateX(2px)',
+                        },
+                        '&:active': {
+                          transform: 'scale(0.99)',
+                        },
+                      },
+                    },
+                  }}
+                  transformOrigin={{
+                    vertical: 'top',
+                    horizontal: 'right',
+                  }}
+                  anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'right',
+                  }}
+                  TransitionComponent={Fade}
+                  transitionDuration={200}
+                >
+                  <Box 
+                    sx={{ 
+                      px: 2.5, 
+                      py: 1.75, 
+                      borderBottom: '1px solid rgba(0, 191, 165, 0.1)',
+                      background: 'linear-gradient(90deg, rgba(0, 191, 165, 0.1) 0%, transparent 100%)',
+                      backdropFilter: 'blur(4px)'
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="subtitle2" sx={{ 
+                        color: '#00e5c9', 
+                        fontWeight: 600,
+                        letterSpacing: '0.5px',
+                        fontSize: '0.9rem',
+                        textTransform: 'uppercase'
+                      }}>
+                        Notifications
+                      </Typography>
+                      <Typography variant="caption" sx={{ 
+                        color: 'rgba(255,255,255,0.5)',
+                        fontSize: '0.7rem',
+                        bgcolor: 'rgba(0, 191, 165, 0.1)',
+                        px: 1,
+                        py: 0.25,
+                        borderRadius: '4px',
+                        fontWeight: 500
+                      }}>
+                        {notifications.length} {notifications.length === 1 ? 'New' : 'New'}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  {isLoadingNotifications ? (
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                      <CircularProgress 
+                        size={28} 
+                        thickness={4}
+                        sx={{ 
+                          color: '#00e5c9',
+                          '& .MuiCircularProgress-circle': {
+                            strokeLinecap: 'round'
+                          }
+                        }} 
+                      />
+                    </Box>
+                  ) : notifications.length > 0 ? (
+                    <Box sx={{ overflowY: 'auto', maxHeight: '50vh' }}>
+                      {notifications.map((notification, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.05 }}
+                        >
+                          <MenuItem 
+                            sx={{
+                              opacity: notification.read ? 0.85 : 1,
+                              '&:hover': {
+                                opacity: 1
+                              }
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', width: '100%' }}>
+                              <Box sx={{ 
+                                position: 'relative',
+                                mr: 2,
+                                mt: 0.5
+                              }}>
+                                <Box
+                                  sx={{
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: '50%',
+                                    bgcolor: notification.read ? 'transparent' : '#00e5c9',
+                                    boxShadow: notification.read ? 'none' : '0 0 8px rgba(0, 229, 201, 0.7)',
+                                    position: 'relative',
+                                    '&::after': {
+                                      content: '""',
+                                      position: 'absolute',
+                                      top: -3,
+                                      left: -3,
+                                      right: -3,
+                                      bottom: -3,
+                                      borderRadius: '50%',
+                                      border: notification.read ? 'none' : '1px solid rgba(0, 229, 201, 0.3)',
+                                      animation: notification.read ? 'none' : 'pulse 2s infinite'
+                                    }
+                                  }}
+                                />
+                              </Box>
+                              <Box sx={{ 
+                                flexGrow: 1, 
+                                minWidth: 0,
+                                overflow: 'hidden'
+                              }}>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    fontWeight: notification.read ? 'normal' : 600,
+                                    color: notification.read ? 'rgba(255,255,255,0.8)' : '#fff',
+                                    whiteSpace: 'normal',
+                                    lineHeight: 1.5,
+                                    mb: 0.5
+                                  }}
+                                >
+                                  {notification.message}
+                                </Typography>
+                                <Typography 
+                                  variant="caption" 
+                                  sx={{ 
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    color: notification.read ? 'rgba(255,255,255,0.4)' : 'rgba(0, 229, 201, 0.8)',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 500,
+                                    '& svg': {
+                                      fontSize: '0.9em',
+                                      mr: 0.5
+                                    }
+                                  }}
+                                >
+                                  <AccessTimeIcon fontSize="inherit" />
+                                  {new Date(notification.createdAt).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                  })}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </MenuItem>
+                        </motion.div>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box sx={{ 
+                      p: 4, 
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minHeight: '200px'
+                    }}>
+                      <NotificationsOffIcon sx={{ 
+                        fontSize: 48, 
+                        color: 'rgba(255,255,255,0.1)',
+                        mb: 2
+                      }} />
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: 'rgba(255,255,255,0.6)',
+                          maxWidth: '280px',
+                          lineHeight: 1.6,
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        No new notifications
+                        <Box component="span" sx={{ display: 'block', mt: 1, fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)' }}>
+                          We'll let you know when something new arrives
+                        </Box>
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {notifications.length > 0 && (
+                    <Box sx={{ 
+                      px: 2.5, 
+                      py: 1.5, 
+                      borderTop: '1px solid rgba(255,255,255,0.03)',
+                      textAlign: 'center',
+                      background: 'rgba(0,0,0,0.2)'
+                    }}>
+                      <Button 
+                        size="small" 
+                        sx={{
+                          color: 'rgba(255,255,255,0.6)',
+                          fontSize: '0.75rem',
+                          textTransform: 'none',
+                          '&:hover': {
+                            color: '#00e5c9',
+                            background: 'rgba(0, 191, 165, 0.1)'
+                          }
+                        }}
+                      >
+                        View All Notifications
+                      </Button>
+                    </Box>
+                  )}
+                </Menu>
                 
                 {/* User Profile */}
                 <Tooltip title="Account settings" arrow>
