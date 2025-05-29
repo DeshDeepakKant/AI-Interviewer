@@ -79,6 +79,9 @@ const Header = () => {
     // For other paths, check if the current path starts with the item's path
     return location.pathname.startsWith(path);
   };
+  
+  // Only show loading state if we're still verifying and haven't determined user status yet
+  const showLoading = isLoading && user === null;
 
   const handleMenu = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -427,7 +430,7 @@ const Header = () => {
               </Box>
             ) : (
               <>
-              {!isLoading && !user && (
+              {!showLoading && !user && (
                 <Button
                   component={RouterLink}
                   to="/login"
@@ -514,7 +517,7 @@ const Header = () => {
                 </MenuItem>
               ))}
               
-              {!isLoading && user ? (
+              {!showLoading && user ? (
                 <>
                   <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <MenuItem
@@ -565,7 +568,7 @@ const Header = () => {
                   </MenuItem>
                 </>
               ) : (
-                !isLoading && (
+                !showLoading && (
                   <>
                     <MenuItem
                       component={RouterLink}
