@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { startLiveTranscription } from "./SpeechTranscrib";
 import {
   Box,
@@ -77,6 +78,50 @@ const AIInterview = () => {
   const videoRef = useRef(null);
   const videoPreviewRef = useRef(null);
   const navigate = useNavigate();
+  
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.1, 0.25, 1]
+      }
+    }
+  };
+  
+  const fadeInUp = {
+    hidden: { y: 30, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.1, 0.25, 1]
+      }
+    }
+  };
+  
+  const fadeIn = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { duration: 0.5 }
+    }
+  };
 
   useEffect(() => {
     // Clean up function to stop all media tracks when component unmounts
@@ -217,6 +262,10 @@ const AIInterview = () => {
 
   return (
     <Box
+      component={motion.div}
+      initial="hidden"
+      animate="visible"
+      variants={fadeIn}
       sx={{
         p: { xs: 1, md: 3 },
         height: "100vh",
@@ -249,24 +298,30 @@ const AIInterview = () => {
         },
       }}
     >
-      <Box sx={{ position: "relative", zIndex: 1, height: "100%" }}>
-        <Typography
-          variant="h4"
-          sx={{
-            mt: 5,
-            mb: 1,
-            pt: 2,
-            fontWeight: 700,
-            background: "linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            textAlign: "center",
-            position: "relative",
-            zIndex: 1,
-          }}
-        >
-          AI Interview Session
-        </Typography>
+      <Box 
+        component={motion.div}
+        variants={containerVariants}
+        sx={{ position: "relative", zIndex: 1, height: "100%" }}
+      >
+        <motion.div variants={fadeInUp}>
+          <Typography
+            variant="h4"
+            sx={{
+              mt: 5,
+              mb: 1,
+              pt: 2,
+              fontWeight: 700,
+              background: "linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              textAlign: "center",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            AI Interview Session
+          </Typography>
+        </motion.div>
 
         <Stack justifyContent="center" alignItems="center">
           <Grid container spacing={3} sx={{ minHeight: "calc(100vh - 160px)" }}>
@@ -280,7 +335,11 @@ const AIInterview = () => {
               sx={{ display: "flex", flexDirection: "column" }}
             >
               {/* AI Assistant */}
-              <GlassCard sx={{ mb: 3, width: "fit-content", flex: "0 0 auto" }}>
+              <GlassCard 
+                component={motion.div}
+                variants={itemVariants}
+                sx={{ mb: 3, width: "fit-content", flex: "0 0 auto" }}
+              >
                 <CardContent>
                   <Box sx={{ width: 500 }}>
                     <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
@@ -353,7 +412,17 @@ const AIInterview = () => {
               </GlassCard>
 
               {/* Video Feed */}
-              <GlassCard sx={{mb: 3,height: 280, overflow: "hidden",display: "flex", flexDirection: "column" }}>
+              <GlassCard 
+                component={motion.div}
+                variants={itemVariants}
+                sx={{
+                  mb: 3,
+                  height: 280, 
+                  overflow: "hidden",
+                  display: "flex", 
+                  flexDirection: "column" 
+                }}
+              >
                 <CardContent
                   sx={{
                     height: "100%",
@@ -468,6 +537,8 @@ const AIInterview = () => {
 
               {/* Action Buttons */}
               <Box
+                component={motion.div}
+                variants={itemVariants}
                 sx={{
                   display: "flex",
                   gap: 2,
@@ -514,7 +585,13 @@ const AIInterview = () => {
             </Grid>
 
             {/* Right column - Transcript */}
-            <Grid item xs={12} md={5}>
+            <Grid 
+              component={motion.div}
+              variants={itemVariants}
+              item 
+              xs={12} 
+              md={5}
+            >
               <GlassCard
                 sx={{
                   height: "100%",

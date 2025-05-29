@@ -16,26 +16,86 @@ import {
   Feedback as FeedbackIcon,
   Timer as TimerIcon,
 } from "@mui/icons-material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
-const FeatureCard = ({ icon: Icon, title, description }) => {
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.2,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 30, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+      duration: 0.6,
+    },
+  },
+  hover: {
+    scale: 1.02,
+    transition: { duration: 0.3 },
+  },
+  tap: { scale: 0.98 },
+};
+
+const fadeInUp = {
+  hidden: { y: 40, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+      duration: 0.8,
+    },
+  },
+};
+
+const FeatureCard = ({ icon: Icon, title, description, index }) => {
   const theme = useTheme();
 
   return (
-    <Card
-      sx={{
-        height: "100%",
-        background: "rgba(255, 255, 255, 0.03)",
-        backdropFilter: "blur(10px)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
-        borderRadius: 2,
-        transition: "transform 0.3s, box-shadow 0.3s",
-        "&:hover": {
-          transform: "translateY(-8px)",
-          boxShadow: `0 10px 30px -5px ${theme.palette.primary.main}33`,
-        },
-      }}
+    <motion.div
+      variants={itemVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-100px" }}
+      custom={index}
+      style={{ height: "100%" }}
     >
+      <Card
+        component={motion.div}
+        whileHover="hover"
+        whileTap="tap"
+        variants={{
+          hover: { y: -5 },
+          tap: { scale: 0.98 }
+        }}
+        sx={{
+          height: "100%",
+          background: "rgba(255, 255, 255, 0.03)",
+          backdropFilter: "blur(10px)",
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          borderRadius: 2,
+          transition: "all 0.3s ease",
+          "&:hover": {
+            transform: "translateY(-8px)",
+            boxShadow: `0 10px 30px -5px ${theme.palette.primary.main}33`,
+          },
+        }}
+      >
       <CardContent sx={{ p: 3, height: "100%" }}>
         <Box
           sx={{
@@ -64,6 +124,7 @@ const FeatureCard = ({ icon: Icon, title, description }) => {
         </Typography>
       </CardContent>
     </Card>
+    </motion.div>
   );
 };
 
@@ -103,11 +164,15 @@ const Features = () => {
 
   return (
     <Box
-      component="section"
+      component={motion.section}
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
       id="features"
       sx={{
         position: "relative",
         py: 10,
+        overflow: "hidden",
         "&::before": {
           content: '""',
           position: "absolute",
@@ -121,7 +186,15 @@ const Features = () => {
       }}
     >
       <Container maxWidth="lg">
-        <Box textAlign="center" mb={6}>
+        <Box 
+          component={motion.div}
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          textAlign="center" 
+          mb={6}
+        >
           <Typography
             variant="h3"
             align="center"
@@ -183,16 +256,36 @@ const Features = () => {
           </Typography>
         </Box>
 
-        <Box sx={{ width: "100%", maxWidth: "1200px", mx: "auto" }}>
+        <Box 
+          component={motion.div}
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          sx={{ 
+            width: "100%", 
+            maxWidth: "1200px", 
+            mx: "auto" 
+          }}
+        >
+          <AnimatePresence>
           {features.map((feature, index) => (
-            <Box
+            <motion.div
               key={index}
-              sx={{
+              variants={itemVariants}
+              custom={index}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              style={{
                 display: "flex",
                 flexDirection: index % 2 === 0 ? "row" : "row-reverse",
                 alignItems: "center",
+                marginBottom: "2rem",
+                gap: "2rem",
+              }}
+              sx={{
                 mb: 8,
-                gap: 4,
                 "&:last-child": {
                   mb: 0,
                 },
@@ -202,19 +295,19 @@ const Features = () => {
                 },
               }}
             >
-              <Box
-                sx={{
+              <motion.div
+                whileHover={{ y: -5 }}
+                whileTap={{ scale: 0.98 }}
+                style={{
                   flex: 1,
-                  p: 4,
+                  padding: '2rem',
                   background: `linear-gradient(145deg, ${feature.color}15, ${feature.color}05)`,
-                  borderRadius: 4,
+                  borderRadius: '1rem',
                   border: "1px solid",
                   borderColor: `${feature.color}20`,
                   transition: "all 0.3s ease",
-                  "&:hover": {
-                    transform: "translateY(-4px)",
-                    boxShadow: `0 10px 30px -5px ${feature.color}33`,
-                  },
+                }}
+                sx={{
                   "@media (max-width: 900px)": {
                     width: "100%",
                     textAlign: "center",
@@ -253,14 +346,16 @@ const Features = () => {
                 >
                   {feature.description}
                 </Typography>
-              </Box>
+              </motion.div>
 
-              <Box
-                sx={{
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{
                   flex: 1,
                   height: "300px",
                   background: `linear-gradient(145deg, ${feature.color}10, ${feature.color}05)`,
-                  borderRadius: 4,
+                  borderRadius: '1rem',
                   border: "1px solid",
                   borderColor: `${feature.color}20`,
                   display: "flex",
@@ -269,6 +364,8 @@ const Features = () => {
                   color: feature.color,
                   fontSize: "2rem",
                   fontWeight: "bold",
+                }}
+                sx={{
                   "@media (max-width: 900px)": {
                     width: "100%",
                     height: "200px",
@@ -276,12 +373,20 @@ const Features = () => {
                 }}
               >
                 {index + 1}
-              </Box>
-            </Box>
+              </motion.div>
+            </motion.div>
           ))}
+          </AnimatePresence>
 
           {/* Upcoming Features Section */}
-          <Box sx={{ mt: 12, textAlign: "center" }}>
+          <Box 
+            component={motion.div}
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            sx={{ mt: 12, textAlign: "center" }}
+          >
             <Typography
               variant="h3"
               align="center"
@@ -331,7 +436,16 @@ const Features = () => {
               ))}
             </Typography>
 
-            <Grid container spacing={4} justifyContent="center">
+            <Grid 
+              component={motion.div}
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              container 
+              spacing={4} 
+              justifyContent="center"
+            >
               {[
                 {
                   title: "Coding Challenges",
@@ -356,19 +470,21 @@ const Features = () => {
                 },
               ].map((feature, index) => (
                 <Grid item xs={12} sm={6} md={3} key={index}>
-                  <Box
-                    sx={{
-                      p: 3,
+                  <motion.div
+                    variants={itemVariants}
+                    custom={index}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    whileHover={{ y: -5 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      padding: '1.5rem',
                       height: "100%",
                       background: "rgba(255, 255, 255, 0.02)",
                       border: "1px solid rgba(255, 255, 255, 0.1)",
-                      borderRadius: 2,
+                      borderRadius: '0.5rem',
                       transition: "all 0.3s ease",
-                      "&:hover": {
-                        transform: "translateY(-5px)",
-                        background: "rgba(255, 255, 255, 0.05)",
-                        boxShadow: `0 10px 20px -5px ${feature.color}20`,
-                      },
                     }}
                   >
                     <Box
@@ -401,7 +517,7 @@ const Features = () => {
                     >
                       {feature.description}
                     </Typography>
-                  </Box>
+                  </motion.div>
                 </Grid>
               ))}
             </Grid>
