@@ -137,7 +137,8 @@ const Header = () => {
         if (response.status === 200 && response.data.success) {
           setUser(response.data.data);
         } else {
-          setUser(null);
+          setTimeout(setUser(null), 2000)
+          
         }
       } catch (err) {
         console.error("Authentication check failed:", err);
