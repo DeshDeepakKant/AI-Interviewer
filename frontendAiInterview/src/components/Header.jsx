@@ -495,6 +495,9 @@ const Header = () => {
                   sx={{
                     px: 3,
                     py: 1.5,
+                    minHeight: '48px',
+                    display: 'flex',
+                    alignItems: 'center',
                     color: isActive(item.path) ? "#00e5c9" : "#e0e0e0",
                     fontWeight: isActive(item.path) ? 600 : 400,
                     "&:hover": { 
@@ -513,11 +516,14 @@ const Header = () => {
                   <MenuItem
                     onClick={() => {
                       handleClose();
-                      navigate("/profile");
+                      navigate("/dashboard");
                     }}
                     sx={{
                       px: 3,
                       py: 1.5,
+                      minHeight: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
                       color: "#e0e0e0",
                       "&:hover": { 
                         background: "rgba(0,191,165,0.1)", 
@@ -525,10 +531,10 @@ const Header = () => {
                       },
                     }}
                   >
-                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40, margin: 0 }}>
                       <PersonIcon fontSize="small" />
                     </ListItemIcon>
-                    Profile
+                    <span>Profile</span>
                   </MenuItem>
                   <MenuItem
                     onClick={() => {
@@ -538,6 +544,9 @@ const Header = () => {
                     sx={{
                       px: 3,
                       py: 1.5,
+                      minHeight: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
                       color: "#e0e0e0",
                       "&:hover": { 
                         background: "rgba(0,191,165,0.1)", 
@@ -545,10 +554,10 @@ const Header = () => {
                       },
                     }}
                   >
-                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40, margin: 0 }}>
                       <LogoutIcon fontSize="small" />
                     </ListItemIcon>
-                    Logout
+                    <span>Logout</span>
                   </MenuItem>
                 </>
               ) : (
@@ -559,6 +568,11 @@ const Header = () => {
                       to="/login"
                       onClick={handleClose}
                       sx={{
+                        px: 3,
+                        py: 1.5,
+                        minHeight: '48px',
+                        display: 'flex',
+                        alignItems: 'center',
                         color: "#e0e0e0",
                         "&:hover": { 
                           background: "rgba(0,191,165,0.1)", 
@@ -566,7 +580,7 @@ const Header = () => {
                         },
                       }}
                     >
-                      Login
+                      <span>Login</span>
                     </MenuItem>
                     <MenuItem onClick={handleClose}>
                       <Button
