@@ -74,8 +74,6 @@ const Header = () => {
   const handleProfileMenuOpen = (e) => {
     e.stopPropagation();
     setProfileAnchorEl(e.currentTarget);
-    // Navigate to dashboard when profile is clicked
-    navigate('/dashboard');
   };
   const handleProfileMenuClose = () => setProfileAnchorEl(null);
 
@@ -369,7 +367,6 @@ const Header = () => {
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-
                   >
                     <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
                       <PersonIcon fontSize="small" />

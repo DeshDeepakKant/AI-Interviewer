@@ -20,6 +20,7 @@ import ComingSoong from "./components/ComingSoong.jsx";
 import UserDashboard from "./components/UserDashboard.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import MockInterviewWay from "./components/MockInterviewWay.jsx";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -33,11 +34,13 @@ const router = createBrowserRouter(
         <Route path="features" element={<Features />} />
         <Route path="comingSoon" element={<ComingSoong />} />
         <Route path="dashboard" element={<UserDashboard />} />
+       
         
       </Route>
       <Route path="/" element={<LayoutWithoutFooter />}>
         <Route path="interview" element={<AIInterview />} />
         <Route path="pricing" element={<Pricing />} />
+         <Route path="mockInterviewWay" element={<MockInterviewWay />} />
       </Route>
 
     </>, // Close the wrapper
