@@ -13,6 +13,75 @@ import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { NavLink } from "react-router";
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      when: "beforeChildren",
+      staggerChildren: 0.15,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { y: 30, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+      duration: 0.6,
+    },
+  },
+  hover: {
+    y: -10,
+    transition: { duration: 0.3 },
+  },
+  tap: { scale: 0.98 },
+};
+
+const fadeInUp = {
+  hidden: { y: 40, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 15,
+      duration: 0.8,
+    },
+  },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const featureItem = {
+  hidden: { x: -20, opacity: 0 },
+  visible: {
+    x: 0,
+    opacity: 1,
+    transition: {
+      type: "spring",
+      stiffness: 100,
+      damping: 10,
+    },
+  },
+};
+
 const Pricing = () => {
   const theme = useTheme();
 
@@ -74,7 +143,10 @@ const Pricing = () => {
 
   return (
     <Box
-      component="section"
+      component={motion.section}
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
       id="pricing"
       sx={{
         minHeight: "100vh",
@@ -106,7 +178,13 @@ const Pricing = () => {
           flexDirection: "column",
         }}
       >
-        <Box textAlign="center" mb={8}>
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          style={{ textAlign: "center", marginBottom: '4rem' }}
+        >
           <Typography
             variant="h3"
             align="center"
@@ -148,41 +226,47 @@ const Pricing = () => {
               </motion.span>
             ))}
           </Typography>
-          <Typography
-            variant="h6"
-            color="text.secondary"
-            sx={{ color: "#94a3b8", maxWidth: 700, mx: "auto" }}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
           >
-            Choose the perfect plan for your interview preparation journey. All
-            plans include a 7-day money-back guarantee.
-          </Typography>
-        </Box>
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ color: "#94a3b8", maxWidth: 700, mx: "auto" }}
+            >
+              Choose the perfect plan for your interview preparation journey. All
+              plans include a 7-day money-back guarantee.
+            </Typography>
+          </motion.div>
+        </motion.div>
 
-        <Grid
-          container
-          spacing={4}
-          justifyContent="center"
-          alignItems="stretch"
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          style={{ width: '100%' }}
         >
-          {pricingPlans.map((plan, index) => (
-            <Grid item xs={12} md={4} key={index}>
-              <motion.div
-                initial={{ y: 0, scale: 1 }}
-                animate={{
-                  y: [0, -5, 0],
-                }}
-                transition={{
-                  duration: 5,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                  delay: index * 0.2
-                }}
-                whileHover={{
-                  y: -15,
-                  scale: 1.03,
-                  transition: { duration: 0.3 }
-                }}
-              >
+          <Grid
+            container
+            spacing={4}
+            justifyContent="center"
+            alignItems="stretch"
+          >
+            {pricingPlans.map((plan, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <motion.div
+                  variants={itemVariants}
+                  custom={index}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-50px" }}
+                  whileHover="hover"
+                  whileTap="tap"
+                  style={{ height: '100%' }}
+                >
                 <Paper
                   elevation={plan.highlight ? 8 : 2}
                   sx={{
@@ -355,13 +439,20 @@ const Pricing = () => {
                       ))}
                     </Box>
                   </Box>
-                </Paper>
-              </motion.div>
-            </Grid>
-          ))}
-        </Grid>
+                  </Paper>
+                </motion.div>
+              </Grid>
+            ))}
+          </Grid>
+        </motion.div>
 
-        <Box textAlign="center" mt={6}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ delay: 0.2, duration: 0.6 }}
+          style={{ textAlign: "center", marginTop: '2.5rem' }}
+        >
           <Typography
             variant="body2"
             color="text.secondary"
@@ -369,7 +460,7 @@ const Pricing = () => {
           >
             Need a custom plan? Contact us at patelsurlko20@gmail.com
           </Typography>
-        </Box>
+        </motion.div>
         <Box sx={{ flexGrow: 1 }} />
       </Container>
     </Box>
