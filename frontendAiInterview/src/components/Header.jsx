@@ -62,7 +62,11 @@ const Header = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
 
-  const [user, setUser] = useState(null);
+  // Get user from localStorage to maintain during verification
+  const [user, setUser] = useState(() => {
+    const savedUser = localStorage.getItem('user');
+    return savedUser ? JSON.parse(savedUser) : null;
+  });
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
@@ -135,8 +139,11 @@ const Header = () => {
 
         // HTTP‐level + JSON‐level success
         if (response.status === 200 && response.data.success) {
-          setUser(response.data.data);
+          const userData = response.data.data;
+          localStorage.setItem('user', JSON.stringify(userData));
+          setUser(userData);
         } else {
+          localStorage.removeItem('user');
           setUser(null);
         }
       } catch (err) {
@@ -304,7 +311,9 @@ const Header = () => {
                       >
                         {user?.fullName
                           ? user.fullName.charAt(0).toUpperCase()
-                          : <AccountCircle />}
+                          : isLoading
+                            ? '...'
+                            : <AccountCircle />}
                       </Avatar>
                       <Box sx={{ display: { xs: 'none', md: 'block' } }}>
                         <Typography 
@@ -316,7 +325,7 @@ const Header = () => {
                             fontSize: '0.85rem'
                           }}
                         >
-                          {user?.fullName || 'User'}
+                          {user?.fullName || (isLoading ? 'Loading...' : 'User')}
                         </Typography>
                         <Typography 
                           variant="caption" 
@@ -327,7 +336,7 @@ const Header = () => {
                             lineHeight: 1.2
                           }}
                         >
-                          {user?.email || 'Premium Member'}
+                          {user?.email || (isLoading ? 'Verifying...' : 'Premium Member')}
                         </Typography>
                       </Box>
                     </Box>
