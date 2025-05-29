@@ -118,13 +118,61 @@ const MockInterviewWay = () => {
   const [experience, setExperience] = useState(experienceLevels[0]);
   const [resumeFile, setResumeFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
   const handlePositionChange = (event) => setPosition(event.target.value);
   const handleFileUpload = (event) => {
     if (event.target.files && event.target.files[0]) {
-      setResumeFile(event.target.files[0]);
+      const file = event.target.files[0];
+      setIsUploading(true);
+      setUploadProgress(0);
+      
+      // Create a FileReader to read the file
+      const reader = new FileReader();
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          // Simulate progress up to 90% while reading
+          const newProgress = Math.min(prev + 10, 90);
+          if (newProgress >= 90) {
+            clearInterval(progressInterval);
+          }
+          return newProgress;
+        });
+      }, 100);
+      
+      reader.onload = (e) => {
+        // File is loaded
+        clearInterval(progressInterval);
+        setUploadProgress(100);
+        
+        // Create a local URL for the file
+        const fileUrl = URL.createObjectURL(file);
+        
+        // Set the file in state
+        setResumeFile({
+          file: file,
+          url: fileUrl,
+          name: file.name,
+          size: file.size
+        });
+        
+        // Clean up
+        setTimeout(() => setIsUploading(false), 300);
+      };
+      
+      reader.onerror = () => {
+        clearInterval(progressInterval);
+        alert('Error reading file. Please try again.');
+        setIsUploading(false);
+      };
+      
+      // Start reading the file
+      reader.readAsDataURL(file);
     }
   };
   const handleRemoveFile = () => setResumeFile(null);
@@ -564,7 +612,7 @@ const MockInterviewWay = () => {
                       <DescriptionIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.9)' }} />
                       Upload Your Resume (Optional)
                     </Typography>
-                    {!resumeFile ? (
+                    {!resumeFile && !isUploading ? (
                       <UploadArea 
                         elevation={0}
                         isDragActive={isDragActive}
@@ -595,6 +643,32 @@ const MockInterviewWay = () => {
                           </Typography>
                         </Box>
                       </UploadArea>
+                    ) : isUploading ? (
+                      <Box sx={{ width: '100%', mt: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                          <Typography variant="caption" color="rgba(255,255,255,0.8)">
+                            Uploading...
+                          </Typography>
+                          <Typography variant="caption" color="rgba(255,255,255,0.8)">
+                            {Math.round(uploadProgress)}%
+                          </Typography>
+                        </Box>
+                        <Box sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
+                          <Box 
+                            sx={{
+                              height: 8,
+                              width: `${uploadProgress}%`,
+                              bgcolor: 'primary.main',
+                              transition: 'width 0.3s ease',
+                              borderRadius: 1,
+                              background: 'linear-gradient(90deg, #00e5ff, #00b8d4)'
+                            }}
+                          />
+                        </Box>
+                        <Typography variant="caption" color="rgba(255,255,255,0.6)" sx={{ display: 'block', mt: 0.5, textAlign: 'right' }}>
+                          {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
+                        </Typography>
+                      </Box>
                     ) : (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
