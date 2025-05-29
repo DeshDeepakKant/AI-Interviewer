@@ -235,7 +235,7 @@ const Header = () => {
               );
             })}
 
-            {isLoading || user ? (
+            {user !== null || isLoading ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 {/* Notifications */}
                 <Tooltip title="Notifications" arrow>
@@ -427,7 +427,7 @@ const Header = () => {
               </Box>
             ) : (
               <>
-              {!isLoading && !user && (
+              {!isLoading && !user ? (
                 <Button
                   component={RouterLink}
                   to="/login"
@@ -445,8 +445,8 @@ const Header = () => {
                 >
                   Login
                 </Button>
-              )}
-              {!isLoading && !user && (
+              ) : null}
+              {!isLoading && !user ? (
                 <Button
                   variant="contained"
                   component={RouterLink}
@@ -463,7 +463,7 @@ const Header = () => {
                 >
                   Sign Up
                 </Button>
-                 )}
+                 ) : null}
               </>
             )}
           </Box>
@@ -514,9 +514,9 @@ const Header = () => {
                 </MenuItem>
               ))}
               
-              {isLoading || user ? (
+              {user !== null || isLoading ? (
                 <>
-                  {user && <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.1)' }} />}
+                  <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <MenuItem
                     onClick={() => {
                       handleClose();
@@ -563,50 +563,48 @@ const Header = () => {
                     </ListItemIcon>
                     <span>Logout</span>
                   </MenuItem>
-                </>
-              ) : (
-                !isLoading && !user && (
-                  <>
-                    <MenuItem
+                </> 
+              ) : !isLoading && user === null ? (
+                <>
+                  <MenuItem
+                    component={RouterLink}
+                    to="/login"
+                    onClick={handleClose}
+                    sx={{
+                      px: 3,
+                      py: 1.5,
+                      minHeight: '48px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: "#e0e0e0",
+                      "&:hover": { 
+                        background: "rgba(0,191,165,0.1)", 
+                        color: "#00e5c9" 
+                      },
+                    }}
+                  >
+                    <span>Login</span>
+                  </MenuItem>
+                  <MenuItem onClick={handleClose}>
+                    <Button
+                      variant="contained"
+                      fullWidth
                       component={RouterLink}
-                      to="/login"
-                      onClick={handleClose}
+                      to="/signup"
                       sx={{
-                        px: 3,
-                        py: 1.5,
-                        minHeight: '48px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: "#e0e0e0",
-                        "&:hover": { 
-                          background: "rgba(0,191,165,0.1)", 
-                          color: "#00e5c9" 
+                        background:
+                          "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
+                        "&:hover": {
+                          background:
+                            "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
                         },
                       }}
                     >
-                      <span>Login</span>
-                    </MenuItem>
-                    <MenuItem onClick={handleClose}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        component={RouterLink}
-                        to="/signup"
-                        sx={{
-                          background:
-                            "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                          "&:hover": {
-                            background:
-                              "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
-                          },
-                        }}
-                      >
-                        Sign Up
-                      </Button>
-                    </MenuItem>
-                  </>
-                )
-              )}
+                      Sign Up
+                    </Button>
+                  </MenuItem>
+                </>
+              ) : null}
             </Menu>
           </Box>
         </Toolbar>
