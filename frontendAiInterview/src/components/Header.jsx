@@ -39,6 +39,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import axios from "axios";
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from "react-toastify"
 
 // Animation variants
 const fadeIn = {
@@ -237,10 +238,12 @@ const Header = () => {
       handleProfileMenuClose();
       
       // Navigate to login
+      toast.success("Logged out successfully!");
+      setTimeout(() => navigate("/login"), 2000);
       
-      navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);
+      toast.error("Logout failed. Please try again.");
       // Even if there's an error, clear the local state
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
