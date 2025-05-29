@@ -238,9 +238,11 @@ const Header = () => {
       
       // Navigate to login
       toast.success("Logged out successfully!");
-      navigate("/login");
+      setTimeout(() => navigate("/login"), 2000);
+      
     } catch (err) {
       console.error("Logout failed:", err);
+      toast.error("Logout failed. Please try again.");
       // Even if there's an error, clear the local state
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
