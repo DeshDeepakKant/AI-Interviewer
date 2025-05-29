@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { NavLink} from "react-router";
 import GlowingButton from "../subComponents/GlowingButton";
 import SchoolIcon from "@mui/icons-material/School";
@@ -11,69 +11,14 @@ import {
   Card,
   Link as MuiLink,
   Stack,
-  Fade,
-  Zoom,
-  Grow,
 } from "@mui/material";
 
 import BusinessIcon from "@mui/icons-material/Business";
 import { motion } from "framer-motion";
-import { styled, keyframes } from '@mui/material/styles';
 
-// Animation keyframes
-const gradient = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-`;
-
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-`;
-
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-`;
-
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const HeroSection = () => {
-  const [isMounted, setIsMounted] = useState(false);
-  
-  useEffect(() => {
-    setIsMounted(true);
-    return () => setIsMounted(false);
-  }, []);
-  
-  return (
-  <Box 
-    className="page-background" 
-    sx={{ 
-      textAlign: "center", 
-      py: 8,
-      position: 'relative',
-      overflow: 'hidden',
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        background: 'radial-gradient(circle at 50% 50%, rgba(0, 229, 201, 0.1) 0%, transparent 50%)',
-        opacity: 0.7,
-        zIndex: 0,
-        animation: `${pulse} 8s ease-in-out infinite`
-      }
-    }}>
-    <Container maxWidth="md" sx={{ position: 'relative', zIndex: 1 }}>
+const HeroSection = () => (
+  <Box className="page-background" sx={{ textAlign: "center", py: 8 }}>
+    <Container maxWidth="md">
       <Typography
         variant="h3"
         align="center"
@@ -135,42 +80,23 @@ const HeroSection = () => {
         Select a company, take an AI interview, and get one step closer to the
         job.
       </Typography>
-      <Fade in={isMounted} timeout={1000}>
-        <Stack direction="row" spacing={2} justifyContent="center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <GlowingButton
-              name="Explore Companies"
-              icon={BusinessIcon}
-              component={NavLink}
-              to="/comingSoon"
-            />
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.8 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <GlowingButton
-              name="Mock Interview"
-              icon={SchoolIcon}
-              component={NavLink}
-              to="/mockInterviewWay"
-            />
-          </motion.div>
-        </Stack>
-      </Fade>
+      <Stack direction="row" spacing={2} justifyContent="center">
+        <GlowingButton
+          name="Explore Companies"
+          icon={BusinessIcon}
+          component={NavLink}
+          to="/comingSoon"
+        />
+        <GlowingButton
+          name="Mock Interview"
+          icon={SchoolIcon}
+          component={NavLink}
+          to="/mockInterviewWay"
+        />
+      </Stack>
     </Container>
   </Box>
-  );
-};
+);
 
 // Update the features array
 const features = [
@@ -234,19 +160,6 @@ const FeaturesSection = () => {
         position: "relative",
         zIndex: 2,
         color: "rgba(255, 255, 255, 0.9)",
-        background: 'linear-gradient(135deg, rgba(10, 15, 26, 0.8), rgba(26, 26, 46, 0.8))',
-        backgroundSize: '400% 400%',
-        animation: `${gradient} 15s ease infinite`,
-        '&::before': {
-          content: '""',
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'radial-gradient(circle at 80% 20%, rgba(0, 229, 201, 0.05) 0%, transparent 50%)',
-          pointerEvents: 'none',
-        }
       }}
     >
       <Container maxWidth="lg">
@@ -265,21 +178,6 @@ const FeaturesSection = () => {
             backgroundClip: "text",
             WebkitBackgroundClip: "text",
             color: "transparent",
-            position: 'relative',
-            '&::after': {
-              content: '""',
-              position: 'absolute',
-              bottom: '-10px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              width: '80px',
-              height: '4px',
-              background: 'linear-gradient(90deg, #1565c0, #1e88e5)',
-              borderRadius: '2px',
-              animation: `${shimmer} 3s linear infinite`,
-              backgroundSize: '200% 100%',
-              backgroundImage: 'linear-gradient(90deg, transparent, #1e88e5, #1565c0, transparent)'
-            }
           }}
         >
           How It Works
@@ -361,9 +259,6 @@ const FeaturesSection = () => {
                   }}
                 >
                   <Box
-                    component={motion.div}
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: 'spring', stiffness: 300 }}
                     sx={{
                       width: 80,
                       height: 80,
@@ -375,8 +270,6 @@ const FeaturesSection = () => {
                       mb: 3,
                       background: "linear-gradient(135deg, #1e88e5, #1565c0)",
                       boxShadow: "0 4px 20px rgba(26, 115, 232, 0.3)",
-                      animation: `${float} 3s ease-in-out infinite`,
-                      animationDelay: '0.2s',
                       position: "relative",
                       overflow: "hidden",
                       "&::before": {
@@ -438,28 +331,10 @@ const FeaturesSection = () => {
 };
 
 const HomePage = () => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  
-  useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-  
   return (
     <>
-      <Fade in={isLoaded} timeout={800}>
-        <Box>
-          <HeroSection />
-        </Box>
-      </Fade>
-      <Fade 
-        in={isLoaded} 
-        timeout={1200}
-        style={{ transitionDelay: isLoaded ? '300ms' : '0ms' }}
-      >
-        <Box>
-          <FeaturesSection />
-        </Box>
-      </Fade>
+      <HeroSection />
+      <FeaturesSection />
     </>
   );
 };

@@ -1,8 +1,37 @@
-import { motion } from "framer-motion";
-import { Box, Container, Typography, Grid } from "@mui/material";
-function ComingSoong() {
+import { motion, AnimatePresence } from "framer-motion";
+import { Box, Typography, Grid } from "@mui/material";
+function ComingSoon() {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.6,
+        ease: [0.25, 0.1, 0.25, 1]
+      }
+    }
+  };
+
   return (
-    <Box sx={{ mt: 12, textAlign: "center" }}>
+    <Box 
+      component={motion.div}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      sx={{ mt: 12, textAlign: "center" }}
+    >
       <Typography
         variant="h3"
         align="center"
@@ -51,7 +80,15 @@ function ComingSoong() {
         ))}
       </Typography>
 
-      <Grid container spacing={4} justifyContent="center">
+      <Grid 
+        component={motion.div}
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        container 
+        spacing={4} 
+        justifyContent="center"
+      >
         {[
           {
             title: "Coding Challenges",
@@ -75,7 +112,15 @@ function ComingSoong() {
             color: "#ff9f43",
           },
         ].map((feature, index) => (
-          <Grid item xs={12} sm={6} md={3} key={index}>
+          <Grid 
+            component={motion.div}
+            variants={itemVariants}
+            item 
+            xs={12} 
+            sm={6} 
+            md={3} 
+            key={index}
+          >
             <Box
               sx={{
                 p: 3,
@@ -130,4 +175,4 @@ function ComingSoong() {
   );
 }
 
-export default ComingSoong;
+export default ComingSoon;
