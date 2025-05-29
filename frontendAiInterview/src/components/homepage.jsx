@@ -80,19 +80,84 @@ const HeroSection = () => (
         Select a company, take an AI interview, and get one step closer to the
         job.
       </Typography>
-      <Stack direction="row" spacing={2} justifyContent="center">
-        <GlowingButton
-          name="Explore Companies"
-          icon={BusinessIcon}
-          component={NavLink}
-          to="/comingSoon"
-        />
-        <GlowingButton
-          name="Mock Interview"
-          icon={SchoolIcon}
-          component={NavLink}
-          to="/mockInterviewWay"
-        />
+      <Stack 
+        direction="row" 
+        spacing={2} 
+        justifyContent="center"
+        component={motion.div}
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.3,
+              delayChildren: 0.4
+            }
+          }
+        }}
+      >
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 15 },
+            visible: {
+              opacity: 1,
+              y: 0,
+              transition: {
+                type: 'tween',
+                ease: 'easeOut',
+                duration: 0.6,
+                delay: 0.2
+              }
+            }
+          }}
+          whileHover={{
+            scale: 1.03,
+            transition: { duration: 0.25, ease: 'easeInOut' }
+          }}
+          whileTap={{
+            scale: 0.98,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <GlowingButton
+            name="Explore Companies"
+            icon={BusinessIcon}
+            component={NavLink}
+            to="/comingSoon"
+          />
+        </motion.div>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 15 },
+            visible: {
+              opacity: 1,
+              y: 0,
+              transition: {
+                type: 'tween',
+                ease: 'easeOut',
+                duration: 0.6,
+                delay: 0.4
+              }
+            }
+          }}
+          whileHover={{
+            scale: 1.03,
+            transition: { duration: 0.25, ease: 'easeInOut' }
+          }}
+          whileTap={{
+            scale: 0.98,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <GlowingButton
+            name="Mock Interview"
+            icon={SchoolIcon}
+            component={NavLink}
+            to="/mockInterviewWay"
+          />
+        </motion.div>
       </Stack>
     </Container>
   </Box>
