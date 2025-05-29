@@ -3,10 +3,27 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 // import model from "../utils/ai/index.js";
 import { asyncHandler } from "../utils/aysncHandler.js";
-// import fileLoading from "./loader.js";
+import fileLoading from "./loader.js";
 
 
 
+const aiInterview = asyncHandler(async(req, res) => {
+    try {
+        const { resume, position, experienceLevel, numberOfQuestionYyouShouldAsk } = req.body;
+
+        if (!position || !experienceLevel || !numberOfQuestionYyouShouldAsk) {
+            throw new ApiError(400, "All fields are required");
+        }
+
+        const docResume = await fileLoading()
+        const aiResponse = await fileLoading(resume, position, experienceLevel, numberOfQuestionYyouShouldAsk);
+        
+        return res.status(200).json(new ApiResponse(200, aiResponse, "AI interview started successfully"));
+    } catch (error) {
+        // console.error("Error in aiInterview.controller.js:", error);
+        throw new ApiError(500, "Something went wrong");
+    }
+});
 // const aiInterviewStart = asyncHandler(async(req, res)=>{
 //     try {
         

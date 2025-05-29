@@ -25,6 +25,7 @@
     "@langchain/community": "^0.3.44",
     "@langchain/core": "^0.3.57",
     "@langchain/google-genai": "^0.2.9",
+    "@langchain/langgraph": "^0.2.73",
     "langchain": "^0.3.27",
     "langsmith": "^0.3.29",
     "openai": "^4.103.0",

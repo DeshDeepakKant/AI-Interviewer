@@ -5,8 +5,12 @@ const fileLoading = async(filePath)=>{
     const loader = new PDFLoader(file);
 
     const docs = await loader.load();
+    const pages = docs.map((doc) => doc.pageContent?.trim())
 
-    console.log(docs[0].pageContent + " " + docs[1].pageContent)
+    const content = pages.join(" ");
+
+    return content
+
 }
 
 export default fileLoading
