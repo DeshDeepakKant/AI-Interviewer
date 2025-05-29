@@ -104,14 +104,15 @@ const positions = [
   'Backend Developer',
   'Fullstack Developer',
   'DevOps Engineer',
+  'Artificial Intelligence',
+  'Machine Learning Engineer',
+  'Data Scientist',
   'UI/UX Designer',
   'Product Manager',
-  'Data Scientist',
-  'Machine Learning Engineer',
 ];
 
 const MockInterviewWay = () => {
-  const [numQuestions, setNumQuestions] = useState('10');
+  const [numQuestions, setNumQuestions] = useState('5');
   const [position, setPosition] = useState(positions[0]);
   const experienceLevels = ['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'];
   const [experience, setExperience] = useState(experienceLevels[0]);
@@ -519,7 +520,7 @@ const MockInterviewWay = () => {
                         },
                       }}
                     >
-                      {[5, 10, 15, 20].map((n) => (
+                      {['5', '10', '15', '20', '25+'].map((n) => (
                         <MenuItem 
                           key={n} 
                           value={n}
@@ -536,7 +537,7 @@ const MockInterviewWay = () => {
                             },
                           }}
                         >
-                          {n} Questions {n === 10 && '(Recommended)'}
+                          {n} Questions
                         </MenuItem>
                       ))}
                     </Select>
@@ -624,19 +625,21 @@ const MockInterviewWay = () => {
                               <DescriptionIcon />
                             </Avatar>
                             <Box>
-                              <Typography variant="body2" fontWeight={500}>
+                              <Typography variant="body2" fontWeight={900}>
                                 {resumeFile.name.length > 20 
                                   ? `${resumeFile.name.substring(0, 17)}...${resumeFile.name.split('.').pop()}` 
                                   : resumeFile.name}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" fontWeight={900} sx={{color: '#A0A0A0'}}>
                                 {(resumeFile.size / 1024).toFixed(1)} KB • {resumeFile.name.split('.').pop().toUpperCase()}
                               </Typography>
                             </Box>
                           </Box>
                           <Button 
-                            size="small" 
-                            onClick={handleRemoveFile} 
+                            size="small"
+                            
+                            onClick={handleRemoveFile}
+                            variant="outlined"
                             color="error"
                             startIcon={<CloseIcon />}
                             sx={{
