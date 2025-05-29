@@ -29,7 +29,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsOffIcon from '@mui/icons-material/NotificationsOff';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import ScheduleIcon from '@mui/icons-material/Schedule';
 import CircleIcon from '@mui/icons-material/Circle';
 import CircularProgress from '@mui/material/CircularProgress';
 import axios from "axios";
@@ -511,7 +511,7 @@ const Header = () => {
                                     }
                                   }}
                                 >
-                                  <AccessTimeIcon fontSize="inherit" />
+                                  <ScheduleIcon fontSize="inherit" />
                                   {new Date(notification.createdAt).toLocaleString('en-US', {
                                     month: 'short',
                                     day: 'numeric',
