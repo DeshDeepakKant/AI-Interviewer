@@ -302,7 +302,7 @@ const Header = () => {
                           transition: "all 0.3s ease",
                         }}
                       >
-                        {user.fullName
+                        {user?.fullName
                           ? user.fullName.charAt(0).toUpperCase()
                           : <AccountCircle />}
                       </Avatar>
@@ -316,7 +316,7 @@ const Header = () => {
                             fontSize: '0.85rem'
                           }}
                         >
-                          {user.fullName || 'User'}
+                          {user?.fullName || 'User'}
                         </Typography>
                         <Typography 
                           variant="caption" 
@@ -327,7 +327,7 @@ const Header = () => {
                             lineHeight: 1.2
                           }}
                         >
-                          {user.email || 'Premium Member'}
+                          {user?.email || 'Premium Member'}
                         </Typography>
                       </Box>
                     </Box>
@@ -386,10 +386,10 @@ const Header = () => {
                 >
                   <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <Typography variant="subtitle2" sx={{ color: '#00e5c9', fontWeight: 600, fontSize: '0.9rem' }}>
-                      {user.fullName || 'Welcome Back'}
+                      {user?.fullName || 'Welcome Back'}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.75rem' }}>
-                      {user.email || 'Premium Member'}
+                      {user?.email || 'Premium Member'}
                     </Typography>
                   </Box>
                   

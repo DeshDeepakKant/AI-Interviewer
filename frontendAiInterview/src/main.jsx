@@ -21,7 +21,7 @@ import UserDashboard from "./components/UserDashboard.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MockInterviewWay from "./components/MockInterviewWay.jsx";
-
+import { Analytics } from "@vercel/analytics/next"
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -34,8 +34,10 @@ const router = createBrowserRouter(
         <Route path="features" element={<Features />} />
         <Route path="comingSoon" element={<ComingSoong />} />
         <Route path="dashboard" element={<UserDashboard />} />
-       
         
+      </Route>
+      <Route>
+      <Analytics />
       </Route>
       <Route path="/" element={<LayoutWithoutFooter />}>
         <Route path="interview" element={<AIInterview />} />
