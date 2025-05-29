@@ -39,6 +39,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import axios from "axios";
 import { formatDistanceToNow } from 'date-fns';
+import toast from 'react-hot-toast';
 
 // Animation variants
 const fadeIn = {
