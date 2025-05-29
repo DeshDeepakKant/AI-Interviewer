@@ -141,24 +141,39 @@ const Header = () => {
   };
 
   // Load notifications from localStorage on component mount
-  useEffect(() => {
+  // Function to load notifications
+  const loadNotifications = useCallback(() => {
     if (user) {
       const savedNotifications = localStorage.getItem('notifications');
       if (savedNotifications) {
-        const parsed = JSON.parse(savedNotifications);
-        // Convert string timestamps back to Date objects
-        const notificationsWithDates = parsed.map(notification => ({
-          ...notification,
-          timestamp: new Date(notification.timestamp)
-        }));
-        setNotifications(notificationsWithDates);
-        setUnreadCount(notificationsWithDates.filter(n => !n.read).length);
+        try {
+          const parsed = JSON.parse(savedNotifications);
+          // Convert string timestamps back to Date objects
+          const notificationsWithDates = parsed.map(notification => ({
+            ...notification,
+            timestamp: new Date(notification.timestamp)
+          }));
+          setNotifications(notificationsWithDates);
+          setUnreadCount(notificationsWithDates.filter(n => !n.read).length);
+        } catch (error) {
+          console.error('Error parsing saved notifications:', error);
+          fetchInitialNotifications();
+        }
       } else {
         // If no saved notifications, fetch them
         fetchInitialNotifications();
       }
+    } else {
+      // Clear notifications when user logs out
+      setNotifications([]);
+      setUnreadCount(0);
     }
   }, [user]);
+
+  // Load notifications when user changes or on mount
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
@@ -252,36 +267,48 @@ const Header = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const response = await axios.get(
-          "/api/v1/user/currentUser",
-          {
-            withCredentials: true,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-
-        // HTTP‐level + JSON‐level success
-        if (response.status === 200 && response.data.success) {
-          const userData = response.data.data;
-          localStorage.setItem('user', JSON.stringify(userData));
-          setUser(userData);
-        } else {
-          localStorage.removeItem('user');
-          setUser(null);
+  const fetchCurrentUser = useCallback(async () => {
+    try {
+      const response = await axios.get(
+        "/api/v1/user/currentUser",
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "application/json" },
         }
-      } catch (err) {
-        console.error("Authentication check failed:", err);
+      );
+
+      // HTTP‐level + JSON‐level success
+      if (response.status === 200 && response.data.success) {
+        const userData = response.data.data;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+        return true;
+      } else {
+        localStorage.removeItem('user');
         setUser(null);
-      } finally {
-        setIsLoading(false);
+        return false;
+      }
+    } catch (err) {
+      console.error("Authentication check failed:", err);
+      setUser(null);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Check authentication status on mount and when path changes
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAuthenticated = await fetchCurrentUser();
+      if (isAuthenticated) {
+        // Refresh notifications when user is authenticated
+        loadNotifications();
       }
     };
 
-    fetchCurrentUser();
-  }, []);
+    checkAuth();
+  }, [fetchCurrentUser, loadNotifications, location.pathname]);
 
   return (
     <AppBar
