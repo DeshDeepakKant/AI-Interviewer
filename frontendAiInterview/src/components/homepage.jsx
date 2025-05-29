@@ -91,7 +91,7 @@ const HeroSection = () => (
           name="Mock Interview"
           icon={SchoolIcon}
           component={NavLink}
-          to="/interview"
+          to="/mockInterviewWay"
         />
       </Stack>
     </Container>

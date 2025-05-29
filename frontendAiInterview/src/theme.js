@@ -4,7 +4,22 @@ import { createTheme } from '@mui/material';
 const theme = createTheme({
   palette: {
     mode: 'dark',
-    /* … */
+    primary: {
+      main: '#6c63ff',
+      light: '#9c95ff',
+      dark: '#3a36cb',
+      contrastText: '#ffffff',
+    },
+    secondary: {
+      main: '#ff6b6b',
+      light: '#ff9e9e',
+      dark: '#c73e3e',
+      contrastText: '#ffffff',
+    },
+    background: {
+      default: '#0a0f1a',
+      paper: '#1a1f2e',
+    },
   },
   components: {
     MuiCssBaseline: {

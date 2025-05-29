@@ -33,12 +33,12 @@ const router = createBrowserRouter(
         <Route path="features" element={<Features />} />
         <Route path="comingSoon" element={<ComingSoong />} />
         <Route path="dashboard" element={<UserDashboard />} />
-
-      </Route>
-      <Route path="/" element={<LayoutWithoutFooter />}>
         <Route path="interview" element={<AIInterview />} />
         <Route path="pricing" element={<Pricing />} />
          <Route path="mockInterviewWay" element={<MockInterviewWay />} />
+      </Route>
+      <Route path="/" element={<LayoutWithoutFooter />}>
+
       </Route>
 
     </>, // Close the wrapper

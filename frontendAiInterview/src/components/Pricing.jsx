@@ -9,7 +9,7 @@ import {
   Paper,
   useTheme,
 } from "@mui/material";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { NavLink } from "react-router";
 
@@ -167,8 +167,21 @@ const Pricing = () => {
           {pricingPlans.map((plan, index) => (
             <Grid item xs={12} md={4} key={index}>
               <motion.div
-                whileHover={{ y: -10, scale: 1.02 }}
-                transition={{ duration: 0.3 }}
+                initial={{ y: 0, scale: 1 }}
+                animate={{
+                  y: [0, -5, 0],
+                }}
+                transition={{
+                  duration: 5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: index * 0.2
+                }}
+                whileHover={{
+                  y: -15,
+                  scale: 1.03,
+                  transition: { duration: 0.3 }
+                }}
               >
                 <Paper
                   elevation={plan.highlight ? 8 : 2}
@@ -210,7 +223,27 @@ const Pricing = () => {
                       Most Popular
                     </Box>
                   )}
-                  <Box p={4}>
+                  <Box 
+                    p={4}
+                    sx={{
+                      position: 'relative',
+                      overflow: 'hidden',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        height: '2px',
+                        background: `linear-gradient(90deg, transparent, ${theme.palette.primary.main}, transparent)`,
+                        transform: 'translateX(-100%)',
+                        transition: 'transform 0.6s ease',
+                      },
+                      '&:hover::before': {
+                        transform: 'translateX(100%)',
+                      },
+                    }}
+                  >
                     <Typography
                       variant="h5"
                       component="h3"
@@ -244,31 +277,49 @@ const Pricing = () => {
                       </Typography>
                     </Box>
 
-                    <Button
-                      fullWidth
-                      variant={plan.buttonVariant}
-                      size="large"
-                      sx={{
-                        py: 1.5,
-                        borderRadius: 2,
-                        fontWeight: 600,
-                        mb: 3,
-                        background: plan.highlight
-                          ? `linear-gradient(45deg, ${theme.palette.primary.main}, #00b0ff)`
-                          : "transparent",
-                        "&:hover": {
-                          transform: "translateY(-2px)",
-                          boxShadow: `0 4px 12px ${theme.palette.primary.main}40`,
-                        },
-                      }}
-                      // Link to login page
-                      component={NavLink}
-                      to="/login"
-                    >
-                      {plan.buttonText}
-                    </Button>
+                    <NavLink to="/login" style={{ textDecoration: 'none' }}>
+                      <Button
+                        component={motion.button}
+                        fullWidth
+                        variant={plan.buttonVariant}
+                        size="large"
+                        whileHover={{
+                          scale: 1.05,
+                          transition: { duration: 0.2 }
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        sx={{
+                          py: 1.5,
+                          borderRadius: 2,
+                          fontWeight: 600,
+                          mb: 3,
+                          background: plan.highlight
+                            ? `linear-gradient(45deg, ${theme.palette.primary.main}, #00b0ff)`
+                            : "rgba(255, 255, 255, 0.05)",
+                          border: plan.highlight 
+                            ? 'none' 
+                            : '1px solid rgba(255, 255, 255, 0.1)',
+                          color: plan.highlight ? '#fff' : '#e2e8f0',
+                          '&:hover': {
+                            background: plan.highlight
+                              ? `linear-gradient(45deg, ${theme.palette.primary.dark}, #0091ea)`
+                              : 'rgba(255, 255, 255, 0.1)',
+                            boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
+                          },
+                        }}
+                      >
+                        {plan.buttonText}
+                      </Button>
+                    </NavLink>
 
-                    <Box component="ul" sx={{ p: 0, m: 0, listStyle: "none" }}>
+                    <Box 
+                      component="ul" 
+                      sx={{ 
+                        p: 0, 
+                        m: 0, 
+                        listStyle: "none"
+                      }}
+                    >
                       {plan.features.map((feature, i) => (
                         <Box
                           key={i}
@@ -280,14 +331,25 @@ const Pricing = () => {
                             color: "#e2e8f0",
                           }}
                         >
-                          <CheckCircleIcon
-                            sx={{
-                              color: theme.palette.primary.main,
-                              fontSize: "1.2rem",
-                              mr: 1.5,
-                              flexShrink: 0,
+                          <motion.div
+                            initial={{ scale: 0.8, opacity: 0.8 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ 
+                              duration: 0.3,
+                              delay: i * 0.1 
                             }}
-                          />
+                          >
+                            <CheckCircleIcon
+                              sx={{
+                                color: theme.palette.primary.main,
+                                fontSize: "1.2rem",
+                                mr: 1.5,
+                                flexShrink: 0,
+                                filter: 'drop-shadow(0 0 5px rgba(0, 191, 165, 0.7))',
+                                transition: 'all 0.3s ease',
+                              }}
+                            />
+                          </motion.div>
                           <Typography variant="body2">{feature}</Typography>
                         </Box>
                       ))}

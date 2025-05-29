@@ -18,17 +18,39 @@ html, body, #root {
   overflow: hidden;
   padding: 16px; /* match your p:2 in sx */
 }
-.page-background::before {
-  content: "";
-  position: absolute;
-  top: 10%;
-  left: 10%;
-  width: 60vw;
-  height: 60vw;
-  background: radial-gradient(circle at center, #00bfa5, transparent 70%);
-  filter: blur(200px);
-  z-index: 1;
+
+/* Animated teal glow for dashboard */
+.dashboard-glow {
+  pointer-events: none;
+  background: radial-gradient(circle at 60% 40%, #00bfa5 0%, #1de9b6 30%, transparent 70%);
+  filter: blur(120px);
+  opacity: 0.7;
+  animation: dashboardGlowAnim 8s ease-in-out infinite alternate;
 }
+
+@keyframes dashboardGlowAnim {
+  0% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.7;
+    background: radial-gradient(circle at 60% 40%, #00bfa5 0%, #1de9b6 30%, transparent 70%);
+  }
+  50% {
+    transform: scale(1.07) translate(30px, 20px);
+    opacity: 1;
+    background: radial-gradient(circle at 50% 60%, #1de9b6 0%, #00bfa5 40%, transparent 70%);
+  }
+  100% {
+    transform: scale(1) translate(0px, 0px);
+    opacity: 0.7;
+    background: radial-gradient(circle at 60% 40%, #00bfa5 0%, #1de9b6 30%, transparent 70%);
+  }
+}
+
+/* Optionally, smooth out the page background */
+.page-background {
+  transition: background 0.7s;
+}
+
 
 /* Custom Toast Styles */
 .Toastify__toast {

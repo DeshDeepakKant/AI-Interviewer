@@ -141,7 +141,7 @@ function LoginForm({ onShowPassword, showPassword }) {
           
           if (response.data.success) {
             resolve(response.data);
-            navigate("/interview");
+            navigate("/dashboard");
           } else {
             reject(new Error(response.data.message || "Login failed"));
           }
