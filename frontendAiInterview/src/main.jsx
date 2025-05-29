@@ -34,10 +34,7 @@ const router = createBrowserRouter(
         <Route path="features" element={<Features />} />
         <Route path="comingSoon" element={<ComingSoong />} />
         <Route path="dashboard" element={<UserDashboard />} />
-        
-      </Route>
-      <Route>
-      <Analytics />
+
       </Route>
       <Route path="/" element={<LayoutWithoutFooter />}>
         <Route path="interview" element={<AIInterview />} />
