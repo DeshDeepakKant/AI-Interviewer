@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link as RouterLink, useNavigate } from "react-router";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AppBar,
@@ -53,6 +53,7 @@ const scaleUp = {
 
 const navItems = [
   { name: "Companies", path: "/comingSoon" },
+  { name: "Mock Interview", path: "/mockInterviewWay" },
   { name: "Features", path: "/features" },
   { name: "Pricing", path: "/pricing" },
 ];
@@ -65,8 +66,19 @@ const Header = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const open = Boolean(anchorEl);
   const profileMenuOpen = Boolean(profileAnchorEl);
+  
+  // Check if current path matches nav item path
+  const isActive = (path) => {
+    // Special handling for home path
+    if (path === '/') {
+      return location.pathname === path;
+    }
+    // For other paths, check if the current path starts with the item's path
+    return location.pathname.startsWith(path);
+  };
 
   const handleMenu = (e) => setAnchorEl(e.currentTarget);
   const handleClose = () => setAnchorEl(null);
@@ -182,27 +194,46 @@ const Header = () => {
               gap: 1,
             }}
           >
-            {navItems.map((item) => (
-              <Button
-                key={item.name}
-                component={RouterLink}
-                to={item.path}
-                sx={{
-                  color: "rgba(255,255,255,0.9)",
-                  textTransform: "none",
-                  fontSize: "0.95rem",
-                  fontWeight: 500,
-                  px: 2,
-                  "&:hover": {
-                    color: "#00e5c9",
-                    background: "rgba(0,191,165,0.15)",
-                    borderRadius: 1,
-                  },
-                }}
-              >
-                {item.name}
-              </Button>
-            ))}
+            {navItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Button
+                  key={item.name}
+                  component={RouterLink}
+                  to={item.path}
+                  sx={{
+                    color: active ? "#00e5c9" : "rgba(255,255,255,0.9)",
+                    textTransform: "none",
+                    fontSize: "0.95rem",
+                    fontWeight: active ? 600 : 500,
+                    px: 2,
+                    position: 'relative',
+                    '&:after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: active ? '60%' : '0%',
+                      height: '2px',
+                      background: '#00e5c9',
+                      borderRadius: '2px',
+                      transition: 'all 0.3s ease',
+                    },
+                    '&:hover': {
+                      color: "#00e5c9",
+                      background: "rgba(0,191,165,0.1)",
+                      borderRadius: 1,
+                      '&:after': {
+                        width: '60%',
+                      }
+                    },
+                  }}
+                >
+                  {item.name}
+                </Button>
+              );
+            })}
 
             {!isLoading && user ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -464,26 +495,39 @@ const Header = () => {
                   sx={{
                     px: 3,
                     py: 1.5,
-                    color: "#e0e0e0",
-                    "&:hover": { background: "rgba(0,191,165,0.1)", color: "#00bfa5" },
+                    color: isActive(item.path) ? "#00e5c9" : "#e0e0e0",
+                    fontWeight: isActive(item.path) ? 600 : 400,
+                    "&:hover": { 
+                      background: "rgba(0,191,165,0.1)", 
+                      color: "#00e5c9" 
+                    },
                   }}
                 >
                   {item.name}
                 </MenuItem>
               ))}
-
+              
               {!isLoading && user ? (
                 <>
+                  <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <MenuItem
                     onClick={() => {
                       handleClose();
                       navigate("/profile");
                     }}
                     sx={{
+                      px: 3,
+                      py: 1.5,
                       color: "#e0e0e0",
-                      "&:hover": { background: "rgba(0,191,165,0.1)", color: "#00bfa5" },
+                      "&:hover": { 
+                        background: "rgba(0,191,165,0.1)", 
+                        color: "#00e5c9" 
+                      },
                     }}
                   >
+                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                      <PersonIcon fontSize="small" />
+                    </ListItemIcon>
                     Profile
                   </MenuItem>
                   <MenuItem
@@ -492,45 +536,58 @@ const Header = () => {
                       handleLogout();
                     }}
                     sx={{
+                      px: 3,
+                      py: 1.5,
                       color: "#e0e0e0",
-                      "&:hover": { background: "rgba(0,191,165,0.1)", color: "#00bfa5" },
+                      "&:hover": { 
+                        background: "rgba(0,191,165,0.1)", 
+                        color: "#00e5c9" 
+                      },
                     }}
                   >
+                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                      <LogoutIcon fontSize="small" />
+                    </ListItemIcon>
                     Logout
                   </MenuItem>
                 </>
               ) : (
-                <>
-                  <MenuItem
-                    component={RouterLink}
-                    to="/login"
-                    onClick={handleClose}
-                    sx={{
-                      color: "#e0e0e0",
-                      "&:hover": { background: "rgba(0,191,165,0.1)", color: "#00bfa5" },
-                    }}
-                  >
-                    Login
-                  </MenuItem>
-                  <MenuItem onClick={handleClose}>
-                    <Button
-                      variant="contained"
-                      fullWidth
+                !isLoading && (
+                  <>
+                    <MenuItem
                       component={RouterLink}
-                      to="/signup"
+                      to="/login"
+                      onClick={handleClose}
                       sx={{
-                        background:
-                          "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                        "&:hover": {
-                          background:
-                            "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                        color: "#e0e0e0",
+                        "&:hover": { 
+                          background: "rgba(0,191,165,0.1)", 
+                          color: "#00e5c9" 
                         },
                       }}
                     >
-                      Sign Up
-                    </Button>
-                  </MenuItem>
-                </>
+                      Login
+                    </MenuItem>
+                    <MenuItem onClick={handleClose}>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        component={RouterLink}
+                        to="/signup"
+                        sx={{
+                          background:
+                            "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
+                          "&:hover": {
+                            background:
+                              "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
+                          },
+                        }}
+                      >
+                        Sign Up
+                      </Button>
+                    </MenuItem>
+                  </>
+                )
               )}
             </Menu>
           </Box>
