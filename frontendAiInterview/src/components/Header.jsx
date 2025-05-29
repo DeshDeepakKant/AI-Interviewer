@@ -125,14 +125,54 @@ const Header = () => {
     try {
       // In a real app, you would make an API call to mark notifications as read
       // await axios.patch('/api/notifications/mark-as-read');
+      
+      // Update notifications to mark all as read
+      const updatedNotifications = notifications.map(notification => ({
+        ...notification,
+        read: true
+      }));
+      
+      setNotifications(updatedNotifications);
       setUnreadCount(0);
     } catch (error) {
       console.error('Error marking notifications as read:', error);
     }
   };
 
+  // Load notifications from localStorage on component mount
+  useEffect(() => {
+    if (user) {
+      const savedNotifications = localStorage.getItem('notifications');
+      if (savedNotifications) {
+        const parsed = JSON.parse(savedNotifications);
+        // Convert string timestamps back to Date objects
+        const notificationsWithDates = parsed.map(notification => ({
+          ...notification,
+          timestamp: new Date(notification.timestamp)
+        }));
+        setNotifications(notificationsWithDates);
+        setUnreadCount(notificationsWithDates.filter(n => !n.read).length);
+      } else {
+        // If no saved notifications, fetch them
+        fetchInitialNotifications();
+      }
+    }
+  }, [user]);
+
+  // Save notifications to localStorage whenever they change
+  useEffect(() => {
+    if (notifications.length > 0) {
+      // Convert Date objects to ISO strings for localStorage
+      const notificationsForStorage = notifications.map(notification => ({
+        ...notification,
+        timestamp: notification.timestamp.toISOString()
+      }));
+      localStorage.setItem('notifications', JSON.stringify(notificationsForStorage));
+    }
+  }, [notifications]);
+
   // Mock notifications - in a real app, these would come from an API
-  const fetchNotifications = async () => {
+  const fetchInitialNotifications = async () => {
     setLoadingNotifications(true);
     try {
       // Simulate API call
@@ -174,13 +214,6 @@ const Header = () => {
       setLoadingNotifications(false);
     }
   };
-
-  // Fetch notifications when component mounts
-  useEffect(() => {
-    if (user) {
-      fetchNotifications();
-    }
-  }, [user]);
 
   const handleLogout = async () => {
     try {
