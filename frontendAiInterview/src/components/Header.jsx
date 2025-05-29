@@ -237,6 +237,7 @@ const Header = () => {
       handleProfileMenuClose();
       
       // Navigate to login
+      toast.success("Logged out successfully!");
       navigate("/login");
     } catch (err) {
       console.error("Logout failed:", err);
