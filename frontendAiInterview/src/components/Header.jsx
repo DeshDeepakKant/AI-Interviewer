@@ -137,12 +137,11 @@ const Header = () => {
         if (response.status === 200 && response.data.success) {
           setUser(response.data.data);
         } else {
-          setTimeout(() => setUser(null), 5000)
-          
+          setUser(null);
         }
       } catch (err) {
         console.error("Authentication check failed:", err);
-        setTimeout(() => setUser(null), 5000)
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -428,6 +427,7 @@ const Header = () => {
               </Box>
             ) : (
               <>
+              {!isLoading && !user && (
                 <Button
                   component={RouterLink}
                   to="/login"
@@ -445,6 +445,8 @@ const Header = () => {
                 >
                   Login
                 </Button>
+              )}
+              {!isLoading && !user && (
                 <Button
                   variant="contained"
                   component={RouterLink}
@@ -461,6 +463,7 @@ const Header = () => {
                 >
                   Sign Up
                 </Button>
+                 )}
               </>
             )}
           </Box>
