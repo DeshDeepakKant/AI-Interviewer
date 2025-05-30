@@ -140,11 +140,28 @@ export default function UserDashboard() {
 
   useEffect(() => {
     const fetchUserData = async () => {
+      // Check if user data exists in localStorage
+      const cachedUserData = localStorage.getItem('userData');
+      
+      if (cachedUserData) {
+        try {
+          // Parse and use cached data
+          const parsedData = JSON.parse(cachedUserData);
+          setUserData(parsedData);
+          setLoading(false);
+          return;
+        } catch (error) {
+          console.error('Error parsing cached user data:', error);
+          // If there's an error parsing, we'll fetch fresh data
+        }
+      }
+
+      // If no cached data or error parsing, fetch from API
       try {
         const response = await axios.get("/api/v1/user/currentUser");
         if (response.data.success) {
           const { fullName, email, username, role } = response.data.data;
-          setUserData({
+          const userData = {
             name: fullName,
             email,
             username,
@@ -153,8 +170,15 @@ export default function UserDashboard() {
               completedInterviews: 0, // You can update this with actual stats if available
               avgRating: 0, // You can update this with actual stats if available
               lastInterview: ''
-            }
-          });
+            },
+            lastFetched: new Date().toISOString() // Add timestamp
+          };
+          
+          // Save to state
+          setUserData(userData);
+          
+          // Cache the data in localStorage
+          localStorage.setItem('userData', JSON.stringify(userData));
         }
       } catch (err) {
         console.error("Error fetching user data:", err);
