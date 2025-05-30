@@ -214,7 +214,7 @@ export default function UserDashboard() {
     const fetchInterviewHistory = async () => {
       try {
         setLoadingHistory(true);
-        const response = await axios.get("https://backend-ai-interview.vercel.app/api/v1/ai/aiHistory");
+        const response = await axios.get("/api/v1/ai/aiHistory");
         
         if (response.data.success && response.data.data?.histories) {
           // Convert histories object to array and sort by date (newest first)
