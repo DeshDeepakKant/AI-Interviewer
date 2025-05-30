@@ -1,8 +1,9 @@
-// import express from "express"
-// import { aiInterviewStart } from "../controllers/aiInterview.controller.js"
+import express from "express"
+import { aiInterviewWay, aiInterviewStart } from "../controllers/aiInterview.controller.js"
 
-// const router = express.Router()
+const router = express.Router()
 
-// router.route("/ai").post(aiInterviewStart)
+router.route("/ai").post(aiInterviewWay)
+router.route("/aiStart").post(aiInterviewStart)
 
-// export default router
+export default router
