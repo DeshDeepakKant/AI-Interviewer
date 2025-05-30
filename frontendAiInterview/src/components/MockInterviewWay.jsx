@@ -186,6 +186,44 @@ const MockInterviewWay = () => {
     
     setIsLoading(true);
     
+    // Show loading toast
+    const loadingToast = document.createElement('div');
+    loadingToast.style.position = 'fixed';
+    loadingToast.style.bottom = '20px';
+    loadingToast.style.left = '50%';
+    loadingToast.style.transform = 'translateX(-50%)';
+    loadingToast.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    loadingToast.style.color = 'white';
+    loadingToast.style.padding = '12px 24px';
+    loadingToast.style.borderRadius = '4px';
+    loadingToast.style.zIndex = '9999';
+    loadingToast.style.display = 'flex';
+    loadingToast.style.alignItems = 'center';
+    loadingToast.style.gap = '12px';
+    
+    const spinner = document.createElement('div');
+    spinner.style.width = '20px';
+    spinner.style.height = '20px';
+    spinner.style.border = '3px solid rgba(255, 255, 255, 0.3)';
+    spinner.style.borderRadius = '50%';
+    spinner.style.borderTopColor = '#fff';
+    spinner.style.animation = 'spin 1s ease-in-out infinite';
+    
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    const text = document.createElement('span');
+    text.textContent = 'Creating your interview...';
+    
+    loadingToast.appendChild(spinner);
+    loadingToast.appendChild(text);
+    document.body.appendChild(loadingToast);
+    
     try {
       // Get the authentication token from where you store it
       const token = localStorage.getItem('authToken');
@@ -200,13 +238,19 @@ const MockInterviewWay = () => {
         experienceLevel: experience,
         numberOfQuestions: parseInt(numQuestions),
         resumeUrl: resumeFile?.url || '',
-        // Add any additional data needed by your backend
       };
       
-      // Send data to your backend
+      // Send data to your backend with authentication
       const response = await axios.post(
         `/api/v1/ai/ai`,
-        interviewData
+        interviewData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          withCredentials: true
+        }
       );
       
       // Save the session ID
@@ -216,19 +260,41 @@ const MockInterviewWay = () => {
       // Store session ID in localStorage for persistence
       localStorage.setItem('interviewSessionId', sessionId);
       
+      // Start the interview
+      await axios.post(
+        '/api/v1/ai/aiStart',
+        {
+          sessionId,
+          answer: "Let's Start Interview"
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          withCredentials: true
+        }
+      );
+      
       // Hide current content with fade out
       setShowContent(false);
       
       // Wait for fade out animation to complete
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Navigate to AIInterview page with session ID
-      navigate(`/interview?sessionId=${sessionId}`);
+      // Navigate to MockInterview page with session ID
+      navigate(`/mock-interview?sessionId=${sessionId}`);
       
     } catch (error) {
       console.error('Error starting interview:', error);
-      alert('Failed to start interview. Please try again.');
+      alert(error.response?.data?.message || 'Failed to start interview. Please try again.');
       setIsLoading(false);
+    } finally {
+      // Remove loading toast
+      if (document.body.contains(loadingToast)) {
+        document.body.removeChild(loadingToast);
+      }
+      document.head.removeChild(style);
     }
   };
 
