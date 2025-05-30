@@ -402,14 +402,31 @@ export default function UserDashboard() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3 }}
+              transition={{ 
+                duration: 0.3,
+                ease: [0.4, 0, 0.2, 1]
+              }}
+              style={{ 
+                transformOrigin: 'top center',
+                willChange: 'transform, opacity, height'
+              }}
             >
-              <CardContent sx={{ 
-                pt: 1, 
-                px: 3, 
-                pb: isExpanded ? 3 : 0,
-                borderTop: '1px solid rgba(255, 255, 255, 0.08)'
-              }}>
+              <CardContent 
+                sx={{ 
+                  pt: 1, 
+                  px: 3, 
+                  pb: isExpanded ? 3 : 0,
+                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                  transformOrigin: 'top center',
+                  '&.MuiCardContent-root': {
+                    paddingTop: isExpanded ? '16px' : 0,
+                    paddingBottom: isExpanded ? '24px' : 0,
+                    transition: 'all 0.3s ease-in-out',
+                    overflow: 'hidden',
+                    display: 'block'
+                  }
+                }}
+              >
             <List dense>
               {questions.map((q) => (
                 <ListItem key={q.id} sx={{ 
@@ -436,24 +453,43 @@ export default function UserDashboard() {
                     }}
                     secondary={
                       <>
-                        <Typography component="div" variant="caption" sx={{ 
-                          display: 'block', 
-                          color: 'rgba(255, 255, 255, 0.75)',
-                          lineHeight: 1.5,
-                          mb: 1
-                        }}>
-                          <Box component="span" sx={{ color: '#ffffff', fontWeight: 500, mr: 0.5 }}>Your Answer:</Box>
-                          {q['Your Answer'] || 'No answer provided'}
-                        </Typography>
-                        <Typography component="div" variant="caption" sx={{ 
-                          display: 'block', 
-                          color: 'rgba(255, 255, 255, 0.7)', 
-                          fontStyle: 'italic',
-                          lineHeight: 1.5
-                        }}>
-                          <Box component="span" sx={{ color: '#ffffff', fontWeight: 500, mr: 0.5 }}>Feedback:</Box>
-                          {q.Feedback || 'No feedback available'}
-                        </Typography>
+                        <Box sx={{ mb: 2 }}>
+                          <Typography component="div" sx={{ 
+                            display: 'block', 
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            fontSize: '0.95rem',
+                            lineHeight: 1.6,
+                            mb: 1
+                          }}>
+                            <Box component="span" sx={{ 
+                              color: '#1de9b6', 
+                              fontWeight: 600, 
+                              mr: 1,
+                              fontSize: '0.95rem'
+                            }}>
+                              Your Answer:
+                            </Box>
+                            {q['Your Answer'] || 'No answer provided'}
+                          </Typography>
+                          <Typography component="div" sx={{ 
+                            display: 'block', 
+                            color: 'rgba(255, 255, 255, 0.85)', 
+                            fontSize: '0.9rem',
+                            lineHeight: 1.6,
+                            pl: '12px',
+                            borderLeft: '2px solid rgba(29, 233, 182, 0.3)'
+                          }}>
+                            <Box component="span" sx={{ 
+                              color: '#1de9b6', 
+                              fontWeight: 600, 
+                              mr: 1,
+                              fontSize: '0.9rem'
+                            }}>
+                              Feedback:
+                            </Box>
+                            {q.Feedback || 'No feedback available'}
+                          </Typography>
+                        </Box>
                         <Chip 
                           label={`Rating: ${q.Rating || 'N/A'}/10`} 
                           size="small" 
