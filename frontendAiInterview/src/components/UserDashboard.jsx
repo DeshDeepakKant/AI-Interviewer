@@ -309,24 +309,30 @@ export default function UserDashboard() {
     return (
       <motion.div
         layout
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ duration: 0.3 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2, ease: 'easeInOut' }}
         onClick={() => handleExpandInterview(interview.id)}
-        style={{ cursor: 'pointer' }}
+        style={{ 
+          cursor: 'pointer',
+          marginBottom: '16px',
+          width: '100%'
+        }}
       >
         <Card 
           sx={{ 
             mb: 2, 
-            bgcolor: isExpanded ? 'rgba(29, 233, 182, 0.1)' : 'rgba(26, 31, 46, 0.8)',
-            border: isExpanded ? '1px solid rgba(29, 233, 182, 0.5)' : '1px solid rgba(29, 233, 182, 0.2)',
+            bgcolor: isExpanded ? 'rgba(29, 233, 182, 0.08)' : 'rgba(26, 31, 46, 0.9)',
+            border: isExpanded ? '1px solid rgba(29, 233, 182, 0.4)' : '1px solid rgba(29, 233, 182, 0.15)',
             color: '#ffffff',
-            transition: 'all 0.3s ease-in-out',
+            borderRadius: '12px',
+            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             '&:hover': {
-              transform: 'translateY(-2px)',
-              boxShadow: '0 4px 20px rgba(29, 233, 182, 0.2)',
-              borderColor: 'rgba(29, 233, 182, 0.4)',
+              transform: 'translateY(-3px)',
+              boxShadow: '0 6px 24px rgba(29, 233, 182, 0.12)',
+              borderColor: 'rgba(29, 233, 182, 0.3)',
+              bgcolor: isExpanded ? 'rgba(29, 233, 182, 0.12)' : 'rgba(29, 233, 182, 0.05)'
             }
           }}
         >
@@ -349,8 +355,12 @@ export default function UserDashboard() {
               </Box>
             }
           subheader={
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
+              <Typography variant="caption" sx={{ 
+                color: 'rgba(255, 255, 255, 0.65)',
+                fontSize: '0.75rem',
+                letterSpacing: '0.02em'
+              }}>
                 {interview.createdAt.toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short',
@@ -360,10 +370,16 @@ export default function UserDashboard() {
                 })}
               </Typography>
               <motion.div
-                animate={{ rotate: isExpanded ? 180 : 0 }}
-                transition={{ duration: 0.3 }}
+                animate={{ 
+                  rotate: isExpanded ? 180 : 0,
+                  scale: isExpanded ? 1.1 : 1
+                }}
+                transition={{ duration: 0.2, ease: 'easeInOut' }}
               >
-                <ExpandMoreIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                <ExpandMoreIcon sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '1.2rem'
+                }} />
               </motion.div>
             </Box>
           }
@@ -388,11 +404,28 @@ export default function UserDashboard() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <CardContent sx={{ pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+              <CardContent sx={{ 
+                pt: 1, 
+                px: 3, 
+                pb: isExpanded ? 3 : 0,
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)'
+              }}>
             <List dense>
               {questions.map((q) => (
-                <ListItem key={q.id} sx={{ px: 0, py: 1 }}>
-                  <ListItemIcon sx={{ minWidth: 32 }}>
+                <ListItem key={q.id} sx={{ 
+                  px: 0, 
+                  py: 1.5,
+                  alignItems: 'flex-start',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+                  '&:last-child': {
+                    borderBottom: 'none'
+                  }
+                }}>
+                  <ListItemIcon sx={{ 
+                    minWidth: 32,
+                    mt: 0.5,
+                    alignSelf: 'flex-start'
+                  }}>
                     <CheckCircleOutlineIcon fontSize="small" color="primary" />
                   </ListItemIcon>
                   <ListItemText 
@@ -403,21 +436,40 @@ export default function UserDashboard() {
                     }}
                     secondary={
                       <>
-                        <Typography component="span" variant="caption" display="block" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                          <strong style={{ color: '#ffffff' }}>Your Answer:</strong> {q['Your Answer'] || 'No answer provided'}
+                        <Typography component="div" variant="caption" sx={{ 
+                          display: 'block', 
+                          color: 'rgba(255, 255, 255, 0.75)',
+                          lineHeight: 1.5,
+                          mb: 1
+                        }}>
+                          <Box component="span" sx={{ color: '#ffffff', fontWeight: 500, mr: 0.5 }}>Your Answer:</Box>
+                          {q['Your Answer'] || 'No answer provided'}
                         </Typography>
-                        <Typography component="span" variant="caption" display="block" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                          <strong style={{ color: '#ffffff' }}>Feedback:</strong> {q.Feedback || 'No feedback available'}
+                        <Typography component="div" variant="caption" sx={{ 
+                          display: 'block', 
+                          color: 'rgba(255, 255, 255, 0.7)', 
+                          fontStyle: 'italic',
+                          lineHeight: 1.5
+                        }}>
+                          <Box component="span" sx={{ color: '#ffffff', fontWeight: 500, mr: 0.5 }}>Feedback:</Box>
+                          {q.Feedback || 'No feedback available'}
                         </Typography>
                         <Chip 
                           label={`Rating: ${q.Rating || 'N/A'}/10`} 
                           size="small" 
                           sx={{ 
-                            mt: 0.5,
-                            backgroundColor: `${getRatingColor(q.Rating)}20`,
+                            mt: 1,
+                            backgroundColor: `${getRatingColor(q.Rating)}15`,
                             color: getRatingColor(q.Rating),
                             fontSize: '0.65rem',
-                            height: '20px'
+                            height: '20px',
+                            border: `1px solid ${getRatingColor(q.Rating)}30`,
+                            borderRadius: '4px',
+                            fontWeight: 600,
+                            '& .MuiChip-label': {
+                              px: 1,
+                              py: 0.25
+                            }
                           }} 
                         />
                       </>
