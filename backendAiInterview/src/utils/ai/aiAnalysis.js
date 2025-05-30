@@ -50,7 +50,7 @@ Whole Interview: ${chatHistory}`
     // console.log("Going to call tracedChatTool");
     const aiResponse = await tracedChatTool(messages);
     
-    // Extract JSON from markdown code block if present
+
     try {
       // Check if response is wrapped in markdown code block
       const jsonMatch = aiResponse.match(/```(?:json)?\n([\s\S]*?)\n```/);
@@ -60,7 +60,6 @@ Whole Interview: ${chatHistory}`
       return JSON.parse(jsonString);
     } catch (error) {
       console.error('Error parsing AI response:', error);
-      // If parsing fails, try to return the raw response
       return aiResponse;
     }
     

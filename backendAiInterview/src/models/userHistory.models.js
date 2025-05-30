@@ -20,7 +20,8 @@ const historyItemSchema = new mongoose.Schema({
   experienceLevel: { type: String },
   position: { type: String },
   numberOfQuestions: { type: String },
-  overAllRating: { type: String }
+  overAllRating: { type: String },
+  mockType: {type: String, enum: ["Company Interview", "Mock Interview"], default: "Mock Interview"}
 }, {
   timestamps: { createdAt: true, updatedAt: false }
 });

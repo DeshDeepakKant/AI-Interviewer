@@ -181,6 +181,17 @@ const verifyToken = asyncHandler(async(req, res)=>{
     })
 })
 
+const getCurentUserWithUserHistory = asyncHandler(async(req, res)=>{
+    try {
+        const user = await User.findById(req.user._id)
+        .populate("histories", "histories")
+        .select("-password -refreshToken")
+        return res.status(200).json(new ApiResponse(200, user, "User fetched successfully"))
+    } catch (error) {
+        throw new ApiError(500, "Something went wrong while fetching user")
+    }
+})
+
 
 export {
     userSignUp,
@@ -188,5 +199,6 @@ export {
     userLogout,
     getCurrentUser,
     test,
-    verifyToken
+    verifyToken,
+    getCurentUserWithUserHistory
 }

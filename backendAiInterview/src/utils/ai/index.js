@@ -2,7 +2,9 @@ import { tracedChatTool } from "./ai.js";
 const aiInterview = async (resume, position, numberOfQuestionLeft, experienceLevel, numberOfQuestionYyouShouldAsk, previousConversation, user="Let’s start the interview.") => {
 
   let endSystemPromt = `You are helpful assistant you do ending of interview and assign the candidate a score out of 10. you will get the whole interview conversation
-  at the start add this word "Your interview is over." and some greating "You can see the detail analysis of this interview in your profile in some time"`
+  at the start add this word "Your interview is over." and some greating "You can see the detail analysis of this interview in your profile in some time"
+  Note: Do not do analysis of the interview and score of the interview
+  ` 
 
   let systemPrompt = `You are helpful AI aInterview assistant for interview(you will get these things["Position", "Experience Level", and "resume", "Number of Question you should ask"] 
   and based on that you will take the interview. you take interview based on the real world question and you can ask 
