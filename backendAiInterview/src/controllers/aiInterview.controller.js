@@ -69,8 +69,9 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
                 resume: docResume,
                 count: 0,
                 messages: JSON.stringify([]),
-            }
+            },
         )
+        await client.expire(sessionId, 60*120);
         return res.status(200).json(new ApiResponse(200, "AI interview started successfully"));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
