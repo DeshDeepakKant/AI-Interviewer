@@ -12,7 +12,18 @@ import {
   Grid,
   Divider,
   Button,
-  IconButton
+  IconButton,
+  Chip,
+  Card,
+  CardContent,
+  CardHeader,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  CircularProgress,
+  Alert
 } from "@mui/material";
 import { styled } from "@mui/system";
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -21,7 +32,10 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 import EditIcon from '@mui/icons-material/Edit';
 import HistoryIcon from '@mui/icons-material/History';
 import StarIcon from '@mui/icons-material/Star';
-import { teal } from '@mui/material/colors';
+import { teal, amber, green, red, blueGrey } from '@mui/material/colors'; 
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from "react-router";
 import { motion } from 'framer-motion';
 
@@ -123,7 +137,11 @@ const EmptyState = styled(Box)(({ theme }) => ({
 }));
 
 export default function UserDashboard() {
-  const [interviewType, setInterviewType] = useState('company');
+  const [interviewType, setInterviewType] = useState('mock');
+  const [expandedInterview, setExpandedInterview] = useState(null);
+  const [interviewHistory, setInterviewHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+  const [historyError, setHistoryError] = useState(null);
   const [userData, setUserData] = useState({
     name: '',
     email: '',
@@ -190,6 +208,197 @@ export default function UserDashboard() {
 
     fetchUserData();
   }, []);
+
+  // Fetch interview history
+  useEffect(() => {
+    const fetchInterviewHistory = async () => {
+      try {
+        setLoadingHistory(true);
+        const response = await axios.get("https://backend-ai-interview.vercel.app/api/v1/ai/aiHistory");
+        
+        if (response.data.success && response.data.data?.histories) {
+          // Convert histories object to array and sort by date (newest first)
+          const historyArray = Object.entries(response.data.data.histories)
+            .map(([key, value]) => ({
+              id: key,
+              ...value,
+              createdAt: new Date(value.createdAt),
+              overallRating: parseFloat(value.overAllRating) || 0
+            }))
+            .sort((a, b) => b.createdAt - a.createdAt);
+            
+          setInterviewHistory(historyArray);
+          
+          // Update user stats if we have history
+          if (historyArray.length > 0) {
+            const totalRating = historyArray.reduce((sum, item) => sum + item.overallRating, 0);
+            const avgRating = (totalRating / historyArray.length).toFixed(1);
+            
+            setUserData(prev => ({
+              ...prev,
+              stats: {
+                ...prev.stats,
+                completedInterviews: historyArray.length,
+                avgRating,
+                lastInterview: historyArray[0].createdAt.toLocaleDateString()
+              }
+            }));
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching interview history:", err);
+        setHistoryError("Failed to load interview history. Please try again later.");
+      } finally {
+        setLoadingHistory(false);
+      }
+    };
+
+    fetchInterviewHistory();
+  }, []);
+
+  const handleExpandInterview = (interviewId) => {
+    setExpandedInterview(expandedInterview === interviewId ? null : interviewId);
+  };
+
+  const getRatingColor = (rating) => {
+    const numRating = parseFloat(rating);
+    if (numRating >= 8) return green[500];
+    if (numRating >= 6) return amber[500];
+    return red[500];
+  };
+
+  const renderQuestionItem = (questionData) => {
+    return (
+      <Card key={questionData.Question} sx={{ mb: 2, bgcolor: 'rgba(29, 233, 182, 0.05)', borderLeft: `3px solid ${getRatingColor(questionData.Rating)}` }}>
+        <CardContent>
+          <Typography variant="subtitle2" color="primary" gutterBottom>
+            {questionData.Question}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            <strong>Your Answer:</strong> {questionData['Your Answer']}
+          </Typography>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="caption" color="text.secondary">
+                <strong>Feedback:</strong> {questionData.Feedback}
+              </Typography>
+            </Box>
+            <Chip 
+              label={`Rating: ${questionData.Rating}/10`} 
+              size="small" 
+              sx={{ 
+                backgroundColor: `${getRatingColor(questionData.Rating)}20`,
+                color: getRatingColor(questionData.Rating),
+                fontWeight: 'bold'
+              }} 
+            />
+          </Box>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  const renderInterviewCard = (interview) => {
+    const questions = interview.history ? Object.entries(interview.history).map(([key, value]) => ({
+      id: key,
+      ...value
+    })) : [];
+
+    return (
+      <Card key={interview.id} sx={{ mb: 2, bgcolor: 'rgba(26, 31, 46, 0.8)', border: '1px solid rgba(29, 233, 182, 0.2)' }}>
+        <CardHeader
+          title={
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle1">
+                {interview.mockType || 'Mock Interview'} - {interview.position || 'Full Stack'}
+              </Typography>
+              <Box display="flex" alignItems="center">
+                <Chip 
+                  label={`${interview.overallRating}/10`} 
+                  size="small" 
+                  sx={{ 
+                    backgroundColor: `${getRatingColor(interview.overallRating)}20`,
+                    color: getRatingColor(interview.overallRating),
+                    fontWeight: 'bold',
+                    mr: 1
+                  }} 
+                />
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleExpandInterview(interview.id)}
+                  sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                >
+                  {expandedInterview === interview.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              </Box>
+            </Box>
+          }
+          subheader={
+            <Typography variant="caption" color="text.secondary">
+              {interview.createdAt.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </Typography>
+          }
+          sx={{ 
+            '& .MuiCardHeader-content': {
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            },
+            '& .MuiCardHeader-title': {
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '100%'
+            }
+          }}
+        />
+        <Collapse in={expandedInterview === interview.id} timeout="auto" unmountOnExit>
+          <CardContent sx={{ pt: 0, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <List dense>
+              {questions.map((q) => (
+                <ListItem key={q.id} sx={{ px: 0, py: 1 }}>
+                  <ListItemIcon sx={{ minWidth: 32 }}>
+                    <CheckCircleOutlineIcon fontSize="small" color="primary" />
+                  </ListItemIcon>
+                  <ListItemText 
+                    primary={q.Question} 
+                    primaryTypographyProps={{ variant: 'body2' }}
+                    secondary={
+                      <>
+                        <Typography component="span" variant="caption" display="block" color="text.secondary">
+                          <strong>Your Answer:</strong> {q['Your Answer'] || 'No answer provided'}
+                        </Typography>
+                        <Typography component="span" variant="caption" display="block" color="text.secondary">
+                          <strong>Feedback:</strong> {q.Feedback || 'No feedback available'}
+                        </Typography>
+                        <Chip 
+                          label={`Rating: ${q.Rating || 'N/A'}/10`} 
+                          size="small" 
+                          sx={{ 
+                            mt: 0.5,
+                            backgroundColor: `${getRatingColor(q.Rating)}20`,
+                            color: getRatingColor(q.Rating),
+                            fontSize: '0.65rem',
+                            height: '20px'
+                          }} 
+                        />
+                      </>
+                    }
+                    secondaryTypographyProps={{ component: 'div' }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </CardContent>
+        </Collapse>
+      </Card>
+    );
+  };
 
   const handleInterviewType = (event, newType) => {
     if (newType) {
@@ -348,52 +557,67 @@ export default function UserDashboard() {
           
           <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 3 }} />
           
-          {/* Replace with actual history items */}
-          <EmptyState>
-            <HistoryIcon />
-            <Typography variant="h6" gutterBottom>No interviews yet</Typography>
-            <Typography variant="body2" sx={{ maxWidth: '400px', mb: 2, color: '#ffffff' }}>
-              You haven't completed any interviews yet. Start your first interview to see your history here.
-            </Typography>
-            <Button 
-              variant="outlined" 
-              color="primary"
-              component={RouterLink}
-              to="/mockInterviewWay"
-              sx={{ 
-                color: '#1de9b6',
-                borderColor: 'rgba(29, 233, 182, 0.5)',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                '&:before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  background: 'linear-gradient(45deg, rgba(29, 233, 182, 0.1), transparent)',
-                  transform: 'translateX(-100%)',
-                  transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                },
-                '&:hover': {
-                  borderColor: '#1de9b6',
-                  backgroundColor: 'rgba(29, 233, 182, 0.15)',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 6px 15px rgba(29, 233, 182, 0.2)',
+          {loadingHistory ? (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+              <CircularProgress color="primary" />
+            </Box>
+          ) : historyError ? (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {historyError}
+            </Alert>
+          ) : interviewHistory.length === 0 ? (
+            <EmptyState>
+              <HistoryIcon />
+              <Typography variant="h6" gutterBottom>No interviews yet</Typography>
+              <Typography variant="body2" sx={{ maxWidth: '400px', mb: 2, color: '#ffffff' }}>
+                You haven't completed any interviews yet. Start your first interview to see your history here.
+              </Typography>
+              <Button 
+                variant="outlined" 
+                color="primary"
+                component={RouterLink}
+                to="/mockInterviewWay"
+                sx={{ 
+                  color: '#1de9b6',
+                  borderColor: 'rgba(29, 233, 182, 0.5)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:before': {
-                    transform: 'translateX(100%)',
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    background: 'linear-gradient(45deg, rgba(29, 233, 182, 0.1), transparent)',
+                    transform: 'translateX(-100%)',
+                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+                  },
+                  '&:hover': {
+                    borderColor: '#1de9b6',
+                    backgroundColor: 'rgba(29, 233, 182, 0.15)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: '0 6px 15px rgba(29, 233, 182, 0.2)',
+                    '&:before': {
+                      transform: 'translateX(100%)',
+                    }
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
                   }
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                }
-              }}
-            >
-              Start Interview
-            </Button>
-          </EmptyState>
+                }}
+              >
+                Start Interview
+              </Button>
+            </EmptyState>
+          ) : (
+            <Box>
+              {interviewHistory
+                .filter(interview => interview.mockType?.toLowerCase().includes(interviewType === 'mock' ? 'mock' : 'company'))
+                .map(renderInterviewCard)}
+            </Box>
+          )}
           </HistoryPaper>
         </motion.div>
       </Container>
