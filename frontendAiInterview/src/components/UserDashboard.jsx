@@ -37,7 +37,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from "react-router";
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ProfilePaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -304,20 +304,38 @@ export default function UserDashboard() {
       ...value
     })) : [];
 
+    const isExpanded = expandedInterview === interview.id;
+
     return (
-      <Card key={interview.id} sx={{ 
-        mb: 2, 
-        bgcolor: 'rgba(26, 31, 46, 0.8)', 
-        border: '1px solid rgba(29, 233, 182, 0.2)',
-        color: '#ffffff'
-      }}>
-        <CardHeader
-          title={
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="subtitle1" sx={{ color: '#ffffff' }}>
-                {interview.mockType || 'Mock Interview'} - {interview.position || 'Full Stack'}
-              </Typography>
-              <Box display="flex" alignItems="center">
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        transition={{ duration: 0.3 }}
+        onClick={() => handleExpandInterview(interview.id)}
+        style={{ cursor: 'pointer' }}
+      >
+        <Card 
+          sx={{ 
+            mb: 2, 
+            bgcolor: isExpanded ? 'rgba(29, 233, 182, 0.1)' : 'rgba(26, 31, 46, 0.8)',
+            border: isExpanded ? '1px solid rgba(29, 233, 182, 0.5)' : '1px solid rgba(29, 233, 182, 0.2)',
+            color: '#ffffff',
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 4px 20px rgba(29, 233, 182, 0.2)',
+              borderColor: 'rgba(29, 233, 182, 0.4)',
+            }
+          }}
+        >
+          <CardHeader
+            title={
+              <Box display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="subtitle1" sx={{ color: '#ffffff' }}>
+                  {interview.mockType || 'Mock Interview'} - {interview.position || 'Full Stack'}
+                </Typography>
                 <Chip 
                   label={`${interview.overallRating}/10`} 
                   size="small" 
@@ -328,26 +346,26 @@ export default function UserDashboard() {
                     mr: 1
                   }} 
                 />
-                <IconButton 
-                  size="small" 
-                  onClick={() => handleExpandInterview(interview.id)}
-                  sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
-                >
-                  {expandedInterview === interview.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
               </Box>
-            </Box>
-          }
+            }
           subheader={
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-              {interview.createdAt.toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              })}
-            </Typography>
+            <Box display="flex" justifyContent="space-between" alignItems="center">
+              <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                {interview.createdAt.toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Typography>
+              <motion.div
+                animate={{ rotate: isExpanded ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <ExpandMoreIcon sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+              </motion.div>
+            </Box>
           }
           sx={{ 
             '& .MuiCardHeader-content': {
@@ -362,8 +380,15 @@ export default function UserDashboard() {
             }
           }}
         />
-        <Collapse in={expandedInterview === interview.id} timeout="auto" unmountOnExit>
-          <CardContent sx={{ pt: 0, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <CardContent sx={{ pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
             <List dense>
               {questions.map((q) => (
                 <ListItem key={q.id} sx={{ px: 0, py: 1 }}>
@@ -401,10 +426,13 @@ export default function UserDashboard() {
                   />
                 </ListItem>
               ))}
-            </List>
-          </CardContent>
-        </Collapse>
+                </List>
+              </CardContent>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Card>
+    </motion.div>
     );
   };
 
@@ -621,9 +649,11 @@ export default function UserDashboard() {
             </EmptyState>
           ) : (
             <Box>
-              {interviewHistory
-                .filter(interview => interview.mockType?.toLowerCase().includes(interviewType === 'mock' ? 'mock' : 'company'))
-                .map(renderInterviewCard)}
+              <AnimatePresence>
+                {interviewHistory
+                  .filter(interview => interview.mockType?.toLowerCase().includes(interviewType === 'mock' ? 'mock' : 'company'))
+                  .map(renderInterviewCard)}
+              </AnimatePresence>
             </Box>
           )}
           </HistoryPaper>
