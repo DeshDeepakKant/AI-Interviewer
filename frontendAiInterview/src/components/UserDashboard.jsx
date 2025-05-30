@@ -305,11 +305,16 @@ export default function UserDashboard() {
     })) : [];
 
     return (
-      <Card key={interview.id} sx={{ mb: 2, bgcolor: 'rgba(26, 31, 46, 0.8)', border: '1px solid rgba(29, 233, 182, 0.2)' }}>
+      <Card key={interview.id} sx={{ 
+        mb: 2, 
+        bgcolor: 'rgba(26, 31, 46, 0.8)', 
+        border: '1px solid rgba(29, 233, 182, 0.2)',
+        color: '#ffffff'
+      }}>
         <CardHeader
           title={
             <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="subtitle1">
+              <Typography variant="subtitle1" sx={{ color: '#ffffff' }}>
                 {interview.mockType || 'Mock Interview'} - {interview.position || 'Full Stack'}
               </Typography>
               <Box display="flex" alignItems="center">
@@ -334,7 +339,7 @@ export default function UserDashboard() {
             </Box>
           }
           subheader={
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
               {interview.createdAt.toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'short',
@@ -367,14 +372,17 @@ export default function UserDashboard() {
                   </ListItemIcon>
                   <ListItemText 
                     primary={q.Question} 
-                    primaryTypographyProps={{ variant: 'body2' }}
+                    primaryTypographyProps={{ 
+                      variant: 'body2',
+                      sx: { color: '#ffffff' }
+                    }}
                     secondary={
                       <>
-                        <Typography component="span" variant="caption" display="block" color="text.secondary">
-                          <strong>Your Answer:</strong> {q['Your Answer'] || 'No answer provided'}
+                        <Typography component="span" variant="caption" display="block" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                          <strong style={{ color: '#ffffff' }}>Your Answer:</strong> {q['Your Answer'] || 'No answer provided'}
                         </Typography>
-                        <Typography component="span" variant="caption" display="block" color="text.secondary">
-                          <strong>Feedback:</strong> {q.Feedback || 'No feedback available'}
+                        <Typography component="span" variant="caption" display="block" sx={{ color: 'rgba(255, 255, 255, 0.8)' }}>
+                          <strong style={{ color: '#ffffff' }}>Feedback:</strong> {q.Feedback || 'No feedback available'}
                         </Typography>
                         <Chip 
                           label={`Rating: ${q.Rating || 'N/A'}/10`} 
