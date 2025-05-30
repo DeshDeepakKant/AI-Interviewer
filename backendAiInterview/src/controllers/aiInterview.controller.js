@@ -6,11 +6,15 @@ import fileLoading from "../utils/ai/loader.js";
 import client from "../utils/reddisClient.js";
 import path from 'path';
 import aiInterview from "../utils/ai/index.js";
+import aiAnalysis from "../utils/ai/aiAnalysis.js";
+import { console } from "inspector";
+import { UserHistory } from "../models/userHistory.models.js";
+import {User} from "../models/user.models.js";
 
 
 const aiInterviewWay = asyncHandler(async(req, res) => {
     try {
-        const {position, experienceLevel, numberOfQuestionYyouShouldAsk, sessionId } = req.body;
+        const {position, experienceLevel, numberOfQuestionYyouShouldAsk, sessionId} = req.body;
 
         if (!position || !experienceLevel || !numberOfQuestionYyouShouldAsk) {
             throw new ApiError(400, "All fields are required");
@@ -22,13 +26,14 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
         
         await client.hset(
             sessionId,{
+                userId: req.user._id,
                 position: position,
                 experienceLevel: experienceLevel,
                 numberOfQuestionYyouShouldAsk: numberOfQuestionYyouShouldAsk,
                 numberOfQuestionLeft: numberOfQuestionYyouShouldAsk,
                 resume: docResume,
                 count: 0,
-                messages: JSON.stringify([])
+                messages: JSON.stringify([]),
             }
         )
         return res.status(200).json(new ApiResponse(200, "AI interview started successfully"));
@@ -45,7 +50,6 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             throw new ApiError(400, "Session ID is required");
         }
         const data = await client.hgetall(sessionId)
-        console.log("Data",data)
         let messages = JSON.parse(data.messages)
         messages.push(`Question Number:${data.count}`)
         messages.push(`role: user, content: ${answer}`)
@@ -59,11 +63,69 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
 
         return res.status(200).json(new ApiResponse(200, ai));
     } catch (error) {
-        //  console.error("Error in aiInterview.controller.js:", error)
         console.error("Error in aiInterview.controller.js:", error)
         throw new ApiError(500, "Something went wrong")
     }
 })
 
+const aiInterviewAnalysis = asyncHandler(async (req, res) => {
+    try {
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            throw new ApiError(400, "Session ID is required");
+        }
 
-export {aiInterviewWay, aiInterviewStart}
+        const data = await client.hgetall(sessionId);
+        if(!data){
+            throw new ApiError(404, "Session not found");
+        }
+        const ai = await aiAnalysis(data.resume, data.position, data.experienceLevel, data.messages);
+        const { overAllRating, ...questionEntries } = ai;
+        const interviewData = {
+            history: questionEntries,
+            resume: data.resume,
+            experienceLevel: data.experienceLevel,
+            position: data.position,
+            numberOfQuestions: data.numberOfQuestionYyouShouldAsk,
+            overAllRating: overAllRating
+        };
+
+        const user = await User.findById(data.userId);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        const historyKey = `history ${Date.now()}`; // or use a UUID or other unique key
+        const update = {};
+        update[`histories.${historyKey}`] = interviewData;
+
+        await UserHistory.findOneAndUpdate(
+            { userId: data.userId },
+            { $set: update },
+            { upsert: true, new: true }
+        );
+
+        await client.del(sessionId);
+
+        return res.status(200).json(new ApiResponse(200, "Interview analysis completed successfully"));
+    } catch (error) {
+        console.error("Error in aiInterview.controller.js:", error);
+        throw new ApiError(500, "Something went wrong");
+    }
+});
+
+const aiHistory = asyncHandler(async(req, res)=>{
+    try {
+        const userId = await User.findById(req.user._id);
+        if (!userId) {
+            throw new ApiError(400, "User ID is required");
+        }
+        const history = await UserHistory.findOne({userId: userId});
+        return res.status(200).json(new ApiResponse(200, history));
+    } catch (error) {
+        console.error("Error in aiInterview.controller.js:", error)
+        throw new ApiError(500, "Something went wrong")
+    }
+})
+
+export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory}
