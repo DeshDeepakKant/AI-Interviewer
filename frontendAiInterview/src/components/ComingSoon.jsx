@@ -1,5 +1,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Box, Typography, Grid } from "@mui/material";
+import GlowingButton from "../subComponents/GlowingButton"
+import SchoolIcon from "@mui/icons-material/School";
+import { NavLink } from "react-router-dom";
 function ComingSoon() {
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -80,6 +83,57 @@ function ComingSoon() {
         ))}
       </Typography>
 
+      {/* Try Mock Interview Section */}
+      <Box sx={{ 
+        textAlign: 'center', 
+        mt: 6,
+        mb: 8,
+        px: 2
+      }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.8)', 
+              mb: 3,
+              fontWeight: 400,
+              fontSize: '1.2rem'
+            }}
+          >
+            In the meantime, you can try our
+          </Typography>
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center',
+            '&:hover': {
+              '& .glowing-button': {
+                transform: 'translateY(-2px) scale(1.03)'
+              }
+            },
+            transition: 'transform 0.3s ease',
+          }}>
+            <GlowingButton
+              className="glowing-button"
+              name="Mock Interview"
+              icon={SchoolIcon}
+              component={NavLink}
+              to="/mockInterviewWay"
+              sx={{
+                transform: 'scale(1)',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.03) translateY(-2px)',
+                  boxShadow: '0 8px 25px rgba(0, 229, 201, 0.4)'
+                }
+              }}
+            />
+          </Box>
+        </motion.div>
+      </Box>
       <Grid 
         component={motion.div}
         variants={containerVariants}
