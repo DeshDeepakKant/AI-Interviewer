@@ -449,7 +449,15 @@ export default function UserDashboard() {
                     primary={q.Question} 
                     primaryTypographyProps={{ 
                       variant: 'body2',
-                      sx: { color: '#ffffff' }
+                      sx: { 
+                        color: '#ffffff',
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                        mb: 1.5,
+                        fontSize: '0.95rem',
+                        textAlign: 'justify',
+                        textJustify: 'inter-word'
+                      }
                     }}
                     secondary={
                       <>
@@ -457,9 +465,11 @@ export default function UserDashboard() {
                           <Typography component="div" sx={{ 
                             display: 'block', 
                             color: 'rgba(255, 255, 255, 0.9)',
-                            fontSize: '0.95rem',
-                            lineHeight: 1.6,
-                            mb: 1
+                            fontSize: '0.92rem',
+                            lineHeight: 1.7,
+                            mb: 1.5,
+                            textAlign: 'justify',
+                            textJustify: 'inter-word'
                           }}>
                             <Box component="span" sx={{ 
                               color: '#1de9b6', 
@@ -475,9 +485,12 @@ export default function UserDashboard() {
                             display: 'block', 
                             color: 'rgba(255, 255, 255, 0.85)', 
                             fontSize: '0.9rem',
-                            lineHeight: 1.6,
-                            pl: '12px',
-                            borderLeft: '2px solid rgba(29, 233, 182, 0.3)'
+                            lineHeight: 1.7,
+                            pl: '14px',
+                            borderLeft: '2px solid rgba(29, 233, 182, 0.3)',
+                            textAlign: 'justify',
+                            textJustify: 'inter-word',
+                            mt: 1
                           }}>
                             <Box component="span" sx={{ 
                               color: '#1de9b6', 
