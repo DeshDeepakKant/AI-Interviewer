@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Avatar,
   Link,
@@ -123,22 +124,52 @@ const EmptyState = styled(Box)(({ theme }) => ({
 
 export default function UserDashboard() {
   const [interviewType, setInterviewType] = useState('company');
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    username: '',
+    role: '',
+    stats: {
+      completedInterviews: 0,
+      avgRating: 0,
+      lastInterview: ''
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await axios.get("/api/v1/user/currentUser");
+        if (response.data.success) {
+          const { fullName, email, username, role } = response.data.data;
+          setUserData({
+            name: fullName,
+            email,
+            username,
+            role,
+            stats: {
+              completedInterviews: 0, // You can update this with actual stats if available
+              avgRating: 0, // You can update this with actual stats if available
+              lastInterview: ''
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching user data:", err);
+        setError("Failed to load user data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
 
   const handleInterviewType = (event, newType) => {
     if (newType) {
       setInterviewType(newType);
-    }
-  };
-
-  // Mock data - replace with actual data from your state/API
-  const userData = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: '/static/images/avatar/1.jpg',
-    stats: {
-      completedInterviews: 5,
-      avgRating: 4.2,
-      lastInterview: '2023-05-20'
     }
   };
 
@@ -155,10 +186,11 @@ export default function UserDashboard() {
             <Grid item>
               <Avatar 
                 alt={userData.name} 
-                src={userData.avatar}
                 sx={{ 
                   width: 80, 
                   height: 80,
+                  bgcolor: teal[500],
+                  fontSize: '2rem',
                   border: `2px solid ${teal[500]}`,
                   boxShadow: `0 0 10px ${teal[500]}80`,
                   transition: 'all 0.3s ease-in-out',
@@ -167,21 +199,46 @@ export default function UserDashboard() {
                     boxShadow: `0 0 20px ${teal[500]}`, 
                     borderWidth: '3px'
                   }
-                }} 
-              />
+                }}
+              >
+                {userData.name ? userData.name.charAt(0).toUpperCase() : ''}
+              </Avatar>
             </Grid>
             <Grid item xs>
               <Box display="flex" alignItems="center" mb={1}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mr: 1 }}>
-                  {userData.name}
+                <Typography variant="h5" sx={{ fontWeight: 'bold', mr: 1, color: '#fff' }}>
+                  {loading ? 'Loading...' : error || userData.name}
                 </Typography>
                 <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
                   <EditIcon fontSize="small" />
                 </IconButton>
               </Box>
               <Typography variant="body2" sx={{ mb: 1, color: '#ffffff' }}>
-                {userData.email}
+                {userData.email || ''}
               </Typography>
+              {userData.username && (
+                <Typography variant="body2" sx={{ mb: 1, color: '#ffffff' }}>
+                  @{userData.username}
+                </Typography>
+              )}
+              {userData.role && (
+                <Typography 
+                  variant="body2" 
+                  sx={{ 
+                    mb: 1, 
+                    color: teal[300],
+                    display: 'inline-block',
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 1,
+                    bgcolor: 'rgba(29, 233, 182, 0.1)',
+                    textTransform: 'capitalize',
+                    fontSize: '0.875rem'
+                  }}
+                >
+                  {userData.role}
+                </Typography>
+              )}
               <Box display="flex" gap={2}>
                 <Box>
                   <Typography variant="body2" sx={{ color: '#ffffff' }}>Interviews</Typography>
