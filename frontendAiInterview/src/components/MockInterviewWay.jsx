@@ -187,6 +187,13 @@ const MockInterviewWay = () => {
     setIsLoading(true);
     
     try {
+      // Get the authentication token from where you store it
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('No authentication token found. Please log in.');
+      }
+
       // Create interview session data
       const interviewData = {
         position,
@@ -198,7 +205,7 @@ const MockInterviewWay = () => {
       
       // Send data to your backend
       const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/interview/start`,
+        `/api/v1/ai/ai`,
         interviewData
       );
       
