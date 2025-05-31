@@ -10,13 +10,14 @@ import aiAnalysis from "../utils/ai/aiAnalysis.js";
 import { console } from "inspector";
 import { UserHistory } from "../models/userHistory.models.js";
 import {User} from "../models/user.models.js";
+import fs from 'fs';
 import { downloadFileWithUniqueName } from "../utils/supabaseStorage.js";
 
 const aiInterviewWay = asyncHandler(async(req, res) => {
     try {
-        const {position, experienceLevel, numberOfQuestionYyouShouldAsk,resumeUrl, sessionId} = req.body;
+        const {position, experienceLevel, numberOfQuestionYouShouldAsk,resumeUrl, sessionId} = req.body;
 
-        if (!position || !experienceLevel || !numberOfQuestionYyouShouldAsk) {
+        if (!position || !experienceLevel || !numberOfQuestionYouShouldAsk) {
             throw new ApiError(400, "All fields are required");
         }
 
@@ -24,18 +25,28 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
         const { localPath } = await downloadFileWithUniqueName(resumeUrl, 'resumes');
         const docResume = await fileLoading(localPath)
         
+        if (!docResume) {
+            return res.status(400).json(new ApiResponse(400, "Resume file is empty or not valid"));
+        }
+
+        try {
+            fs.unlinkSync(localPath); // Clean up the local file after processing
+        } catch (error) {
+            
+        }
         await client.hset(
             sessionId,{
                 userId: req.user._id,
                 position: position,
                 experienceLevel: experienceLevel,
-                numberOfQuestionYyouShouldAsk: numberOfQuestionYyouShouldAsk,
-                numberOfQuestionLeft: numberOfQuestionYyouShouldAsk,
+                numberOfQuestionYouShouldAsk: numberOfQuestionYouShouldAsk,
+                numberOfQuestionLeft: numberOfQuestionYouShouldAsk,
                 count: 0,
                 resume: docResume,
                 messages: JSON.stringify([]),
             }
         )
+        await client.expire(sessionId, 7200); // Set session to expire in 2 hours
         return res.status(200).json(new ApiResponse(200, "AI interview started successfully"));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
@@ -53,7 +64,7 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
         let messages = JSON.parse(data.messages)
         messages.push(`Question Number:${data.count}`)
         messages.push(`role: user, content: ${answer}`)
-        const ai = await aiInterview(data.resume, data.position,data.numberOfQuestionLeft, data.experienceLevel, data.numberOfQuestionYyouShouldAsk, data.messages, answer)
+        const ai = await aiInterview(data.resume, data.position,data.numberOfQuestionLeft, data.experienceLevel, data.numberOfQuestionYouShouldAsk, data.messages, answer)
         messages.push(`role: ai, content: ${ai}`)
         const multi = client.multi();
         multi.hincrby(sessionId, 'numberOfQuestionLeft', -1);
@@ -86,7 +97,7 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
             resume: data.resume,
             experienceLevel: data.experienceLevel,
             position: data.position,
-            numberOfQuestions: data.numberOfQuestionYyouShouldAsk,
+            numberOfQuestions: data.numberOfQuestionYouShouldAsk,
             overAllRating: overAllRating
         };
 
