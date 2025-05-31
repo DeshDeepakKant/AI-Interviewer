@@ -102,3 +102,10 @@ GOOGLE_API_KEY=your_google_api_key
 - Resume analysis
 - Interview history and analytics
 
+## 👤 Author
+
+**DeshDeepakKant**
+
+- GitHub: [@DeshDeepakKant](https://github.com/DeshDeepakKant/AI-Interviewer)
+- LinkedIn: [DeshDeepakKant](https://www.linkedin.com/in/deshdeepakkant/)
+- Email: deshdeepakkant@gmail.com
