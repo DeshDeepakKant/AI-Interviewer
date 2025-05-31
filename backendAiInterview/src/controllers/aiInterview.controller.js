@@ -10,19 +10,19 @@ import aiAnalysis from "../utils/ai/aiAnalysis.js";
 import { console } from "inspector";
 import { UserHistory } from "../models/userHistory.models.js";
 import {User} from "../models/user.models.js";
-
+import { downloadFileWithUniqueName } from "../utils/supabaseStorage.js";
 
 const aiInterviewWay = asyncHandler(async(req, res) => {
     try {
-        const {position, experienceLevel, numberOfQuestionYyouShouldAsk, sessionId} = req.body;
+        const {position, experienceLevel, numberOfQuestionYyouShouldAsk,resumeUrl, sessionId} = req.body;
 
         if (!position || !experienceLevel || !numberOfQuestionYyouShouldAsk) {
             throw new ApiError(400, "All fields are required");
         }
 
-        // Use absolute path to the Resume.pdf file in the public/uploads directory
-        const resumePath = path.join(process.cwd(), 'public', 'uploads', 'Resume.pdf');
-        const docResume = await fileLoading(resumePath)
+        // Download the resume file and get its local path
+        const { localPath } = await downloadFileWithUniqueName(resumeUrl, 'resumes');
+        const docResume = await fileLoading(localPath)
         
         await client.hset(
             sessionId,{
@@ -31,8 +31,8 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
                 experienceLevel: experienceLevel,
                 numberOfQuestionYyouShouldAsk: numberOfQuestionYyouShouldAsk,
                 numberOfQuestionLeft: numberOfQuestionYyouShouldAsk,
-                resume: docResume,
                 count: 0,
+                resume: docResume,
                 messages: JSON.stringify([]),
             }
         )

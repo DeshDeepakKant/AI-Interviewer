@@ -30,7 +30,8 @@ import CloseIcon from '@mui/icons-material/Close';
 import BusinessIcon from '@mui/icons-material/Business';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-
+import axios from 'axios';
+import { supabase, supabaseAdmin } from '../config/supabase';
 // Animation keyframes
 const gradient = keyframes`
   0% { background-position: 0% 50%; }
@@ -124,55 +125,140 @@ const MockInterviewWay = () => {
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
   const handlePositionChange = (event) => setPosition(event.target.value);
-  const handleFileUpload = (event) => {
-    if (event.target.files && event.target.files[0]) {
-      const file = event.target.files[0];
-      setIsUploading(true);
+  const handleFileUpload = async (event) => {
+    if (!event.target.files?.length) return;
+    
+    const file = event.target.files[0];
+    const fileName = `${Date.now()}-${file.name}`;
+    const bucketName = 'aiinterview'; // Your bucket name in Supabase Storage
+    const filePath = fileName; // Remove the bucket name from the path
+    
+    console.log('Starting file upload:', { fileName, fileSize: file.size, fileType: file.type });
+    
+    setIsUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      // 1. Check if the bucket exists, if not create it using admin client
+      try {
+        const { data: bucketList, error: bucketListError } = await supabaseAdmin.storage.listBuckets();
+        if (bucketListError) throw bucketListError;
+        
+        const bucketExists = bucketList.some(bucket => bucket.name === bucketName);
+        
+        if (!bucketExists) {
+          console.log(`Bucket '${bucketName}' not found. Creating...`);
+          const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
+            public: true, // Make the bucket public
+            allowedMimeTypes: ['*/*'], // Allow all file types
+            fileSizeLimit: 50 * 1024 * 1024, // 50MB limit
+          });
+          
+          if (createError) throw createError;
+          console.log(`Bucket '${bucketName}' created successfully`);
+          
+          // Add a small delay to ensure bucket is ready
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          console.log(`Bucket '${bucketName}' exists`);
+        }
+      } catch (error) {
+        console.error('Error managing bucket:', error);
+        // Continue with upload anyway, the bucket might exist
+      }
+      
+      // 2. Upload file to Supabase Storage with retry logic
+      console.log('Uploading file to Supabase Storage...');
+      let uploadError = null;
+      let uploadData = null;
+      
+      // Try uploading with a small delay to ensure bucket is ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      try {
+        const result = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: file.type
+          });
+        
+        if (result.error) throw result.error;
+        uploadData = result.data;
+      } catch (error) {
+        console.error('Upload error (will retry):', error);
+        // Retry once after a short delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const retryResult = await supabase.storage
+          .from(bucketName)
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: true,
+            contentType: file.type
+          });
+        
+        if (retryResult.error) throw retryResult.error;
+        uploadData = retryResult.data;
+      }
+      
+      console.log('File upload successful:', uploadData);
+      
+      // 3. Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+      
+      console.log('Generated public URL:', publicUrl);
+      
+      // 4. Verify the file exists
+      const { data: fileList, error: listError } = await supabase.storage
+        .from(bucketName)
+        .list('', {
+          limit: 1,
+          offset: 0,
+          search: fileName
+        });
+      
+      if (listError) console.warn('Could not verify file existence:', listError);
+      
+      // 5. Update UI with the uploaded file info
+      setUploadProgress(100);
+      const fileUrl = URL.createObjectURL(file);
+      
+      setResumeFile({
+        file: file,
+        url: fileUrl,
+        name: file.name,
+        size: file.size,
+        publicUrl: publicUrl,
+        supabasePath: `${bucketName}/${filePath}`
+      });
+      
+      console.log('File processing complete:', { 
+        publicUrl,
+        bucketName,
+        filePath 
+      });
+      
+    } catch (error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'Error uploading file';
+      if (error.message.includes('The resource already exists')) {
+        errorMessage = 'A file with this name already exists. Please rename your file and try again.';
+      } else if (error.message.includes('Bucket')) {
+        errorMessage = `Storage error: ${error.message}`;
+      }
+      
+      alert(`${errorMessage}: ${error.message}`);
+    } finally {
+      setIsUploading(false);
       setUploadProgress(0);
-      
-      // Create a FileReader to read the file
-      const reader = new FileReader();
-      
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          // Simulate progress up to 90% while reading
-          const newProgress = Math.min(prev + 10, 90);
-          if (newProgress >= 90) {
-            clearInterval(progressInterval);
-          }
-          return newProgress;
-        });
-      }, 100);
-      
-      reader.onload = (e) => {
-        // File is loaded
-        clearInterval(progressInterval);
-        setUploadProgress(100);
-        
-        // Create a local URL for the file
-        const fileUrl = URL.createObjectURL(file);
-        
-        // Set the file in state
-        setResumeFile({
-          file: file,
-          url: fileUrl,
-          name: file.name,
-          size: file.size
-        });
-        
-        // Clean up
-        setTimeout(() => setIsUploading(false), 300);
-      };
-      
-      reader.onerror = () => {
-        clearInterval(progressInterval);
-        alert('Error reading file. Please try again.');
-        setIsUploading(false);
-      };
-      
-      // Start reading the file
-      reader.readAsDataURL(file);
     }
   };
   const handleRemoveFile = () => setResumeFile(null);
