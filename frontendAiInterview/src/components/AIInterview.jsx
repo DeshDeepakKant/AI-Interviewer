@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { startLiveTranscription } from "./SpeechTranscrib";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Grid,
@@ -13,6 +14,8 @@ import {
   Paper,
   styled,
   Stack,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import MicIcon from "@mui/icons-material/Mic";
@@ -21,7 +24,7 @@ import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import ai from "../assets/ai.jpeg";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
-
+import SendIcon from '@mui/icons-material/Send';
 
 // Initialize MediaRecorder and other variables
 let mediaRecorder;
@@ -69,15 +72,73 @@ const SecondaryButton = styled(Button)(({ theme }) => ({
 
 const AIInterview = () => {
   const theme = useTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // State for session and interview details
+  const [sessionId, setSessionId] = useState('');
+  const [interviewDetails, setInterviewDetails] = useState(null);
+  
+  // Initialize session and interview details when component mounts
+  useEffect(() => {
+    console.log('=== AIInterview Component Mounted ===');
+    
+    // Get from location state (passed during navigation)
+    const stateData = location.state || {};
+    const stateSessionId = stateData.sessionId;
+    const stateInterviewDetails = stateData.interviewDetails;
+    
+    // Get from sessionStorage
+    const storedSessionId = sessionStorage.getItem('interviewSessionId');
+    
+    // Use state session ID if available, otherwise fall back to stored one
+    const activeSessionId = stateSessionId || storedSessionId;
+    
+    if (activeSessionId) {
+      setSessionId(activeSessionId);
+      // Ensure it's also in sessionStorage for page refreshes
+      sessionStorage.setItem('interviewSessionId', activeSessionId);
+    } else {
+      // If no session ID is found, redirect back to home
+      toast.error('No active interview session found');
+      navigate('/');
+    }
+    
+    // Clean up session storage when component unmounts or tab is closed
+    return () => {
+      // We don't clear here to maintain the session across page refreshes
+      // It will be cleared when the tab is closed
+    };
+  }, [location, navigate]);
+  
+  // Log the session ID when it's available
+  useEffect(() => {
+    if (sessionId) {
+      console.log('Active Interview Session ID:', sessionId);
+    }
+  }, [sessionId]);
+
   const [isRecording, setIsRecording] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isAudioOn, setIsAudioOn] = useState(true);
+  const [answer, setAnswer] = useState('');
   const [stream, setStream] = useState(null);
+  
+  const handleAnswerSubmit = (e) => {
+    e.preventDefault();
+    if (answer.trim()) {
+      // Handle the answer submission here
+      console.log('Submitted answer:', answer);
+      // You can add your logic to process the answer
+      
+      // Clear the input after submission
+      setAnswer('');
+    }
+  };
   const [transcript, setTranscript] = useState("");
   const transcriptionRef = useRef(null);
   const videoRef = useRef(null);
   const videoPreviewRef = useRef(null);
-  const navigate = useNavigate();
   
   // Animation variants
   const containerVariants = {
@@ -713,6 +774,45 @@ const AIInterview = () => {
                                 </Typography>
                               </Box>
                             </Box>
+                          </Box>
+                          
+                          {/* Answer Input */}
+                          <Box component="form" onSubmit={handleAnswerSubmit} sx={{ mt: 2, p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                            <TextField
+                              fullWidth
+                              variant="outlined"
+                              placeholder="Type your answer here..."
+                              value={answer}
+                              onChange={(e) => setAnswer(e.target.value)}
+                              InputProps={{
+                                endAdornment: (
+                                  <InputAdornment position="end">
+                                    <IconButton 
+                                      type="submit" 
+                                      color="primary"
+                                      disabled={!answer.trim()}
+                                      sx={{ color: '#00bfa5' }}
+                                    >
+                                      <SendIcon />
+                                    </IconButton>
+                                  </InputAdornment>
+                                ),
+                                sx: {
+                                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                  borderRadius: 2,
+                                  '& fieldset': {
+                                    borderColor: 'rgba(255, 255, 255, 0.1)',
+                                  },
+                                  '&:hover fieldset': {
+                                    borderColor: 'rgba(0, 191, 165, 0.5)',
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: '#00bfa5',
+                                  },
+                                  color: '#fff',
+                                },
+                              }}
+                            />
                           </Box>
                         </Box>
                       ) : (

@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Container,
   Box,
@@ -113,6 +115,7 @@ const positions = [
 ];
 
 const MockInterviewWay = () => {
+  const navigate = useNavigate();
   const [numQuestions, setNumQuestions] = useState('5');
   const [position, setPosition] = useState(positions[0]);
   const experienceLevels = ['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'];
@@ -122,6 +125,9 @@ const MockInterviewWay = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isFileUploaded, setIsFileUploaded] = useState(false);
+  const [sessionId, setSessionId] = useState('');
+  const [resumeFileUrl, setResumeFileUrl] = useState('');
+  const [resumePublicUrl, setResumePublicUrl] = useState('');
 
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
@@ -203,15 +209,15 @@ const MockInterviewWay = () => {
         uploadData = retryResult.data;
       }
       
-      console.log('File upload successful:', uploadData);
       
-      // 3. Get the public URL
-      const { data: { publicUrl } } = supabase.storage
+      // 3. Get the public URL and set it directly
+      const { data: { publicUrl } } = await supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
       
-      console.log('Generated public URL:', publicUrl);
-      
+      setResumeFileUrl(publicUrl);
+      setResumePublicUrl(publicUrl);
+
       // 4. Verify the file exists
       const { data: fileList, error: listError } = await supabase.storage
         .from(bucketName)
@@ -273,18 +279,75 @@ const MockInterviewWay = () => {
     }
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
+  const handleSubmit = async (e) => {
+    // First, prevent default form submission
+    if (e && typeof e.preventDefault === 'function') {
+      e.preventDefault();
+    }
+    
+    console.log('=== Form submission started ===');
+    console.log('Position:', position);
+    console.log('Experience:', experience);
+    console.log('Number of Questions:', numQuestions);
+    console.log('Resume File:', resumeFileUrl);
+    
+    // Simple validation
     if (!position) {
-      alert('Please select a position');
+      const errorMsg = 'Please select a position';
+      console.error('Validation Error:', errorMsg);
+      alert(errorMsg);
       return;
     }
+    
     setIsLoading(true);
+    
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
-      console.log({ numQuestions, position, resumeFile });
+      // Generate session ID
+      const newSessionId = uuidv4();
+      console.log('Generated Session ID:', newSessionId);
+      
+      // Handle resume file if exists
+      let resumeFileUrl = 'No file uploaded';
+      if (resumeFile) {
+        try {
+          resumeFileUrl = URL.createObjectURL(resumeFile);
+          console.log('Resume file URL created');
+        } catch (fileError) {
+          console.error('Error creating file URL:', fileError);
+        }
+      }
+      
+      // Log all required details
+      console.log('=== Interview Details ===');
+      console.log('Number of Questions:', numQuestions);
+      console.log('Experience Level:', experience);
+      console.log('Position:', position);
+      console.log('Resume File URL:', resumePublicUrl);
+      console.log('Session ID:', newSessionId);
+      console.log('=========================');
+      
+      // Store session ID in sessionStorage
+      sessionStorage.setItem('interviewSessionId', newSessionId);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Navigate to interview page
+      console.log('Navigating to interview page...');
+      navigate('/interview', { 
+        state: { 
+          sessionId: newSessionId,
+        },
+        replace: true
+      });
+      
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Submit Error:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      alert('Failed to start interview. Please check console for details.');
     } finally {
       setIsLoading(false);
     }
