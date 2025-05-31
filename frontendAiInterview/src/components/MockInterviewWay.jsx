@@ -1,6 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import {
   Container,
   Box,
@@ -114,8 +112,6 @@ const positions = [
 ];
 
 const MockInterviewWay = () => {
-  const navigate = useNavigate();
-  const [showContent, setShowContent] = useState(true);
   const [numQuestions, setNumQuestions] = useState('5');
   const [position, setPosition] = useState(positions[0]);
   const experienceLevels = ['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'];
@@ -124,56 +120,59 @@ const MockInterviewWay = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [sessionId, setSessionId] = useState('');
 
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
   const handlePositionChange = (event) => setPosition(event.target.value);
-  const uploadToCloudinary = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET);
-    
-    try {
-      const response = await axios.post(
-        `https://api.cloudinary.com/v1_1/${process.env.REACT_APP_CLOUDINARY_CLOUD_NAME}/upload`,
-        formData,
-        {
-          onUploadProgress: (progressEvent) => {
-            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            setUploadProgress(progress);
-          },
-        }
-      );
-      return response.data.secure_url;
-    } catch (error) {
-      console.error('Error uploading to Cloudinary:', error);
-      throw error;
-    }
-  };
-
-  const handleFileUpload = async (event) => {
+  const handleFileUpload = (event) => {
     if (event.target.files && event.target.files[0]) {
       const file = event.target.files[0];
       setIsUploading(true);
       setUploadProgress(0);
       
-      try {
-        // Upload to Cloudinary
-        const fileUrl = await uploadToCloudinary(file);
+      // Create a FileReader to read the file
+      const reader = new FileReader();
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          // Simulate progress up to 90% while reading
+          const newProgress = Math.min(prev + 10, 90);
+          if (newProgress >= 90) {
+            clearInterval(progressInterval);
+          }
+          return newProgress;
+        });
+      }, 100);
+      
+      reader.onload = (e) => {
+        // File is loaded
+        clearInterval(progressInterval);
+        setUploadProgress(100);
         
-        // Set the file in state with the Cloudinary URL
+        // Create a local URL for the file
+        const fileUrl = URL.createObjectURL(file);
+        
+        // Set the file in state
         setResumeFile({
           file: file,
           url: fileUrl,
           name: file.name,
           size: file.size
         });
-      } catch (error) {
-        alert('Error uploading file. Please try again.');
-      } finally {
+        
+        // Clean up
+        setTimeout(() => setIsUploading(false), 300);
+      };
+      
+      reader.onerror = () => {
+        clearInterval(progressInterval);
+        alert('Error reading file. Please try again.');
         setIsUploading(false);
-      }
+      };
+      
+      // Start reading the file
+      reader.readAsDataURL(file);
     }
   };
   const handleRemoveFile = () => setResumeFile(null);
@@ -183,118 +182,14 @@ const MockInterviewWay = () => {
       alert('Please select a position');
       return;
     }
-    
     setIsLoading(true);
-    
-    // Show loading toast
-    const loadingToast = document.createElement('div');
-    loadingToast.style.position = 'fixed';
-    loadingToast.style.bottom = '20px';
-    loadingToast.style.left = '50%';
-    loadingToast.style.transform = 'translateX(-50%)';
-    loadingToast.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    loadingToast.style.color = 'white';
-    loadingToast.style.padding = '12px 24px';
-    loadingToast.style.borderRadius = '4px';
-    loadingToast.style.zIndex = '9999';
-    loadingToast.style.display = 'flex';
-    loadingToast.style.alignItems = 'center';
-    loadingToast.style.gap = '12px';
-    
-    const spinner = document.createElement('div');
-    spinner.style.width = '20px';
-    spinner.style.height = '20px';
-    spinner.style.border = '3px solid rgba(255, 255, 255, 0.3)';
-    spinner.style.borderRadius = '50%';
-    spinner.style.borderTopColor = '#fff';
-    spinner.style.animation = 'spin 1s ease-in-out infinite';
-    
-    const style = document.createElement('style');
-    style.textContent = `
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-    
-    const text = document.createElement('span');
-    text.textContent = 'Creating your interview...';
-    
-    loadingToast.appendChild(spinner);
-    loadingToast.appendChild(text);
-    document.body.appendChild(loadingToast);
-    
     try {
-      // Get the authentication token from where you store it
-      const token = localStorage.getItem('authToken');
-      
-      if (!token) {
-        throw new Error('No authentication token found. Please log in.');
-      }
-
-      // Create interview session data
-      const interviewData = {
-        position,
-        experienceLevel: experience,
-        numberOfQuestions: parseInt(numQuestions),
-        resumeUrl: resumeFile?.url || '',
-      };
-      
-      // Send data to your backend with authentication
-      const response = await axios.post(
-        `/api/v1/ai/ai`,
-        interviewData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          withCredentials: true
-        }
-      );
-      
-      // Save the session ID
-      const { sessionId } = response.data;
-      setSessionId(sessionId);
-      
-      // Store session ID in localStorage for persistence
-      localStorage.setItem('interviewSessionId', sessionId);
-      
-      // Start the interview
-      await axios.post(
-        '/api/v1/ai/aiStart',
-        {
-          sessionId,
-          answer: "Let's Start Interview"
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          withCredentials: true
-        }
-      );
-      
-      // Hide current content with fade out
-      setShowContent(false);
-      
-      // Wait for fade out animation to complete
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Navigate to MockInterview page with session ID
-      navigate(`/mock-interview?sessionId=${sessionId}`);
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500)); // Simulate API call
+      console.log({ numQuestions, position, resumeFile });
     } catch (error) {
-      console.error('Error starting interview:', error);
-      alert(error.response?.data?.message || 'Failed to start interview. Please try again.');
-      setIsLoading(false);
+      console.error('Error submitting form:', error);
     } finally {
-      // Remove loading toast
-      if (document.body.contains(loadingToast)) {
-        document.body.removeChild(loadingToast);
-      }
-      document.head.removeChild(style);
+      setIsLoading(false);
     }
   };
 
@@ -318,41 +213,17 @@ const MockInterviewWay = () => {
     setIsDragActive(false);
   };
 
-  const handleDrop = async (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     setIsDragActive(false);
-    
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      setIsUploading(true);
-      setUploadProgress(0);
-      
-      try {
-        // Upload to Cloudinary
-        const fileUrl = await uploadToCloudinary(file);
-        
-        // Set the file in state with the Cloudinary URL
-        setResumeFile({
-          file: file,
-          url: fileUrl,
-          name: file.name,
-          size: file.size
-        });
-      } catch (error) {
-        alert('Error uploading file. Please try again.');
-      } finally {
-        setIsUploading(false);
-      }
+      setResumeFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
   };
-
-  if (!showContent) {
-    return null; // Or a loading spinner while navigating
-  }
 
   return (
     <Box
