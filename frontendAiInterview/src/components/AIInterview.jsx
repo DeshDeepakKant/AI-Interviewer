@@ -74,6 +74,8 @@ const AIInterview = () => {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const [messages, setMessages] = useState([]);
+  const [inputMessage, setInputMessage] = useState('');
   
   // State for session and interview details
   const [sessionId, setSessionId] = useState('');
@@ -126,6 +128,7 @@ const AIInterview = () => {
   
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
+    console.log('Answer:', answer);
     if (answer.trim()) {
       // Handle the answer submission here
       console.log('Submitted answer:', answer);
@@ -320,6 +323,8 @@ const AIInterview = () => {
   const toggleAudio = () => {
     setIsAudioOn(!isAudioOn);
   };
+
+
 
   return (
     <Box
@@ -721,98 +726,129 @@ const AIInterview = () => {
                             animation: "fadeIn 0.3s ease-in-out",
                           }}
                         >
-                          <Box sx={{ width: '100%' }}>
-                          {/* AI Message */}
-                          <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center',
-                            mb: 2
-                          }}>
-                            <Box
-                              sx={{
-                                width: 8,
-                                height: 8,
-                                bgcolor: "#00bfa5",
-                                borderRadius: "50%",
-                                mr: 1.5,
-                                flexShrink: 0,
-                                animation: "pulse 2s infinite",
-                              }}
-                            />
-                            <Box sx={{
-                              bgcolor: 'rgba(0, 0, 0, 0.1)',
-                              p: 2,
-                              borderRadius: '16px 16px 16px 4px',
-                              maxWidth: '80%'
-                            }}>
-                              <Typography variant="body2" sx={{ color: 'white' }}>
-                                AI: What are your greatest strengths?
-                              </Typography>
-                            </Box>
+                          <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            {/* Messages Container - Only showing the latest message */}
+                            <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
+                              {messages.length > 0 ? (
+                                messages.map((msg, index) => (
+                                  <Box 
+                                    key={index}
+                                    sx={{ 
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      mb: 2,
+                                      animation: 'fadeIn 0.3s ease-in-out'
+                                    }}
+                                  >
+                                    <Box sx={{ 
+                                      bgcolor: msg.sender === 'ai' 
+                                        ? 'rgba(0, 0, 0, 0.1)' 
+                                        : 'rgba(0, 191, 165, 0.2)',
+                                      p: 2,
+                                      borderRadius: msg.sender === 'ai' 
+                                        ? '16px 16px 16px 4px' 
+                                        : '16px 16px 4px 16px',
+                                      alignSelf: msg.sender === 'ai' ? 'flex-start' : 'flex-end',
+                                      maxWidth: '80%',
+                                      border: msg.sender === 'user' ? '1px solid rgba(0, 191, 165, 0.3)' : 'none'
+                                    }}>
+                                      <Typography variant="body2" sx={{ color: 'white' }}>
+                                        {msg.text}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                ))
+                              ) : (
+                                <Box sx={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  height: '100%',
+                                  textAlign: 'center',
+                                  color: 'rgba(255, 255, 255, 0.5)'
+                                }}>
+                                  <Typography>Start the interview by sending a message...</Typography>
+                                </Box>
+                              )}
                             </Box>
                             
-                            {/* User Message */}
-                            <Box sx={{ 
-                              display: 'flex', 
-                              justifyContent: 'flex-end',
-                              mb: 2
-                            }}>
-                              <Box sx={{
-                                bgcolor: 'rgba(0, 191, 165, 0.2)',
-                                p: 2,
-                                borderRadius: '16px 16px 4px 16px',
-                                maxWidth: '80%',
-                                border: '1px solid rgba(0, 191, 165, 0.3)'
-                              }}>
-                                <Typography variant="body2" sx={{ color: 'white' }}>
-                                  {transcript.replace(/\|.*$/, '')}
-                                  {transcript.includes('|') && (
-                                    <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                                      {transcript.split('|')[1]}
-                                    </span>
-                                  )}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </Box>
-                          
-                          {/* Answer Input */}
-                          <Box component="form" onSubmit={handleAnswerSubmit} sx={{ mt: 2, p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                            <TextField
-                              fullWidth
-                              variant="outlined"
-                              placeholder="Type your answer here..."
-                              value={answer}
-                              onChange={(e) => setAnswer(e.target.value)}
-                              InputProps={{
-                                endAdornment: (
-                                  <InputAdornment position="end">
-                                    <IconButton 
-                                      type="submit" 
-                                      color="primary"
-                                      disabled={!answer.trim()}
-                                      sx={{ color: '#00bfa5' }}
-                                    >
-                                      <SendIcon />
-                                    </IconButton>
-                                  </InputAdornment>
-                                ),
-                                sx: {
-                                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                  borderRadius: 2,
-                                  '& fieldset': {
-                                    borderColor: 'rgba(255, 255, 255, 0.1)',
-                                  },
-                                  '&:hover fieldset': {
-                                    borderColor: 'rgba(0, 191, 165, 0.5)',
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: '#00bfa5',
-                                  },
-                                  color: '#fff',
-                                },
+                            {/* Input Area */}
+                            <Box 
+                              component="form" 
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                if (!inputMessage.trim()) return;
+                                
+                                // Add user message
+                                setMessages(prev => [...prev, { text: inputMessage, sender: 'user' }]);
+                                
+                                // Simulate AI response (replace with actual API call)
+                                setTimeout(() => {
+                                  setMessages(prev => [...prev, { 
+                                    text: 'Thank you for your response. I will analyze it now...', 
+                                    sender: 'ai' 
+                                  }]);
+                                }, 1000);
+                                
+                                setInputMessage('');
                               }}
-                            />
+                              sx={{ 
+                                display: 'flex', 
+                                gap: 1,
+                                mt: 'auto',
+                                pt: 2,
+                                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                              }}
+                            >
+                              <TextField
+                                fullWidth
+                                size="small"
+                                variant="outlined"
+                                placeholder="Type your message..."
+                                value={inputMessage}
+                                onChange={(e) => setInputMessage(e.target.value)}
+                                sx={{
+                                  '& .MuiOutlinedInput-root': {
+                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                    '& fieldset': {
+                                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                                    },
+                                    '&:hover fieldset': {
+                                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                      borderColor: '#00bfa5',
+                                    },
+                                  },
+                                  '& .MuiInputBase-input': {
+                                    color: 'white',
+                                    '&::placeholder': {
+                                      color: 'rgba(255, 255, 255, 0.5)',
+                                    },
+                                  },
+                                }}
+                              />
+                              <Button 
+                                type="submit" 
+                                variant="contained"
+                                disabled={!inputMessage.trim()}
+                                sx={{
+                                  bgcolor: '#00bfa5',
+                                  color: 'white',
+                                  '&:hover': {
+                                    bgcolor: '#00a38a',
+                                  },
+                                  '&:disabled': {
+                                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                                    color: 'rgba(255, 255, 255, 0.3)',
+                                  },
+                                  minWidth: '100px',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >
+                                Send
+                              </Button>
+                            </Box>
                           </Box>
                         </Box>
                       ) : (
@@ -827,14 +863,14 @@ const AIInterview = () => {
                           Your interview transcript will appear here...
                         </Box>
                       )}
-                    </Box>
-                  </CardContent>
-                </Box>
-              </GlassCard>
+                      </Box>
+                    </CardContent>
+                  </Box>
+                </GlassCard>
+              </Grid>
             </Grid>
-          </Grid>
-        </Stack>
-      </Box>
+          </Stack>
+        </Box>
 
       {/* Global styles */}
       <style jsx global>{`
