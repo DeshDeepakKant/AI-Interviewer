@@ -121,6 +121,7 @@ const MockInterviewWay = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [isFileUploaded, setIsFileUploaded] = useState(false);
 
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
@@ -225,6 +226,7 @@ const MockInterviewWay = () => {
       // 5. Update UI with the uploaded file info
       setUploadProgress(100);
       const fileUrl = URL.createObjectURL(file);
+      setIsFileUploaded(true);
       
       setResumeFile({
         file: file,
@@ -261,7 +263,16 @@ const MockInterviewWay = () => {
       setUploadProgress(0);
     }
   };
-  const handleRemoveFile = () => setResumeFile(null);
+  const handleRemoveFile = () => {
+    setResumeFile(null);
+    setUploadProgress(0);
+    setIsFileUploaded(false);
+    setIsUploadSuccessful(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!position) {
@@ -831,7 +842,7 @@ const MockInterviewWay = () => {
                     variant="contained"
                     size="large"
                     fullWidth
-                    disabled={isLoading || !position}
+                    disabled={isLoading || !position || !isFileUploaded}
                     sx={{
                       py: 1.75,
                       borderRadius: 3,
