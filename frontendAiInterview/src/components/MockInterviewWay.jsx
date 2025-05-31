@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 import {
   Container,
@@ -32,7 +33,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import BusinessIcon from '@mui/icons-material/Business';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-import axios from 'axios';
 import { supabase, supabaseAdmin } from '../config/supabase';
 // Animation keyframes
 const gradient = keyframes`
@@ -329,9 +329,40 @@ const MockInterviewWay = () => {
       // Store session ID in sessionStorage
       sessionStorage.setItem('interviewSessionId', newSessionId);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
+
+      try {
+        const response = await axios.post(
+          `/api/v1/ai/ai`,
+          {
+            sessionId: newSessionId,
+            position: position,
+            experienceLevel: experience,
+            numberOfQuestionYouShouldAsk: numQuestions,
+            resumeUrl: resumePublicUrl,
+          },
+          {
+            withCredentials: true,
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+          }
+        );
+        console.log('API Response:', response.data);
+      } catch (error) {
+        console.error('API Error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          config: {
+            url: error.config?.url,
+            method: error.config?.method,
+            data: error.config?.data,
+          }
+        });
+        throw error; // Re-throw to be caught by the outer catch
+      }
       // Navigate to interview page
       console.log('Navigating to interview page...');
       navigate('/interview', { 
