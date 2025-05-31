@@ -50,7 +50,7 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
         return res.status(200).json(new ApiResponse(200, "AI interview started successfully"));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
-        throw new ApiError(500, "Something went wrong");
+        return res.status(500).json(new ApiResponse(500, error.message));
     }
 });
 const aiInterviewStart = asyncHandler(async(req, res)=>{
