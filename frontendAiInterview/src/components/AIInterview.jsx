@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { startLiveTranscription } from "./SpeechTranscrib";
 import { useLocation } from "react-router-dom";
+import axios from "axios";
 import {
   Box,
   Grid,
@@ -80,6 +81,8 @@ const AIInterview = () => {
   // State for session and interview details
   const [sessionId, setSessionId] = useState('');
   const [interviewDetails, setInterviewDetails] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   
   // Initialize session and interview details when component mounts
   useEffect(() => {
@@ -113,12 +116,39 @@ const AIInterview = () => {
     };
   }, [location, navigate]);
   
-  // Log the session ID when it's available
+  // Log the session ID when it's available and fetch interview data
   useEffect(() => {
-    if (sessionId) {
-      console.log('Active Interview Session ID:', sessionId);
+    const sessionId = sessionStorage.getItem('interviewSessionId');
+  
+    if (!sessionId) {
+      console.error('No session ID found in sessionStorage');
+      setError('Missing session ID');
+      return;
     }
-  }, [sessionId]);
+  
+    console.log('Active Interview Session ID:', sessionId);
+  
+    const fetchInterviewData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await axios.post(`/api/v1/ai/aiStart`, {
+          answer: "Let's start the interview",
+          sessionId: sessionId
+        });
+  
+        console.log('AI Response:', response.data);
+        setMessages(prev => [...prev, {text: response.data.data, sender: 'ai'}]);
+      } catch (e) {
+        console.error('API Error:', e);
+        setError('Failed to load interview data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchInterviewData();
+  }, []);
+  
 
   const [isRecording, setIsRecording] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
@@ -305,15 +335,88 @@ const AIInterview = () => {
     }
   };
   
-  const toggleRecording = () => {
+  const toggleRecording = async () => {
     if (isRecording) {
-      stopRecording();
-      toast.success("Interview has been completed, Analyzing your responses and it is available in your dashboard");
-      navigate('/dashboard');
+      await stopRecording();
+      const sessionId = sessionStorage.getItem('interviewSessionId');
+      if (!sessionId) {
+        toast.error(
+          "No session ID found, so analysis can’t proceed. Sorry for the inconvenience."
+        );
+        return;
+      }
+    
+      const toastId = toast.loading(
+        <div>
+          <div>Analyzing your responses...</div>
+          <div style={{
+            width: '100%',
+            height: '4px',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            marginTop: '8px',
+            borderRadius: '2px',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              width: '0%',
+              height: '100%',
+              backgroundColor: '#4CAF50',
+              transition: 'width 0.3s ease-in-out'
+            }} id="progress-bar"></div>
+          </div>
+        </div>,
+        {
+          autoClose: false,
+          closeButton: false,
+          closeOnClick: false,
+          draggable: false,
+          isLoading: true,
+          style: {
+            minWidth: '300px',
+            padding: '16px'
+          }
+        }
+      );
+    
+      try {
+        // Simulate progress (remove this in production)
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+          let progress = 0;
+          const interval = setInterval(() => {
+            progress += 5;
+            if (progress > 90) clearInterval(interval);
+            progressBar.style.width = `${progress}%`;
+          }, 200);
+        }
+        
+        await axios.post('/api/v1/ai/aiAnalysis', { sessionId });
+        
+        // Complete the progress bar
+        if (progressBar) progressBar.style.width = '100%';
+        
+        toast.update(toastId, {
+          render: 'Analysis complete! Redirecting to dashboard...',
+          type: 'success',
+          isLoading: false,
+          autoClose: 1500,
+          closeButton: true,
+          closeOnClick: true,
+          draggable: true
+        });
+        
+        setTimeout(() => navigate('/dashboard'), 1500);
+      } catch (err) {
+        console.error(err);
+        toast.error(
+          "Something went wrong while submitting for analysis. Please try again."
+        );
+        // You might decide whether to still navigate or not. Probably not, until it succeeds.
+      }
     } else {
       startRecording();
-      toast.success("Interview Begins");
-    }
+      toast.success("Interview begins.");
+    }    
   };
 
   const toggleVideo = () => {
@@ -324,7 +427,49 @@ const AIInterview = () => {
     setIsAudioOn(!isAudioOn);
   };
 
+  const messagesContainerRef = useRef(null);
 
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  }, [messages]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if(!inputMessage.trim()) return;
+    
+    setMessages(prev => [...prev, {text: inputMessage, sender: 'user'}]);
+    setInputMessage('');
+    const userText  = inputMessage.trim();
+    setInputMessage('')
+    setIsLoading(true)
+    try {
+      const response = await axios.post(`/api/v1/ai/aiStart`, {
+        answer: userText,
+        sessionId: sessionId
+      });
+
+      if(!response.data.success){
+        throw new Error(response.data.data);
+      }
+
+      setMessages(prev => [...prev, {text: response.data.data, sender: 'ai'}]);
+    } catch (error) {
+      setMessages(prev => [
+        ...prev,
+        {
+          text: 'Something went wrong. Please try again later.',
+          sender: 'ai',
+        }])
+    } finally {
+      setIsLoading(false);
+    }
+    
+  }
 
   return (
     <Box
@@ -376,7 +521,7 @@ const AIInterview = () => {
               mt: 5,
               mb: 1,
               pt: 2,
-              fontWeight: 700,
+              fontWeight: 500,
               background: "linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
@@ -660,19 +805,20 @@ const AIInterview = () => {
             >
               <GlassCard
                 sx={{
-                  height: "100%",
+                  height: "75vh",
                   display: "flex",
                   flexDirection: "column",
-                  maxHeight: "calc(100vh - 200px)",
+
                   overflow: "hidden",
                 }}
               >
                 <Box
                   sx={{
                     width: 500, // fix width if needed
-                    height: 500, // fixed height for the entire card
                     display: "flex",
                     flexDirection: "column",
+                    minHeight: 0,
+                    flex: 1,
                   }}
                 >
                   <CardContent
@@ -681,194 +827,294 @@ const AIInterview = () => {
                       p: 0,
                       display: "flex",
                       flexDirection: "column",
+                      minHeight: 0,
+                      background: 'transparent',
+                      height: '100%',
                     }}
                   >
+                    {/* Header */}
                     <Box
                       sx={{
                         p: 2,
-                        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                        borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+                        borderTopLeftRadius: '16px',
+                        borderTopRightRadius: '16px',
+                        background: 'transparent',
                       }}
                     >
                       <Typography
                         variant="h6"
-                        sx={{ fontWeight: 600, color: "#00bfa5" }}
+                        sx={{ fontWeight: 500, color: "#fff" }}
                       >
                         Interview Transcript
                       </Typography>
                     </Box>
+                    {/* Messages Area */}
                     <Box
+                      ref={messagesContainerRef}
                       sx={{
                         flex: 1,
                         overflowY: "auto",
-                        p: 2,
-                        "&::-webkit-scrollbar": {
-                          width: "6px",
+                        p: 3,
+                        minHeight: 0,
+                        background: 'rgba(10, 15, 26, 0.3)',
+                        backdropFilter: 'blur(12px)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2.5,
+                        '&::-webkit-scrollbar': {
+                          width: '6px',
                         },
-                        "&::-webkit-scrollbar-track": {
-                          background: "rgba(255, 255, 255, 0.05)",
-                          borderRadius: "3px",
+                        '&::-webkit-scrollbar-track': {
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          borderRadius: '3px',
                         },
-                        "&::-webkit-scrollbar-thumb": {
-                          background: "rgba(255, 255, 255, 0.1)",
-                          borderRadius: "3px",
-                          "&:hover": {
-                            background: "rgba(255, 255, 255, 0.2)",
+                        '&::-webkit-scrollbar-thumb': {
+                          background: 'rgba(0, 191, 165, 0.4)',
+                          borderRadius: '3px',
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            background: 'rgba(0, 191, 165, 0.7)',
+                            width: '8px',
                           },
                         },
+                        // Smooth scrolling for Firefox
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(0, 191, 165, 0.4) rgba(255, 255, 255, 0.03)',
                       }}
                     >
                       {isRecording ? (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            mb: 2,
-                            animation: "fadeIn 0.3s ease-in-out",
-                          }}
-                        >
-                          <Box sx={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-                            {/* Messages Container - Only showing the latest message */}
-                            <Box sx={{ flexGrow: 1, overflowY: 'auto', mb: 2 }}>
-                              {messages.length > 0 ? (
-                                messages.map((msg, index) => (
-                                  <Box 
-                                    key={index}
-                                    sx={{ 
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      mb: 2,
-                                      animation: 'fadeIn 0.3s ease-in-out'
-                                    }}
-                                  >
-                                    <Box sx={{ 
-                                      bgcolor: msg.sender === 'ai' 
-                                        ? 'rgba(0, 0, 0, 0.1)' 
-                                        : 'rgba(0, 191, 165, 0.2)',
-                                      p: 2,
-                                      borderRadius: msg.sender === 'ai' 
-                                        ? '16px 16px 16px 4px' 
-                                        : '16px 16px 4px 16px',
-                                      alignSelf: msg.sender === 'ai' ? 'flex-start' : 'flex-end',
-                                      maxWidth: '80%',
-                                      border: msg.sender === 'user' ? '1px solid rgba(0, 191, 165, 0.3)' : 'none'
-                                    }}>
-                                      <Typography variant="body2" sx={{ color: 'white' }}>
-                                        {msg.text}
-                                      </Typography>
-                                    </Box>
-                                  </Box>
-                                ))
-                              ) : (
-                                <Box sx={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center',
-                                  height: '100%',
-                                  textAlign: 'center',
-                                  color: 'rgba(255, 255, 255, 0.5)'
-                                }}>
-                                  <Typography>Start the interview by sending a message...</Typography>
-                                </Box>
-                              )}
-                            </Box>
-                            
-                            {/* Input Area */}
-                            <Box 
-                              component="form" 
-                              onSubmit={(e) => {
-                                e.preventDefault();
-                                if (!inputMessage.trim()) return;
-                                
-                                // Add user message
-                                setMessages(prev => [...prev, { text: inputMessage, sender: 'user' }]);
-                                
-                                // Simulate AI response (replace with actual API call)
-                                setTimeout(() => {
-                                  setMessages(prev => [...prev, { 
-                                    text: 'Thank you for your response. I will analyze it now...', 
-                                    sender: 'ai' 
-                                  }]);
-                                }, 1000);
-                                
-                                setInputMessage('');
+                        messages.length > 0 ? (
+                          messages.map((msg, index) => (
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                              animate={{ 
+                                opacity: 1, 
+                                y: 0, 
+                                scale: 1,
+                                transition: {
+                                  type: 'spring',
+                                  stiffness: 300,
+                                  damping: 25
+                                }
                               }}
-                              sx={{ 
-                                display: 'flex', 
-                                gap: 1,
-                                mt: 'auto',
-                                pt: 2,
-                                borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+                              style={{
+                                alignSelf: msg.sender === 'ai' ? 'flex-start' : 'flex-end',
+                                maxWidth: '85%',
+                                position: 'relative',
                               }}
                             >
-                              <TextField
-                                fullWidth
-                                size="small"
-                                variant="outlined"
-                                placeholder="Type your message..."
-                                value={inputMessage}
-                                onChange={(e) => setInputMessage(e.target.value)}
+                              <Box
                                 sx={{
-                                  '& .MuiOutlinedInput-root': {
-                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                    '& fieldset': {
-                                      borderColor: 'rgba(255, 255, 255, 0.1)',
-                                    },
-                                    '&:hover fieldset': {
-                                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                                    },
-                                    '&.Mui-focused fieldset': {
-                                      borderColor: '#00bfa5',
-                                    },
+                                  p: 2.5,
+                                  borderRadius: '18px',
+                                  color: '#fff',
+                                  position: 'relative',
+                                  backdropFilter: 'blur(8px)',
+                                  boxShadow: msg.sender === 'ai' 
+                                    ? '0 4px 20px rgba(0, 0, 0, 0.1)'
+                                    : '0 4px 25px rgba(0, 191, 165, 0.15)',
+                                  background: msg.sender === 'ai' 
+                                    ? 'rgba(255, 255, 255, 0.08)' 
+                                    : 'linear-gradient(135deg, rgba(0, 191, 165, 0.15) 0%, rgba(0, 172, 193, 0.15) 100%)',
+                                  border: msg.sender === 'ai'
+                                    ? '1px solid rgba(255, 255, 255, 0.12)'
+                                    : '1px solid rgba(0, 191, 165, 0.25)',
+                                  '&::before': {
+                                    content: '""',
+                                    position: 'absolute',
+                                    top: '16px',
+                                    left: msg.sender === 'ai' ? '-6px' : 'auto',
+                                    right: msg.sender === 'ai' ? 'auto' : '-6px',
+                                    width: '14px',
+                                    height: '14px',
+                                    background: msg.sender === 'ai' 
+                                      ? 'rgba(255, 255, 255, 0.08)' 
+                                      : 'rgba(0, 191, 165, 0.15)',
+                                    transform: 'rotate(45deg)',
+                                    borderLeft: msg.sender === 'ai' 
+                                      ? '1px solid rgba(255, 255, 255, 0.12)' 
+                                      : '1px solid rgba(0, 191, 165, 0.25)',
+                                    borderBottom: msg.sender === 'ai' 
+                                      ? '1px solid rgba(255, 255, 255, 0.12)' 
+                                      : '1px solid rgba(0, 191, 165, 0.25)',
+                                    borderTop: 'none',
+                                    borderRight: 'none',
+                                    zIndex: -1,
                                   },
-                                  '& .MuiInputBase-input': {
-                                    color: 'white',
-                                    '&::placeholder': {
-                                      color: 'rgba(255, 255, 255, 0.5)',
-                                    },
-                                  },
-                                }}
-                              />
-                              <Button 
-                                type="submit" 
-                                variant="contained"
-                                disabled={!inputMessage.trim()}
-                                sx={{
-                                  bgcolor: '#00bfa5',
-                                  color: 'white',
-                                  '&:hover': {
-                                    bgcolor: '#00a38a',
-                                  },
-                                  '&:disabled': {
-                                    bgcolor: 'rgba(255, 255, 255, 0.1)',
-                                    color: 'rgba(255, 255, 255, 0.3)',
-                                  },
-                                  minWidth: '100px',
-                                  whiteSpace: 'nowrap'
                                 }}
                               >
-                                Send
-                              </Button>
-                            </Box>
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{
+                                    fontSize: '0.95rem',
+                                    lineHeight: 1.6,
+                                    letterSpacing: '0.01em',
+                                    color: msg.sender === 'ai' ? 'rgba(255, 255, 255, 0.92)' : '#fff',
+                                    fontWeight: msg.sender === 'ai' ? 400 : 450,
+                                    textShadow: msg.sender === 'ai' 
+                                      ? 'none' 
+                                      : '0 1px 2px rgba(0, 0, 0, 0.1)',
+                                  }}
+                                >
+                                  {msg.text}
+                                </Typography>
+                                <motion.div
+                                  initial={{ opacity: 0, y: 5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.2 }}
+                                >
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{
+                                      display: 'block',
+                                      textAlign: 'right',
+                                      mt: 1,
+                                      color: msg.sender === 'ai' 
+                                        ? 'rgba(255, 255, 255, 0.45)' 
+                                        : 'rgba(255, 255, 255, 0.65)',
+                                      fontSize: '0.68rem',
+                                      letterSpacing: '0.03em',
+                                      textTransform: 'uppercase',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {msg.sender === 'ai' ? 'AI Assistant' : 'You'}
+                                  </Typography>
+                                </motion.div>
+                              </Box>
+                            </motion.div>
+                          ))
+                        ) : (
+                          <Box 
+                            sx={{ 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              alignItems: 'center', 
+                              justifyContent: 'center',
+                              height: '100%',
+                              color: 'rgba(255, 255, 255, 0.6)',
+                              textAlign: 'center',
+                              p: 4,
+                            }}
+                          >
+                            <VideocamIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                            <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
+                              Interview in Progress
+                            </Typography>
+                            <Typography variant="body2">
+                              Your conversation will appear here. Start speaking when you're ready.
+                            </Typography>
                           </Box>
-                        </Box>
+                        )
                       ) : (
                         <Box
                           sx={{
-                            textAlign: "center",
-                            py: 4,
-                            color: "rgba(255, 255, 255, 0.4)",
-                            fontStyle: "italic",
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100%',
+                            color: 'rgba(255, 255, 255, 0.6)',
+                            textAlign: 'center',
+                            p: 4,
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            borderRadius: '12px',
+                            border: '1px dashed rgba(255, 255, 255, 0.1)',
                           }}
                         >
-                          Your interview transcript will appear here...
+                          <MicIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                          <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
+                            Ready to Start
+                          </Typography>
+                          <Typography variant="body2">
+                            Click the "Start Interview" button to begin your session.
+                            Your transcript will appear here once you start speaking.
+                          </Typography>
                         </Box>
                       )}
+                    </Box>
+                    {/* Input Area - always at the bottom */}
+                    {isRecording && (
+                      <Box 
+                      component="form"
+                      onSubmit={handleSubmit}
+                        sx={{ 
+                          display: 'flex', 
+                          gap: 2,
+                          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                          p: 2,
+                          background: 'transparent',
+                          borderBottomLeftRadius: '16px',
+                          borderBottomRightRadius: '16px',
+                          minWidth: 0,
+                          flexShrink: 0,
+                        }}
+                      >
+                        <TextField
+                          fullWidth
+                          size="small"
+                          variant="outlined"
+                          placeholder="Type your message..."
+                          value={inputMessage}
+                          onChange={(e) => setInputMessage(e.target.value)}
+                          sx={{
+                            borderRadius: '8px',
+                            background: 'rgba(255,255,255,0.05)',
+                            flex: '1 1 0%',
+                            minWidth: 0,
+                            '& .MuiOutlinedInput-root': {
+                              borderRadius: '8px',
+                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                              '& fieldset': {
+                                borderColor: 'rgba(255, 255, 255, 0.2)',
+                              },
+                              '&:hover fieldset': {
+                                borderColor: 'rgba(255, 255, 255, 0.3)',
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: '#00bfa5',
+                              },
+                            },
+                            '& .MuiInputBase-input': {
+                              color: 'white',
+                              '&::placeholder': {
+                                color: 'rgba(255, 255, 255, 0.5)',
+                              },
+                            },
+                          }}
+                        />
+                        <Button 
+                          type="submit" 
+                          variant="contained"
+                          disabled={!inputMessage.trim()}
+                          sx={{
+                            borderRadius: '8px',
+                            bgcolor: '#00bfa5',
+                            color: 'white',
+                            minWidth: '80px',
+                            fontWeight: 500,
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            '&:hover': {
+                              bgcolor: '#00a38a',
+                            },
+                            '&:disabled': {
+                              bgcolor: 'rgba(255, 255, 255, 0.1)',
+                              color: 'rgba(255, 255, 255, 0.3)',
+                            },
+                          }}
+                        >
+                          Send
+                        </Button>
                       </Box>
-                    </CardContent>
-                  </Box>
-                </GlassCard>
-              </Grid>
+                    )}
+                  </CardContent>
+                </Box>
+              </GlassCard>
             </Grid>
+          </Grid>
           </Stack>
         </Box>
 
