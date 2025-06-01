@@ -1,15 +1,16 @@
-// src/controllers/aiInterview.controller.js
-
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+// import model from "../utils/ai/index.js";
 import { asyncHandler } from "../utils/aysncHandler.js";
 import fileLoading from "../utils/ai/loader.js";
-import getRedisClient from "../utils/redisClient.js"; // ← make sure this returns a client that uses process.env.REDIS_URL
+import client from "../utils/reddisClient.js";
+import path from 'path';
 import aiInterview from "../utils/ai/index.js";
 import aiAnalysis from "../utils/ai/aiAnalysis.js";
+import { console } from "inspector";
 import { UserHistory } from "../models/userHistory.models.js";
-import { User } from "../models/user.models.js";
-import fs from "fs";
+import {User} from "../models/user.models.js";
+import fs from 'fs';
 import { downloadFileWithUniqueName } from "../utils/supabaseStorage.js";
 
 const client = getRedisClient();
