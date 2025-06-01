@@ -780,7 +780,7 @@ const MockInterviewWay = () => {
                       }}
                     >
                       <DescriptionIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.9)' }} />
-                      Upload Your Resume (Optional)
+                      Upload Your Resume
                     </Typography>
                     {!resumeFile && !isUploading ? (
                       <UploadArea 
@@ -794,7 +794,7 @@ const MockInterviewWay = () => {
                         <input
                           ref={fileInputRef}
                           type="file"
-                          accept=".pdf,.doc,.docx"
+                          accept=".pdf"
                           onChange={handleFileUpload}
                           style={{ display: 'none' }}
                         />
