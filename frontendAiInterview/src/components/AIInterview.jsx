@@ -87,7 +87,7 @@ const AIInterview = () => {
   
   // Initialize session and interview details when component mounts
   useEffect(() => {
-    console.log('=== AIInterview Component Mounted ===');
+
     
     // Get from location state (passed during navigation)
     const stateData = location.state || {};
@@ -176,10 +176,9 @@ const AIInterview = () => {
   
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
-    console.log('Answer:', answer);
     if (answer.trim()) {
       // Handle the answer submission here
-      console.log('Submitted answer:', answer);
+
       // You can add your logic to process the answer
       
       // Clear the input after submission
@@ -531,7 +530,7 @@ const AIInterview = () => {
         toast.success("Interview begins.");
       }
       if (data.includes("Your interview is over")) {
-        setTimeout(toggleRecording, 1000);
+        setTimeout(toggleRecording, 6000);
       }
     } catch (error) {
       console.error('Error in handleSubmit:', error);

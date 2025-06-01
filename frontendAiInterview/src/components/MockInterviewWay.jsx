@@ -140,7 +140,6 @@ const MockInterviewWay = () => {
     const bucketName = 'aiinterview'; // Your bucket name in Supabase Storage
     const filePath = fileName; // Remove the bucket name from the path
     
-    console.log('Starting file upload:', { fileName, fileSize: file.size, fileType: file.type });
     
     setIsUploading(true);
     setUploadProgress(0);
@@ -154,7 +153,6 @@ const MockInterviewWay = () => {
         const bucketExists = bucketList.some(bucket => bucket.name === bucketName);
         
         if (!bucketExists) {
-          console.log(`Bucket '${bucketName}' not found. Creating...`);
           const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
             public: true, // Make the bucket public
             allowedMimeTypes: ['*/*'], // Allow all file types
@@ -162,7 +160,6 @@ const MockInterviewWay = () => {
           });
           
           if (createError) throw createError;
-          console.log(`Bucket '${bucketName}' created successfully`);
           
           // Add a small delay to ensure bucket is ready
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -175,7 +172,6 @@ const MockInterviewWay = () => {
       }
       
       // 2. Upload file to Supabase Storage with retry logic
-      console.log('Uploading file to Supabase Storage...');
       let uploadError = null;
       let uploadData = null;
       
@@ -243,11 +239,6 @@ const MockInterviewWay = () => {
         supabasePath: `${bucketName}/${filePath}`
       });
       
-      console.log('File processing complete:', { 
-        publicUrl,
-        bucketName,
-        filePath 
-      });
       
     } catch (error) {
       console.error('Error details:', {
@@ -285,11 +276,6 @@ const MockInterviewWay = () => {
       e.preventDefault();
     }
     
-    console.log('=== Form submission started ===');
-    console.log('Position:', position);
-    console.log('Experience:', experience);
-    console.log('Number of Questions:', numQuestions);
-    console.log('Resume File:', resumeFileUrl);
     
     // Simple validation
     if (!position) {
@@ -304,7 +290,6 @@ const MockInterviewWay = () => {
     try {
       // Generate session ID
       const newSessionId = uuidv4();
-      console.log('Generated Session ID:', newSessionId);
       
       // Handle resume file if exists
       let resumeFileUrl = 'No file uploaded';
@@ -318,13 +303,7 @@ const MockInterviewWay = () => {
       }
       
       // Log all required details
-      console.log('=== Interview Details ===');
-      console.log('Number of Questions:', numQuestions);
-      console.log('Experience Level:', experience);
-      console.log('Position:', position);
-      console.log('Resume File URL:', resumePublicUrl);
-      console.log('Session ID:', newSessionId);
-      console.log('=========================');
+
       
       // Store session ID in sessionStorage
       sessionStorage.setItem('interviewSessionId', newSessionId);
@@ -349,7 +328,7 @@ const MockInterviewWay = () => {
             },
           }
         );
-        console.log('API Response:', response.data);
+
       } catch (error) {
         console.error('API Error:', {
           message: error.message,
@@ -364,7 +343,7 @@ const MockInterviewWay = () => {
         throw error; // Re-throw to be caught by the outer catch
       }
       // Navigate to interview page
-      console.log('Navigating to interview page...');
+
       navigate('/interview', { 
         state: { 
           sessionId: newSessionId,
