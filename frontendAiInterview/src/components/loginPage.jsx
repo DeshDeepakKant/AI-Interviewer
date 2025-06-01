@@ -290,7 +290,6 @@ function SignupForm({ onShowPassword, showPassword }) {
   }
 
   const handleSubmit = () => {
-    console.log(signupInfo);
     const signupPromise = new Promise(async (resolve, reject) => {
       try {
         const payload = { ...signupInfo };

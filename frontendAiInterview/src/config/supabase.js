@@ -6,9 +6,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY; // Add this to your .env
 
 // Log environment variables for debugging (remove in production)
-console.log('Supabase URL:', supabaseUrl);
-console.log('Supabase Anon Key:', supabaseAnonKey ? '***' : 'Not found');
-console.log('Supabase Service Key:', supabaseServiceKey ? '***' : 'Not found');
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase URL or Anon Key. Please check your environment variables.');

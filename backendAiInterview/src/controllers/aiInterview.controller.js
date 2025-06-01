@@ -12,6 +12,16 @@ import { UserHistory } from "../models/userHistory.models.js";
 import {User} from "../models/user.models.js";
 import fs from 'fs';
 import { downloadFileWithUniqueName } from "../utils/supabaseStorage.js";
+import textToSpechTool from "../utils/ai/audio.js";
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+import { uploadToSupabase } from '../utils/supabaseFileUpload.js';
+
+dotenv.config({ path: '../../.env' });
+
+
+
+
 
 const aiInterviewWay = asyncHandler(async(req, res) => {
     try {
@@ -55,25 +65,80 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
 });
 const aiInterviewStart = asyncHandler(async(req, res)=>{
     try {
-
-        const {sessionId, answer} = req.body
+        const { sessionId, answer } = req.body;
+        
         if (!sessionId) {
-            console.error("Error in aiInterview.controller.js:", error);
-            return res.status(500).json(new ApiResponse(500, error.message));
+            return res.status(400).json(new ApiResponse(400, null, 'Session ID is required'));
         }
-        const data = await client.hgetall(sessionId)
-        let messages = JSON.parse(data.messages)
-        messages.push(`Question Number:${data.count}`)
-        messages.push(`role: user, content: ${answer}`)
-        const ai = await aiInterview(data.resume, data.position,data.numberOfQuestionLeft, data.experienceLevel, data.numberOfQuestionYouShouldAsk, data.messages, answer)
-        messages.push(`role: ai, content: ${ai}`)
+        
+        // Get session data from Redis
+        const data = await client.hgetall(sessionId);
+        if (!data) {
+            return res.status(404).json(new ApiResponse(404, null, 'Session not found'));
+        }
+
+        // Parse messages safely
+        let messages = [];
+        try {
+            messages = data.messages ? JSON.parse(data.messages) : [];
+        } catch (parseError) {
+            console.error('Error parsing messages:', parseError);
+            messages = [];
+        }
+
+        // Add user message
+        messages.push(`Question Number:${data.count || 1}`);
+        messages.push(`role: user, content: ${answer || ''}`);
+
+        // Call AI interview
+        const ai = await aiInterview(
+            data.resume || '',
+            data.position || '',
+            data.numberOfQuestionLeft || 0,
+            data.experienceLevel || 'beginner',
+            data.numberOfQuestionYouShouldAsk || 5,
+            messages,
+            answer || ''
+        );
+        let audioPath;
+// Generate audio file and get its local path
+console.log('1. Starting textToSpechTool with ai:', ai ? 'ai is defined' : 'ai is undefined');
+try {
+    console.log('2. About to call textToSpechTool');
+    audioPath = await textToSpechTool(ai);
+    console.log('3. Audio path from textToSpechTool:', audioPath);
+} catch (error) {
+    console.error('4. Error in textToSpechTool:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+    });
+}   
+let publicUrl;
+        try {
+          publicUrl = await uploadToSupabase(audioPath);
+          console.log('File is available at:', publicUrl);
+        } catch (error) {
+          console.error('Upload failed:', error.message);
+        }
+        // Add AI response
+        messages.push(`role: ai, content: ${ai}`);
+
+        // Update session data
         const multi = client.multi();
         multi.hincrby(sessionId, 'numberOfQuestionLeft', -1);
         multi.hset(sessionId, 'messages', JSON.stringify(messages));
-        multi.hincrby(sessionId, 'count', data.count+1);
+        multi.hincrby(sessionId, 'count', 1);
+        
+        fs.unlinkSync(audioPath);
         await multi.exec();
 
-        return res.status(200).json(new ApiResponse(200, ai));
+        return res.status(200).json(
+            new ApiResponse(200, {
+                result: ai,
+                audioUrl: publicUrl // Return the uploaded audio URL or empty string if upload failed
+            })
+        );
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
         return res.status(500).json(new ApiResponse(500, error.message));

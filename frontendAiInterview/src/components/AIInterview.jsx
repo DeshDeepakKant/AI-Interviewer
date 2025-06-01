@@ -82,7 +82,8 @@ const AIInterview = () => {
   const [sessionId, setSessionId] = useState('');
   const [interviewDetails, setInterviewDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+  const audioRef = useRef(null);
   
   // Initialize session and interview details when component mounts
   useEffect(() => {
@@ -117,6 +118,21 @@ const AIInterview = () => {
   }, [location, navigate]);
   
   // Log the session ID when it's available and fetch interview data
+  // Function to play audio from URL
+  const playAudio = (audioUrl) => {
+    if (!audioUrl) return;
+    
+    // Pause and reset current audio if any
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
+    // Create new audio instance and play
+    audioRef.current = new Audio(audioUrl);
+    audioRef.current.play().catch(e => console.error('Error playing audio:', e));
+  };
+
   useEffect(() => {
     const sessionId = sessionStorage.getItem('interviewSessionId');
   
@@ -137,7 +153,12 @@ const AIInterview = () => {
         });
   
         console.log('AI Response:', response.data);
-        setMessages(prev => [...prev, {text: response.data.data, sender: 'ai'}]);
+        setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
+        
+        // Play audio if audioUrl exists in response
+        if (response.data.data.audioUrl) {
+          playAudio(response.data.data.audioUrl);
+        }
       } catch (e) {
         console.error('API Error:', e);
         setError('Failed to load interview data');
@@ -147,6 +168,16 @@ const AIInterview = () => {
     };
   
     fetchInterviewData();
+  }, []);
+  
+  // Cleanup audio on component unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
   }, []);
   
 
@@ -440,35 +471,51 @@ const AIInterview = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(!inputMessage.trim()) return;
     
-    setMessages(prev => [...prev, {text: inputMessage, sender: 'user'}]);
+    // If this is the first message (starting the interview)
+    const isFirstMessage = messages.length === 0;
+    const userText = inputMessage.trim() || "Let's start the interview";
+    
+    setMessages(prev => [...prev, {text: userText, sender: 'user'}]);
     setInputMessage('');
-    const userText  = inputMessage.trim();
-    setInputMessage('')
-    setIsLoading(true)
+    setIsLoading(true);
+    
     try {
       const response = await axios.post(`/api/v1/ai/aiStart`, {
         answer: userText,
         sessionId: sessionId
       });
-
-      if(!response.data.success){
+      
+      if (!response.data.success) {
         throw new Error(response.data.data);
       }
-
-      setMessages(prev => [...prev, {text: response.data.data, sender: 'ai'}]);
+      
+      // Add AI response to messages
+      setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
+      
+      // Play audio if audioUrl exists in response
+      if (response.data.data.audioUrl) {
+        playAudio(response.data.data.audioUrl);
+      }
+      
+      // If this was the first message, start recording
+      if (isFirstMessage) {
+        startRecording();
+        toast.success("Interview begins.");
+      }
+      
     } catch (error) {
+      console.error('Error in handleSubmit:', error);
       setMessages(prev => [
         ...prev,
         {
           text: 'Something went wrong. Please try again later.',
           sender: 'ai',
-        }])
+        }
+      ]);
     } finally {
       setIsLoading(false);
     }
-    
   }
 
   return (
