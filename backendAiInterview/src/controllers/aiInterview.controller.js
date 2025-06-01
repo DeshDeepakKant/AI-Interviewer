@@ -75,7 +75,7 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
         return res.status(200).json(new ApiResponse(200, ai));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error)
-        throw new ApiError(500, "Something went wrong")
+        throw new ApiError(500,  error.message)
     }
 })
 
@@ -121,7 +121,7 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
         return res.status(200).json(new ApiResponse(200, "Interview analysis completed successfully"));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
-        throw new ApiError(500, "Something went wrong");
+        throw new ApiError(500,  error.message);
     }
 });
 
@@ -135,7 +135,7 @@ const aiHistory = asyncHandler(async(req, res)=>{
         return res.status(200).json(new ApiResponse(200, history));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error)
-        throw new ApiError(500, "Something went wrong")
+        throw new ApiError(500,  error.message)
     }
 })
 
