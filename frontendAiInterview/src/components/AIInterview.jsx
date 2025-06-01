@@ -133,59 +133,46 @@ const AIInterview = () => {
     audioRef.current.play().catch(e => console.error('Error playing audio:', e));
   };
 
-  useEffect(() => {
-    const sessionId = sessionStorage.getItem('interviewSessionId');
-  
-    if (!sessionId) {
-      console.error('No session ID found in sessionStorage');
-      setError('Missing session ID');
-      return;
-    }
-  
-    console.log('Active Interview Session ID:', sessionId);
-  
-    const fetchInterviewData = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axios.post(`/api/v1/ai/aiStart`, {
-          answer: "Let's start the interview",
-          sessionId: sessionId
-        });
-  
-        console.log('AI Response:', response.data);
-        setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
-        
-        // Play audio if audioUrl exists in response
-        if (response.data.data.audioUrl) {
-          playAudio(response.data.data.audioUrl);
-        }
-      } catch (e) {
-        console.error('API Error:', e);
-        setError('Failed to load interview data');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    fetchInterviewData();
-  }, []);
-  
-  // Cleanup audio on component unmount
-  useEffect(() => {
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
-  }, []);
-  
-
   const [isRecording, setIsRecording] = useState(false);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [isAudioOn, setIsAudioOn] = useState(true);
   const [answer, setAnswer] = useState('');
   const [stream, setStream] = useState(null);
+  
+  // Toggle audio on/off - this is the main implementation
+  const toggleAudio = async () => {
+    if (isAudioOn) {
+      // Turn off audio
+      if (stream) {
+        stream.getAudioTracks().forEach(track => track.stop());
+      }
+      setIsAudioOn(false);
+    } else {
+      // Turn on audio
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: isVideoOn  // Keep existing video state
+        });
+        setStream(prevStream => {
+          if (prevStream) {
+            prevStream.getTracks().forEach(track => track.stop());
+          }
+          return mediaStream;
+        });
+        
+        // Update video element if it exists
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+        
+        setIsAudioOn(true);
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        toast.error('Could not access microphone. Please check your permissions.');
+      }
+    }
+  };
   
   const handleAnswerSubmit = (e) => {
     e.preventDefault();
@@ -372,7 +359,7 @@ const AIInterview = () => {
       const sessionId = sessionStorage.getItem('interviewSessionId');
       if (!sessionId) {
         toast.error(
-          "No session ID found, so analysis can’t proceed. Sorry for the inconvenience."
+          "No session ID found, so analysis can't proceed. Sorry for the inconvenience."
         );
         return;
       }
@@ -445,17 +432,56 @@ const AIInterview = () => {
         // You might decide whether to still navigate or not. Probably not, until it succeeds.
       }
     } else {
-      startRecording();
-      toast.success("Interview begins.");
-    }    
+      // When starting interview, fetch the first AI message and play audio
+      setIsLoading(true);
+      try {
+        const response = await axios.post(`/api/v1/ai/aiStart`, {
+          answer: "Let's start the interview",
+          sessionId: sessionId
+        });
+        setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
+        if (response.data.data.audioUrl) {
+          playAudio(response.data.data.audioUrl);
+        }
+        startRecording();
+        toast.success("Interview begins.");
+      } catch (e) {
+        toast.error("Failed to start interview.");
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
-  const toggleVideo = () => {
-    setIsVideoOn(!isVideoOn);
-  };
-
-  const toggleAudio = () => {
-    setIsAudioOn(!isAudioOn);
+  const toggleVideo = async () => {
+    if (isVideoOn) {
+      // Turn off video
+      if (stream) {
+        stream.getVideoTracks().forEach(track => track.stop());
+      }
+      setIsVideoOn(false);
+    } else {
+      // Turn on video
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: isAudioOn
+        });
+        setStream(prevStream => {
+          if (prevStream) {
+            prevStream.getTracks().forEach(track => track.stop());
+          }
+          return mediaStream;
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+        setIsVideoOn(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        toast.error('Could not access camera. Please check your permissions.');
+      }
+    }
   };
 
   const messagesContainerRef = useRef(null);
@@ -489,8 +515,9 @@ const AIInterview = () => {
       if (!response.data.success) {
         throw new Error(response.data.data);
       }
-      
+      const data = response.data.data.result;
       // Add AI response to messages
+
       setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
       
       // Play audio if audioUrl exists in response
@@ -503,7 +530,9 @@ const AIInterview = () => {
         startRecording();
         toast.success("Interview begins.");
       }
-      
+      if (data.includes("Your interview is over")) {
+        setTimeout(toggleRecording, 1000);
+      }
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setMessages(prev => [
@@ -889,12 +918,15 @@ const AIInterview = () => {
                         background: 'transparent',
                       }}
                     >
+                      <Stack direction="row" spacing={1} alignItems="center">
                       <Typography
                         variant="h6"
                         sx={{ fontWeight: 500, color: "#fff" }}
                       >
                         Interview Transcript
                       </Typography>
+
+                      </Stack>
                     </Box>
                     {/* Messages Area */}
                     <Box
@@ -968,28 +1000,6 @@ const AIInterview = () => {
                                   border: msg.sender === 'ai'
                                     ? '1px solid rgba(255, 255, 255, 0.12)'
                                     : '1px solid rgba(0, 191, 165, 0.25)',
-                                  '&::before': {
-                                    content: '""',
-                                    position: 'absolute',
-                                    top: '16px',
-                                    left: msg.sender === 'ai' ? '-6px' : 'auto',
-                                    right: msg.sender === 'ai' ? 'auto' : '-6px',
-                                    width: '14px',
-                                    height: '14px',
-                                    background: msg.sender === 'ai' 
-                                      ? 'rgba(255, 255, 255, 0.08)' 
-                                      : 'rgba(0, 191, 165, 0.15)',
-                                    transform: 'rotate(45deg)',
-                                    borderLeft: msg.sender === 'ai' 
-                                      ? '1px solid rgba(255, 255, 255, 0.12)' 
-                                      : '1px solid rgba(0, 191, 165, 0.25)',
-                                    borderBottom: msg.sender === 'ai' 
-                                      ? '1px solid rgba(255, 255, 255, 0.12)' 
-                                      : '1px solid rgba(0, 191, 165, 0.25)',
-                                    borderTop: 'none',
-                                    borderRight: 'none',
-                                    zIndex: -1,
-                                  },
                                 }}
                               >
                                 <Typography 
@@ -1084,77 +1094,97 @@ const AIInterview = () => {
                     </Box>
                     {/* Input Area - always at the bottom */}
                     {isRecording && (
-                      <Box 
-                      component="form"
-                      onSubmit={handleSubmit}
-                        sx={{ 
-                          display: 'flex', 
-                          gap: 2,
-                          borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                          p: 2,
-                          background: 'transparent',
-                          borderBottomLeftRadius: '16px',
-                          borderBottomRightRadius: '16px',
-                          minWidth: 0,
-                          flexShrink: 0,
-                        }}
-                      >
-                        <TextField
-                          fullWidth
-                          size="small"
-                          variant="outlined"
-                          placeholder="Type your message..."
-                          value={inputMessage}
-                          onChange={(e) => setInputMessage(e.target.value)}
-                          sx={{
-                            borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.05)',
-                            flex: '1 1 0%',
+                      <Box sx={{
+                        width: '100%',
+                        mt: 'auto', // Push to bottom of parent flex
+                        mb: -3.0, // Add bottom margin to the group
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'stretch',
+                      }}>
+                        <Box 
+                          component="form"
+                          onSubmit={handleSubmit}
+                          sx={{ 
+                            display: 'flex', 
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 2,
+                            borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                            p: 1.2,
+                            background: 'transparent',
+                            borderBottomLeftRadius: '16px',
+                            borderBottomRightRadius: '16px',
                             minWidth: 0,
-                            '& .MuiOutlinedInput-root': {
-                              borderRadius: '8px',
-                              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                              '& fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.2)',
-                              },
-                              '&:hover fieldset': {
-                                borderColor: 'rgba(255, 255, 255, 0.3)',
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: '#00bfa5',
-                              },
-                            },
-                            '& .MuiInputBase-input': {
-                              color: 'white',
-                              '&::placeholder': {
-                                color: 'rgba(255, 255, 255, 0.5)',
-                              },
-                            },
-                          }}
-                        />
-                        <Button 
-                          type="submit" 
-                          variant="contained"
-                          disabled={!inputMessage.trim()}
-                          sx={{
-                            borderRadius: '8px',
-                            bgcolor: '#00bfa5',
-                            color: 'white',
-                            minWidth: '80px',
-                            fontWeight: 500,
-                            whiteSpace: 'nowrap',
                             flexShrink: 0,
-                            '&:hover': {
-                              bgcolor: '#00a38a',
-                            },
-                            '&:disabled': {
-                              bgcolor: 'rgba(255, 255, 255, 0.1)',
-                              color: 'rgba(255, 255, 255, 0.3)',
-                            },
+                            mb: 0.5,
                           }}
                         >
-                          Send
-                        </Button>
+                          <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
+
+                            <TextField
+                              fullWidth
+                              size="small"
+                              variant="outlined"
+                              placeholder="If the mic is not working then please type"
+                              value={inputMessage}
+                              onChange={(e) => setInputMessage(e.target.value)}
+                              sx={{
+                                borderRadius: '8px',
+                                background: 'rgba(255,255,255,0.05)',
+                                minWidth: 0,
+                                '& .MuiOutlinedInput-root': {
+                                  borderRadius: '8px',
+                                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                  '& fieldset': {
+                                    borderColor: 'rgba(255, 255, 255, 0.2)',
+                                  },
+                                  '&:hover fieldset': {
+                                    borderColor: 'rgba(255, 255, 255, 0.3)',
+                                  },
+                                  '&.Mui-focused fieldset': {
+                                    borderColor: '#00bfa5',
+                                  },
+                                },
+                                '& .MuiInputBase-input': {
+                                  color: 'white',
+                                  '&::placeholder': {
+                                    color: 'rgba(255, 255, 255, 0.5)',
+                                  },
+                                },
+                              }}
+                            />
+
+
+                          </Box>
+                          <Button 
+                            type="submit" 
+                            variant="contained"
+                            disabled={!inputMessage.trim()}
+                            sx={{
+                              borderRadius: '8px',
+                              bgcolor: '#00bfa5',
+                              color: 'white',
+                              minWidth: '80px',
+                              fontWeight: 500,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0,
+                              height: '40px',
+                              ml: 1,
+                              '&:hover': {
+                                bgcolor: '#00a38a',
+                              },
+                              '&:disabled': {
+                                bgcolor: 'rgba(255, 255, 255, 0.1)',
+                                color: 'rgba(255, 255, 255, 0.3)',
+                              },
+                            }}
+                          >
+                            Send
+                          </Button>
+                        </Box>
+
+
                       </Box>
                     )}
                   </CardContent>
