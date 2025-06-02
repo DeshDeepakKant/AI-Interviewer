@@ -809,7 +809,7 @@ const MockInterviewWay = () => {
                             Drag & drop your resume here, or <Box component="span" sx={{ color: '#00e5ff', fontWeight: 600, textDecoration: 'underline' }}>browse</Box>
                           </Typography>
                           <Typography variant="caption" color="#ffffff" sx={{ display: 'block', mt: 1, opacity: 0.9, fontSize: '0.75rem' }}>
-                            Supports PDF, DOC, DOCX (max 5MB)
+                            Supports PDF (max 5MB)
                           </Typography>
                         </Box>
                       </UploadArea>
