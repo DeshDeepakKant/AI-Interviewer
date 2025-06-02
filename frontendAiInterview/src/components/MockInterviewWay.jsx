@@ -242,17 +242,26 @@ const MockInterviewWay = () => {
       const newSessionId = uuidv4();
       
       // Handle resume file if exists
-      let resumeFileUrl = 'No file uploaded';
-      if (resumeFile && (resumeFile instanceof File || resumeFile instanceof Blob)) {
+      let resumeFileUrl = resumeFile?.publicUrl || 'No file uploaded';
+      
+      // If we have a resume file object with a file property
+      if (resumeFile?.file && (resumeFile.file instanceof File || resumeFile.file instanceof Blob)) {
         try {
-          resumeFileUrl = URL.createObjectURL(resumeFile);
-          console.log('Resume file URL created:', resumeFileUrl);
+          // Use the existing blob URL if available, otherwise create a new one
+          if (resumeFile.url && resumeFile.url.startsWith('blob:')) {
+            resumeFileUrl = resumeFile.url;
+            console.log('Using existing blob URL for resume file');
+          } else {
+            resumeFileUrl = URL.createObjectURL(resumeFile.file);
+            console.log('Created new blob URL for resume file');
+          }
         } catch (fileError) {
           console.error('Error creating file URL:', fileError);
-          resumeFileUrl = 'Error processing file';
+          // Fall back to public URL if available
+          resumeFileUrl = resumeFile.publicUrl || 'Error processing file';
         }
       } else if (resumeFile) {
-        console.warn('Invalid file object in resumeFile:', resumeFile);
+        console.log('Using existing resume file URL:', resumeFile.publicUrl || 'No public URL available');
       }
       
       // Log all required details
