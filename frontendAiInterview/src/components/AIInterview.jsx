@@ -346,6 +346,11 @@ const AIInterview = () => {
       if (transcriptionRef.current && transcriptionRef.current.stop) {
         transcriptionRef.current.stop();
       }
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
       setIsRecording(false);
       setIsVideoOn(false);
       setIsAudioOn(false);
@@ -430,8 +435,10 @@ const AIInterview = () => {
         );
         // You might decide whether to still navigate or not. Probably not, until it succeeds.
       }
-    } else {
+    } else if (!initialMessageSent.current) {
       // When starting interview, fetch the first AI message and play audio
+      // Only do this if we haven't sent the initial message yet
+      initialMessageSent.current = true;
       setIsLoading(true);
       try {
         const response = await axios.post(`/api/v1/ai/aiStart`, {
@@ -484,6 +491,7 @@ const AIInterview = () => {
   };
 
   const messagesContainerRef = useRef(null);
+  const initialMessageSent = useRef(false);
 
   useEffect(() => {
     if (messagesContainerRef.current) {
