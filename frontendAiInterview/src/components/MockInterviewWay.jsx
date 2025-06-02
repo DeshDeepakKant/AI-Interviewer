@@ -133,131 +133,81 @@ const MockInterviewWay = () => {
   const handleExperienceChange = (event) => setExperience(event.target.value);
   const handlePositionChange = (event) => setPosition(event.target.value);
   const handleFileUpload = async (event) => {
-    if (!event.target.files?.length) return;
+    // Check if we have a file from the event
+    const file = event?.target?.files?.[0] || event;
     
-    const file = event.target.files[0];
-    const fileName = `${Date.now()}-${file.name}`;
-    const bucketName = 'aiinterview'; // Your bucket name in Supabase Storage
-    const filePath = fileName; // Remove the bucket name from the path
+    if (!file) {
+      console.error('No file selected');
+      return;
+    }
     
-    
-    setIsUploading(true);
-    setUploadProgress(0);
-    
+    // Validate file object
+    if (!(file instanceof File || file instanceof Blob)) {
+      console.error('Invalid file object:', file);
+      return;
+    }
+  
     try {
-      // 1. Check if the bucket exists, if not create it using admin client
-      try {
-        const { data: bucketList, error: bucketListError } = await supabaseAdmin.storage.listBuckets();
-        if (bucketListError) throw bucketListError;
-        
-        const bucketExists = bucketList.some(bucket => bucket.name === bucketName);
-        
-        if (!bucketExists) {
-          const { error: createError } = await supabaseAdmin.storage.createBucket(bucketName, {
-            public: true, // Make the bucket public
-            allowedMimeTypes: ['*/*'], // Allow all file types
-            fileSizeLimit: 50 * 1024 * 1024, // 50MB limit
-          });
-          
-          if (createError) throw createError;
-          
-          // Add a small delay to ensure bucket is ready
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        } else {
-          console.log(`Bucket '${bucketName}' exists`);
-        }
-      } catch (error) {
-        console.error('Error managing bucket:', error);
-        // Continue with upload anyway, the bucket might exist
+      setUploadProgress(0);
+      setIsUploading(true);
+      setIsFileUploaded(false);
+      
+      // Ensure we have a valid file name
+      const fileName = file.name || `resume-${Date.now()}`;
+      const fileExt = fileName.split('.').pop() || '';
+      const uniqueFileName = `${uuidv4()}${fileExt ? `.${fileExt}` : ''}`;
+      const filePath = uniqueFileName;
+      const bucketName = 'aiinterview'; // Your bucket name
+  
+      // 1. Upload file directly to the public bucket
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type || 'application/octet-stream'
+        });
+  
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        throw uploadError;
       }
-      
-      // 2. Upload file to Supabase Storage with retry logic
-      let uploadError = null;
-      let uploadData = null;
-      
-      // Try uploading with a small delay to ensure bucket is ready
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      try {
-        const result = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: file.type
-          });
-        
-        if (result.error) throw result.error;
-        uploadData = result.data;
-      } catch (error) {
-        console.error('Upload error (will retry):', error);
-        // Retry once after a short delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const retryResult = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: file.type
-          });
-        
-        if (retryResult.error) throw retryResult.error;
-        uploadData = retryResult.data;
-      }
-      
-      
-      // 3. Get the public URL and set it directly
-      const { data: { publicUrl } } = await supabase.storage
+  
+      // 2. Get public URL
+      const { data: { publicUrl } } = supabase.storage
         .from(bucketName)
         .getPublicUrl(filePath);
-      
+  
+      // 3. Create object URL for preview
+      let fileUrl;
+      try {
+        fileUrl = URL.createObjectURL(file);
+      } catch (e) {
+        console.warn('Could not create object URL, using public URL instead');
+        fileUrl = publicUrl;
+      }
+  
+      // 4. Update state
+      setUploadProgress(100);
+      setIsFileUploaded(true);
       setResumeFileUrl(publicUrl);
       setResumePublicUrl(publicUrl);
-
-      // 4. Verify the file exists
-      const { data: fileList, error: listError } = await supabase.storage
-        .from(bucketName)
-        .list('', {
-          limit: 1,
-          offset: 0,
-          search: fileName
-        });
-      
-      if (listError) console.warn('Could not verify file existence:', listError);
-      
-      // 5. Update UI with the uploaded file info
-      setUploadProgress(100);
-      const fileUrl = URL.createObjectURL(file);
-      setIsFileUploaded(true);
       
       setResumeFile({
         file: file,
         url: fileUrl,
-        name: file.name,
+        name: fileName,
         size: file.size,
         publicUrl: publicUrl,
         supabasePath: `${bucketName}/${filePath}`
       });
-      
-      
+  
     } catch (error) {
-      console.error('Error details:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
-      
-      let errorMessage = 'Error uploading file';
-      if (error.message.includes('The resource already exists')) {
-        errorMessage = 'A file with this name already exists. Please rename your file and try again.';
-      } else if (error.message.includes('Bucket')) {
-        errorMessage = `Storage error: ${error.message}`;
-      }
-      
-      alert(`${errorMessage}: ${error.message}`);
+      console.error('Upload error:', error);
+      // Handle error (show error message to user)
+      alert('Failed to upload file. Please try again.');
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
   const handleRemoveFile = () => {
@@ -293,13 +243,16 @@ const MockInterviewWay = () => {
       
       // Handle resume file if exists
       let resumeFileUrl = 'No file uploaded';
-      if (resumeFile) {
+      if (resumeFile && (resumeFile instanceof File || resumeFile instanceof Blob)) {
         try {
           resumeFileUrl = URL.createObjectURL(resumeFile);
-          console.log('Resume file URL created');
+          console.log('Resume file URL created:', resumeFileUrl);
         } catch (fileError) {
           console.error('Error creating file URL:', fileError);
+          resumeFileUrl = 'Error processing file';
         }
+      } else if (resumeFile) {
+        console.warn('Invalid file object in resumeFile:', resumeFile);
       }
       
       // Log all required details
