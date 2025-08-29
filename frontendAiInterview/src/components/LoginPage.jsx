@@ -28,7 +28,7 @@ import {
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
-// Dark theme
+import { useAuth } from "../contexts/AuthContext";
 const theme = createTheme({
   palette: {
     mode: "dark",
@@ -91,6 +91,7 @@ const fieldStyle = {
 
 function LoginForm({ onShowPassword, showPassword }) {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const [loginInfo, setLogInfio] = useState({
     emailOrUsername: "",
@@ -113,19 +114,16 @@ function LoginForm({ onShowPassword, showPassword }) {
   const handleSubmit = async () => {
     const newErrors = {};
 
-    // Validate email/username
     if (!loginInfo.emailOrUsername.trim()) {
       newErrors.emailOrUsername = "Email or username is required.";
     }
 
-    // Validate password
     if (!loginInfo.password) {
       newErrors.password = "This field is required.";
     }
 
     setErrors(newErrors);
 
-    // If no errors, proceed
     if (Object.keys(newErrors).length === 0) {
       const loginPromise = new Promise(async (resolve, reject) => {
         try {
@@ -140,6 +138,7 @@ function LoginForm({ onShowPassword, showPassword }) {
           });
           
           if (response.data.success) {
+            login(response.data.data.user);
             resolve(response.data);
             navigate("/dashboard");
           } else {
@@ -266,15 +265,9 @@ function SignupForm({ onShowPassword, showPassword }) {
 
   useEffect(() => {
     if (shouldNavigate) {
-      // Use relative path for navigation
       const loginPath = "/login";
-      
-      // Try programmatic navigation first
       navigate(loginPath, { replace: true });
-      
-      // Fallback to window.location after a short delay
       const timer = setTimeout(() => {
-        // Use relative URL for client-side routing
         window.location.pathname = loginPath;
       }, 100);
       
@@ -312,7 +305,6 @@ function SignupForm({ onShowPassword, showPassword }) {
       pending: 'Signing up...',
       success: {
         render({ data }) {
-          // Set state to trigger navigation in useEffect
           setShouldNavigate(true);
           return `Signed up successfully! Redirecting to login...`;
         },

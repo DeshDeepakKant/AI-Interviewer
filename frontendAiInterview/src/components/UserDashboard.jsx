@@ -34,10 +34,10 @@ import HistoryIcon from '@mui/icons-material/History';
 import StarIcon from '@mui/icons-material/Star';
 import { teal, amber, green, red, blueGrey } from '@mui/material/colors'; 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from "react-router";
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfilePaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
@@ -137,6 +137,7 @@ const EmptyState = styled(Box)(({ theme }) => ({
 }));
 
 export default function UserDashboard() {
+  const { user, isLoading: authLoading } = useAuth();
   const [interviewType, setInterviewType] = useState('mock');
   const [expandedInterview, setExpandedInterview] = useState(null);
   const [interviewHistory, setInterviewHistory] = useState([]);
@@ -157,59 +158,28 @@ export default function UserDashboard() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      // Check if user data exists in localStorage
-      const cachedUserData = localStorage.getItem('userData');
-      
-      if (cachedUserData) {
-        try {
-          // Parse and use cached data
-          const parsedData = JSON.parse(cachedUserData);
-          setUserData(parsedData);
-          setLoading(false);
-          return;
-        } catch (error) {
-          console.error('Error parsing cached user data:', error);
-          // If there's an error parsing, we'll fetch fresh data
-        }
-      }
-
-      // If no cached data or error parsing, fetch from API
-      try {
-        const response = await axios.get("/api/v1/user/currentUser");
-        if (response.data.success) {
-          const { fullName, email, username, role } = response.data.data;
-          const userData = {
-            name: fullName,
-            email,
-            username,
-            role,
-            stats: {
-              completedInterviews: 0, // You can update this with actual stats if available
-              avgRating: 0, // You can update this with actual stats if available
-              lastInterview: ''
-            },
-            lastFetched: new Date().toISOString() // Add timestamp
-          };
-          
-          // Save to state
-          setUserData(userData);
-          
-          // Cache the data in localStorage
-          localStorage.setItem('userData', JSON.stringify(userData));
-        }
-      } catch (err) {
-        console.error("Error fetching user data:", err);
-        setError("Failed to load user data");
-      } finally {
+    const initializeUserData = () => {
+      if (user) {
+        setUserData({
+          name: user.fullName || '',
+          email: user.email || '',
+          username: user.username || '',
+          role: user.role || '',
+          stats: {
+            completedInterviews: 0,
+            avgRating: 0,
+            lastInterview: ''
+          }
+        });
         setLoading(false);
       }
     };
 
-    fetchUserData();
-  }, []);
+    if (!authLoading) {
+      initializeUserData();
+    }
+  }, [user, authLoading]);
 
-  // Fetch interview history
   useEffect(() => {
     const fetchInterviewHistory = async () => {
       try {
@@ -217,7 +187,6 @@ export default function UserDashboard() {
         const response = await axios.get("/api/v1/ai/aiHistory");
         
         if (response.data.success && response.data.data?.histories) {
-          // Convert histories object to array and sort by date (newest first)
           const historyArray = Object.entries(response.data.data.histories)
             .map(([key, value]) => ({
               id: key,

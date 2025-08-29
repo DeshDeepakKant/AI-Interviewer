@@ -1,57 +1,12 @@
-// components/ProtectedRoute.jsx
 import { Navigate, Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
-import axios from "axios";
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { clearAllUserData, setUserData } from "../utils/auth";
+import { useAuth } from "../contexts/AuthContext";
 
 const ProtectedRoute = () => {
-  const [isValid, setIsValid] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, isLoading, isInitialized } = useAuth();
 
-  useEffect(() => {
-    const verifyAuthentication = async () => {
-      try {
-        setIsLoading(true);
-        
-        // ALWAYS verify with server first - this is the secure approach
-        const response = await axios.get("/api/v1/user/currentUser", {
-          withCredentials: true, // This sends HTTP-only cookies
-          headers: { "Content-Type": "application/json" },
-          timeout: 10000,
-        });
-
-        if (response.status === 200 && response.data.success) {
-          // Server confirms user is authenticated
-          const userData = response.data.data;
-          
-          // Update localStorage with fresh data from server using utility
-          setUserData(userData);
-          
-          setIsValid(true);
-        } else {
-          // Server says user is not authenticated
-          // Clear ALL user-related localStorage data using utility
-          clearAllUserData();
-          
-          setIsValid(false);
-        }
-      } catch (err) {
-        console.error('Authentication verification failed:', err);
-        
-        // Clear ALL stale localStorage data on authentication failure using utility
-        clearAllUserData();
-        
-        setIsValid(false);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    verifyAuthentication();
-  }, []);
-
-  if (isLoading || isValid === null) {
+  // Show loading while authentication is being verified
+  if (isLoading || !isInitialized) {
     return (
       <Box
         sx={{
@@ -81,7 +36,9 @@ const ProtectedRoute = () => {
     );
   }
   
-  if (!isValid) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   return <Outlet />;
 };

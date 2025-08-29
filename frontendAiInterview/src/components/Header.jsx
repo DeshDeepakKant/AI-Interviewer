@@ -37,12 +37,10 @@ import AnnouncementIcon from '@mui/icons-material/Announcement';
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
-import axios from "axios";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from "react-toastify";
-import { clearAllUserData } from "../utils/auth";
+import { useAuth } from "../contexts/AuthContext";
 
-// Animation variants
 const fadeIn = {
   hidden: { opacity: 0, y: -10 },
   visible: { 
@@ -66,7 +64,6 @@ const scaleUp = {
 };
 
 const navItems = [
-  // { name: "Companies", path: "/comingSoon" },
   { name: "Mock Interview", path: "/mockInterviewWay" },
   { name: "Features", path: "/features" },
   { name: "Pricing", path: "/pricing" },
@@ -80,40 +77,19 @@ const Header = () => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Get user from localStorage to maintain during verification
-  const [user, setUser] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Check authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const savedUser = localStorage.getItem('user');
-        if (savedUser) {
-          setUser(JSON.parse(savedUser));
-        }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
+  const { user, isLoading, isAuthenticated, logout: authLogout } = useAuth();
 
   const navigate = useNavigate();
   const location = useLocation();
   const open = Boolean(anchorEl);
   const profileMenuOpen = Boolean(profileAnchorEl);
   
-  // Check if current path matches nav item path
   const isActive = (path) => {
-    // Special handling for home path
+
     if (path === '/') {
       return location.pathname === path;
     }
-    // For other paths, check if the current path starts with the item's path
+
     return location.pathname.startsWith(path);
   };
 
@@ -128,7 +104,7 @@ const Header = () => {
 
   const handleNotificationOpen = (event) => {
     setNotificationAnchorEl(event.currentTarget);
-    // Mark notifications as read when opened
+
     markNotificationsAsRead();
   };
   
@@ -156,15 +132,13 @@ const Header = () => {
     }
   };
 
-  // Load notifications from localStorage on component mount
-  // Function to load notifications
   const loadNotifications = useCallback(() => {
     if (user) {
       const savedNotifications = localStorage.getItem('notifications');
       if (savedNotifications) {
         try {
           const parsed = JSON.parse(savedNotifications);
-          // Convert string timestamps back to Date objects
+
           const notificationsWithDates = parsed.map(notification => ({
             ...notification,
             timestamp: new Date(notification.timestamp)
@@ -249,81 +223,17 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await axios.post(
-        "/api/v1/user/logout",
-        {}, // Empty body
-        {
-          withCredentials: true,
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-          }
-        }
-      );
-      
-      // Clear ALL localStorage data using utility function
-      clearAllUserData();
-      
-      // Clear user state
-      setUser(null);
+      await authLogout();
       handleProfileMenuClose();
-      
-      // Navigate to login
       toast.success("Logged out successfully!");
       setTimeout(() => navigate("/login"), 2000);
-      
     } catch (err) {
       console.error("Logout failed:", err);
       toast.error("Logout failed. Please try again.");
-      
-      // Even if there's an error, clear ALL local state for security
-      clearAllUserData();
-      setUser(null);
+      // Force navigation to login even if logout API fails
       navigate("/login");
     }
   };
-
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const response = await axios.get(
-        "/api/v1/user/currentUser",
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      // HTTP‐level + JSON‐level success
-      if (response.status === 200 && response.data.success) {
-        const userData = response.data.data;
-        localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
-        return true;
-      } else {
-        localStorage.removeItem('user');
-        setUser(null);
-        return false;
-      }
-    } catch (err) {
-      console.error("Authentication check failed:", err);
-      setUser(null);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Check authentication status on mount and when path changes
-  useEffect(() => {
-    const checkAuth = async () => {
-      const isAuthenticated = await fetchCurrentUser();
-      if (isAuthenticated) {
-        // Refresh notifications when user is authenticated
-        loadNotifications();
-      }
-    };
-
-    checkAuth();
-  }, [fetchCurrentUser, loadNotifications, location.pathname]);
 
   return (
     <AppBar
@@ -410,7 +320,7 @@ const Header = () => {
               );
             })}
 
-            {user !== null || isLoading ? (
+            {isAuthenticated ? (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 {/* Notifications */}
                 <Tooltip title="Notifications" arrow>
@@ -807,7 +717,7 @@ const Header = () => {
                   <Box sx={{ width: 80, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <Box sx={{ width: 100, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
                 </Box>
-              ) : !user ? (
+              ) : !isAuthenticated ? (
                 <>
                   <Button
                     component={RouterLink}
@@ -829,7 +739,7 @@ const Header = () => {
                   <Button
                     variant="contained"
                     component={RouterLink}
-                    to="/login"
+                    to="/login?tab=signup"
                     sx={{
                       ml: 2,
                       background:
@@ -894,7 +804,7 @@ const Header = () => {
                 </MenuItem>
               ))}
               
-              {user !== null || isLoading ? (
+              {isAuthenticated ? (
                 <>
                   <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <MenuItem
@@ -944,7 +854,7 @@ const Header = () => {
                     <span>Logout</span>
                   </MenuItem>
                 </> 
-              ) : !isLoading && user === null ? (
+              ) : !isLoading && !isAuthenticated ? (
                 <>
                   <MenuItem
                     component={RouterLink}
@@ -970,7 +880,7 @@ const Header = () => {
                       variant="contained"
                       fullWidth
                       component={RouterLink}
-                      to="/signup"
+                      to="/login?tab=signup"
                       sx={{
                         background:
                           "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",

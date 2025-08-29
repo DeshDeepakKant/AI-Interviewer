@@ -10,7 +10,7 @@ import {
 } from "react-router";
 import HomePage from "./components/Homepage.jsx";
 import Layout from "./components/Layout.jsx";
-import LoginPage from "./components/loginPage.jsx";
+import LoginPage from "./components/LoginPage.jsx";
 import Testing from "./components/testing.jsx";
 import AIInterview from "./components/AIInterview.jsx";
 import LayoutWithoutFooter from "./components/LayoutWithoutFooter.jsx";
@@ -22,36 +22,41 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MockInterviewWay from "./components/MockInterviewWay.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import PublicRoute from "./components/PublicRoute.jsx";
+import { AuthProvider } from "./contexts/AuthContext.jsx";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       {" "}
-      {/* Add this wrapper */}
       <Route path="/" element={<Layout />}>
         <Route path="" element={<HomePage />} />
-        <Route path="login" element={<LoginPage />} />
         <Route path="testing" element={<Testing />} />
         <Route path="features" element={<Features />} />
         {/* <Route path="comingSoon" element={<ComingSoon />} /> */}
         <Route path="pricing" element={<Pricing />} />
-        {/* Protected routes */}
+        <Route path="mockInterviewWay" element={<MockInterviewWay />} />
+        
+        <Route element={<PublicRoute />}>
+          <Route path="login" element={<LoginPage />} />
+        </Route>
+        
         <Route element={<ProtectedRoute />}>
           <Route path="dashboard" element={<UserDashboard />} />
-          <Route path="mockInterviewWay" element={<MockInterviewWay />} />
           <Route path="interview" element={<AIInterview />} />
         </Route>
       </Route>
+
       <Route path="/" element={<LayoutWithoutFooter />}>
 
       </Route>
 
-    </>, // Close the wrapper
+    </>,
   ),
 );
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <>
+    <AuthProvider>
       <ToastContainer
         position="bottom-right"
         autoClose={3000}
@@ -74,14 +79,7 @@ createRoot(document.getElementById("root")).render(
         }}
       />
       <RouterProvider router={router} />
-    </>
+    </AuthProvider>
   </StrictMode>,
 );
 
-// TEST ONLY
-
-// createRoot(document.getElementById('root')).render(
-//   <StrictMode>
-//     <App />
-//   </StrictMode>,
-// )
