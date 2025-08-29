@@ -24,7 +24,6 @@ import MockInterviewWay from "./components/MockInterviewWay.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
-import VoiceVisualizer from "./components/VoiceVisualizer.jsx";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
