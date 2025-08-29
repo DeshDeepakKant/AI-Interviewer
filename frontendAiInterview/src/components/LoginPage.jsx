@@ -145,7 +145,7 @@ function LoginForm({ onShowPassword, showPassword }) {
             reject(new Error(response.data.message || "Login failed"));
           }
         } catch (error) {
-          reject(new Error(error.response?.data?.message || "Something went wrong."));
+          reject(error.response?.data?.message || "Something went wrong.");
         }
       });
 
@@ -159,7 +159,7 @@ function LoginForm({ onShowPassword, showPassword }) {
         },
         error: {
           render({ data }) {
-            return data?.message || 'Login failed. Please try again.';
+            return data || 'Login failed. Please try again.';
           },
           icon: '🔴',
         },
@@ -286,7 +286,7 @@ function SignupForm({ onShowPassword, showPassword }) {
     const signupPromise = new Promise(async (resolve, reject) => {
       try {
         const payload = { ...signupInfo };
-        const api = "https://backend-ai-interview.vercel.app/api/v1/user/signup";
+        const api = "https://backend-ai-interview.vercel.app/api/v1/user/signUp";
         const response = await axios.post(api, payload, {
           withCredentials: true,
         });
@@ -297,7 +297,7 @@ function SignupForm({ onShowPassword, showPassword }) {
           reject(new Error(response.data.message || "Signup failed"));
         }
       } catch (error) {
-        reject(new Error(error.response?.data?.message || "Something went wrong."));
+        reject(error.response?.data?.message || "Something went wrong.");
       }
     });
   
@@ -312,7 +312,7 @@ function SignupForm({ onShowPassword, showPassword }) {
       },
       error: {
         render({ data }) {
-          return data?.message || 'Signup failed. Please try again.';
+          return data || 'Signup failed. Please try again.';
         },
         icon: '🔴',
       },

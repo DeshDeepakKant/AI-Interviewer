@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { v4 as uuidv4 } from 'uuid';
 import {
   Container,
   Box,
@@ -33,7 +32,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import BusinessIcon from '@mui/icons-material/Business';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-import { supabase} from '../config/supabase';
 // Animation keyframes
 const gradient = keyframes`
   0% { background-position: 0% 50%; }
@@ -126,8 +124,6 @@ const MockInterviewWay = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [isFileUploaded, setIsFileUploaded] = useState(false);
   const [sessionId, setSessionId] = useState('');
-  const [resumeFileUrl, setResumeFileUrl] = useState('');
-  const [resumePublicUrl, setResumePublicUrl] = useState('');
 
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
@@ -146,75 +142,99 @@ const MockInterviewWay = () => {
       console.error('Invalid file object:', file);
       return;
     }
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      alert('Please select a PDF file only.');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      alert('File size must be less than 5MB.');
+      return;
+    }
   
     try {
       setUploadProgress(0);
       setIsUploading(true);
       setIsFileUploaded(false);
       
-      // Ensure we have a valid file name
-      const fileName = file.name || `resume-${Date.now()}`;
-      const fileExt = fileName.split('.').pop() || '';
-      const uniqueFileName = `${uuidv4()}${fileExt ? `.${fileExt}` : ''}`;
-      const filePath = uniqueFileName;
-      const bucketName = 'aiinterview'; // Your bucket name
-  
-      // 1. Upload file directly to the public bucket
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-          contentType: file.type || 'application/octet-stream'
-        });
-  
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        throw uploadError;
-      }
-  
-      // 2. Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-  
-      // 3. Create object URL for preview
-      let fileUrl;
-      try {
-        fileUrl = URL.createObjectURL(file);
-      } catch (e) {
-        console.warn('Could not create object URL, using public URL instead');
-        fileUrl = publicUrl;
-      }
-  
-      // 4. Update state
-      setUploadProgress(100);
-      setIsFileUploaded(true);
-      setResumeFileUrl(publicUrl);
-      setResumePublicUrl(publicUrl);
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('resumePdf', file);
       
-      setResumeFile({
-        file: file,
-        url: fileUrl,
-        name: fileName,
-        size: file.size,
-        publicUrl: publicUrl,
-        supabasePath: `${bucketName}/${filePath}`
-      });
+      // Upload file to backend
+      const response = await axios.post(
+        '/api/v1/ai/aiUploadResume',
+        formData,
+        {
+          withCredentials: true,
+          headers: { 
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(progress);
+          }
+        }
+      );
+
+      if (response.data.success) {
+        // Create object URL for preview
+        let fileUrl;
+        try {
+          fileUrl = URL.createObjectURL(file);
+        } catch (e) {
+          console.warn('Could not create object URL');
+          fileUrl = null;
+        }
+        
+        // Update state with successful upload
+        setUploadProgress(100);
+        setIsFileUploaded(true);
+        setSessionId(response.data.data.sessionId);
+        
+        setResumeFile({
+          file: file,
+          url: fileUrl,
+          name: file.name,
+          size: file.size,
+          sessionId: response.data.data.sessionId
+        });
+        
+        console.log('File uploaded successfully, sessionId:', response.data.data.sessionId);
+      } else {
+        throw new Error(response.data.message || 'Upload failed');
+      }
   
     } catch (error) {
       console.error('Upload error:', error);
-      // Handle error (show error message to user)
-      alert('Failed to upload file. Please try again.');
+      let errorMessage = 'Failed to upload file. Please try again.';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsUploading(false);
     }
   };
   const handleRemoveFile = () => {
+    // Clean up object URL if it exists
+    if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
+      URL.revokeObjectURL(resumeFile.url);
+    }
+    
     setResumeFile(null);
     setUploadProgress(0);
     setIsFileUploaded(false);
-    setIsUploadSuccessful(false);
+    setSessionId('');
+    
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -226,7 +246,6 @@ const MockInterviewWay = () => {
       e.preventDefault();
     }
     
-    
     // Simple validation
     if (!position) {
       const errorMsg = 'Please select a position';
@@ -235,91 +254,68 @@ const MockInterviewWay = () => {
       return;
     }
     
+    if (!sessionId || !resumeFile) {
+      const errorMsg = 'Please upload a resume first';
+      console.error('Validation Error:', errorMsg);
+      alert(errorMsg);
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
-      // Generate session ID
-      const newSessionId = uuidv4();
-      
-      // Handle resume file if exists
-      let resumeFileUrl = resumeFile?.publicUrl || 'No file uploaded';
-      
-      // If we have a resume file object with a file property
-      if (resumeFile?.file && (resumeFile.file instanceof File || resumeFile.file instanceof Blob)) {
-        try {
-          // Use the existing blob URL if available, otherwise create a new one
-          if (resumeFile.url && resumeFile.url.startsWith('blob:')) {
-            resumeFileUrl = resumeFile.url;
-            console.log('Using existing blob URL for resume file');
-          } else {
-            resumeFileUrl = URL.createObjectURL(resumeFile.file);
-            console.log('Created new blob URL for resume file');
-          }
-        } catch (fileError) {
-          console.error('Error creating file URL:', fileError);
-          // Fall back to public URL if available
-          resumeFileUrl = resumeFile.publicUrl || 'Error processing file';
-        }
-      } else if (resumeFile) {
-        console.log('Using existing resume file URL:', resumeFile.publicUrl || 'No public URL available');
-      }
-      
-      // Log all required details
-
+      // Use the sessionId from the file upload
+      const currentSessionId = sessionId;
       
       // Store session ID in sessionStorage
-      sessionStorage.setItem('interviewSessionId', newSessionId);
+      sessionStorage.setItem('interviewSessionId', currentSessionId);
       
-
-
-      try {
-        const response = await axios.post(
-          `/api/v1/ai/ai`,
-          {
-            sessionId: newSessionId,
-            position: position,
-            experienceLevel: experience,
-            numberOfQuestionYouShouldAsk: numQuestions,
-            resumeUrl: resumePublicUrl,
-          },
-          {
-            withCredentials: true,
-            headers: { 
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
-          }
-        );
-
-      } catch (error) {
-        console.error('API Error:', {
-          message: error.message,
-          response: error.response?.data,
-          status: error.response?.status,
-          config: {
-            url: error.config?.url,
-            method: error.config?.method,
-            data: error.config?.data,
-          }
-        });
-        throw error; // Re-throw to be caught by the outer catch
-      }
-      // Navigate to interview page
-
-      navigate('/interview', { 
-        state: { 
-          sessionId: newSessionId,
+      // Call the backend API to start the interview
+      const response = await axios.post(
+        '/api/v1/ai/ai',
+        {
+          sessionId: currentSessionId,
+          position: position,
+          experienceLevel: experience,
+          numberOfQuestionYouShouldAsk: numQuestions,
         },
-        replace: true
-      });
+        {
+          withCredentials: true,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+        }
+      );
+
+      if (response.data.success) {
+        // Navigate to interview page
+        navigate('/interview', { 
+          state: { 
+            sessionId: currentSessionId,
+          },
+          replace: true
+        });
+      } else {
+        throw new Error(response.data.message || 'Failed to start interview');
+      }
       
     } catch (error) {
       console.error('Submit Error:', {
         name: error.name,
         message: error.message,
-        stack: error.stack
+        response: error.response?.data,
+        status: error.response?.status,
       });
-      alert('Failed to start interview. Please check console for details.');
+      
+      let errorMessage = 'Failed to start interview. Please try again.';
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -333,8 +329,21 @@ const MockInterviewWay = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    return () => setIsMounted(false);
+    
+    // Cleanup function to revoke object URLs on unmount
+    return () => {
+      setIsMounted(false);
+    };
   }, []);
+
+  // Separate effect for cleanup when resumeFile changes
+  useEffect(() => {
+    return () => {
+      if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
+        URL.revokeObjectURL(resumeFile.url);
+      }
+    };
+  }, [resumeFile]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -349,7 +358,7 @@ const MockInterviewWay = () => {
     e.preventDefault();
     setIsDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setResumeFile(e.dataTransfer.files[0]);
+      handleFileUpload(e.dataTransfer.files[0]);
     }
   };
 
@@ -877,7 +886,7 @@ const MockInterviewWay = () => {
                     variant="contained"
                     size="large"
                     fullWidth
-                    disabled={isLoading || !position || !isFileUploaded}
+                    disabled={isLoading || !position || !sessionId}
                     sx={{
                       py: 1.75,
                       borderRadius: 3,
