@@ -1,68 +1,91 @@
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-// import model from "../utils/ai/index.js";
 import { asyncHandler } from "../utils/aysncHandler.js";
 import fileLoading from "../utils/ai/loader.js";
 import client from "../utils/reddisClient.js";
-import path from 'path';
 import aiInterview from "../utils/ai/index.js";
 import aiAnalysis from "../utils/ai/aiAnalysis.js";
 import { console } from "inspector";
 import { UserHistory } from "../models/userHistory.models.js";
 import {User} from "../models/user.models.js";
-import fs from 'fs';
-import { downloadFileWithUniqueName } from "../utils/supabaseStorage.js";
-import textToSpechTool from "../utils/ai/audio.js";
-import { createClient } from "@supabase/supabase-js";
+import fs from 'fs/promises';
 import dotenv from "dotenv";
-import { uploadToSupabase } from '../utils/supabaseFileUpload.js';
+import {v4 as uuidv4} from "uuid"
 
 dotenv.config({ path: '../../.env' });
 
 
 
+const aiResumeFile = asyncHandler(async(req, res) => {
+    const resumeFile = req.file;
+    if (!resumeFile) {
+        return res.status(400).json({ error: 'No resume file uploaded.' });
+    }
 
-
-const aiInterviewWay = asyncHandler(async(req, res) => {
     try {
-        const {position, experienceLevel, numberOfQuestionYouShouldAsk,resumeUrl, sessionId} = req.body;
-
-        if (!position || !experienceLevel || !numberOfQuestionYouShouldAsk) {
-            throw new ApiError(400, "All fields are required");
-        }
-
-        // Download the resume file and get its local path
-        const { localPath } = await downloadFileWithUniqueName(resumeUrl, 'resumes');
-        const docResume = await fileLoading(localPath)
+        const sessionId = uuidv4();
         
+        const docResume = await fileLoading(resumeFile.path);
+
         if (!docResume) {
+
             return res.status(400).json(new ApiResponse(400, "Resume file is empty or not valid"));
         }
 
-        try {
-            fs.unlinkSync(localPath); // Clean up the local file after processing
-        } catch (error) {
-            
+        // 2. Save the data to Redis FIRST
+        await client.hset(
+            sessionId, {
+                userId: req.user._id,
+                resume: docResume,
+            }
+        );
+        await client.expire(sessionId, 7200);
+
+        return res.status(200).json(new ApiResponse(200, { sessionId: sessionId }, "File uploaded successfully"));
+
+    } catch (error) {
+        console.error("Error in aiResumeFile:", error); // Should log full error
+        return res.status(500).json({ 
+            error: "An error occurred while processing the file.", 
+            details: error.message // Send actual error message to Postman for debugging
+        });
+    } finally {
+        if (resumeFile) {
+            try {
+                await fs.unlink(resumeFile.path); // Use the correct path and async version
+                console.log(`Successfully deleted temporary file: ${resumeFile.path}`);
+            } catch (cleanupError) {
+                console.error(`Error during file cleanup: ${cleanupError}`);
+            }
         }
+    }
+});
+
+const aiInterviewWay = asyncHandler(async(req, res) => {
+    try {
+        const {position, experienceLevel, numberOfQuestionYouShouldAsk, sessionId} = req.body;
+
+        if (!position || !experienceLevel || !numberOfQuestionYouShouldAsk || !sessionId) {
+            throw new ApiError(400, "All fields are required");
+        }
+        
         await client.hset(
             sessionId,{
-                userId: req.user._id,
                 position: position,
                 experienceLevel: experienceLevel,
                 numberOfQuestionYouShouldAsk: numberOfQuestionYouShouldAsk,
                 numberOfQuestionLeft: numberOfQuestionYouShouldAsk,
                 count: 0,
-                resume: docResume,
                 messages: JSON.stringify([]),
             }
         )
-        await client.expire(sessionId, 7200); // Set session to expire in 2 hours
         return res.status(200).json(new ApiResponse(200, "AI interview started successfully"));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
         return res.status(500).json(new ApiResponse(500, error.message));
     }
 });
+
 const aiInterviewStart = asyncHandler(async(req, res)=>{
     try {
         const { sessionId, answer } = req.body;
@@ -71,13 +94,11 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             return res.status(400).json(new ApiResponse(400, null, 'Session ID is required'));
         }
         
-        // Get session data from Redis
         const data = await client.hgetall(sessionId);
         if (!data) {
             return res.status(404).json(new ApiResponse(404, null, 'Session not found'));
         }
 
-        // Parse messages safely
         let messages = [];
         try {
             messages = data.messages ? JSON.parse(data.messages) : [];
@@ -86,11 +107,9 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             messages = [];
         }
 
-        // Add user message
         messages.push(`Question Number:${data.count || 1}`);
         messages.push(`role: user, content: ${answer || ''}`);
 
-        // Call AI interview
         const ai = await aiInterview(
             data.resume || '',
             data.position || '',
@@ -100,43 +119,10 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             messages,
             answer || ''
         );
-        let audioPath;
-// Generate audio file and get its local path
-console.log('1. Starting textToSpechTool with ai:', ai ? 'ai is defined' : 'ai is undefined');
-try {
-    console.log('2. About to call textToSpechTool');
-    audioPath = await textToSpechTool(ai);
-    console.log('3. Audio path from textToSpechTool:', audioPath);
-} catch (error) {
-    console.error('4. Error in textToSpechTool:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-    });
-}   
-let publicUrl;
-        try {
-          publicUrl = await uploadToSupabase(audioPath);
-          console.log('File is available at:', publicUrl);
-        } catch (error) {
-          console.error('Upload failed:', error.message);
-        }
-        // Add AI response
-        messages.push(`role: ai, content: ${ai}`);
-
-        // Update session data
-        const multi = client.multi();
-        multi.hincrby(sessionId, 'numberOfQuestionLeft', -1);
-        multi.hset(sessionId, 'messages', JSON.stringify(messages));
-        multi.hincrby(sessionId, 'count', 1);
-        
-        fs.unlinkSync(audioPath);
-        await multi.exec();
 
         return res.status(200).json(
             new ApiResponse(200, {
                 result: ai,
-                audioUrl: publicUrl // Return the uploaded audio URL or empty string if upload failed
             })
         );
     } catch (error) {
@@ -206,4 +192,4 @@ const aiHistory = asyncHandler(async(req, res)=>{
     }
 })
 
-export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory}
+export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory, aiResumeFile}

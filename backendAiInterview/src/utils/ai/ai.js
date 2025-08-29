@@ -7,7 +7,7 @@ dotenv.config();
 const chat = async (message) => {
 
   const llm = new ChatGoogleGenerativeAI({
-    model: "gemini-2.0-flash",
+    model: "gemini-2.5-flash",
   });
 
   const reply = await llm.invoke(message);
