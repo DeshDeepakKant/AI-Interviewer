@@ -94,6 +94,9 @@ const AIInterview = () => {
   // Audio playing state
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   
+  // Add a ref to prevent rapid toggling
+  const audioToggleRef = useRef(false);
+  
   // Refs
   const videoRef = useRef(null);
   const audioRef = useRef(null);
@@ -138,6 +141,34 @@ const AIInterview = () => {
       });
     }
   }, [messages]);
+
+  // Manage video feed - single source of truth for video element
+  useEffect(() => {
+    const videoElement = videoRef.current;
+    
+    if (videoElement && stream) {
+      // A new stream is available, attach it to the video element
+      videoElement.srcObject = stream;
+      
+      // Set up an event listener to play the video once metadata is loaded
+      const handleCanPlay = () => {
+        videoElement.play().catch(e => {
+          console.error("Video play failed:", e);
+          toast.error("Could not play video. Please check browser permissions.");
+        });
+      };
+      
+      videoElement.addEventListener('canplay', handleCanPlay);
+      
+      // Cleanup function to remove the event listener
+      return () => {
+        videoElement.removeEventListener('canplay', handleCanPlay);
+      };
+    } else if (videoElement) {
+      // No stream, so clear the video source
+      videoElement.srcObject = null;
+    }
+  }, [stream]); // This effect re-runs whenever the `stream` state changes
 
   // Function to play audio from URL
   const playAudio = (audioUrl) => {
@@ -192,14 +223,9 @@ const AIInterview = () => {
         audio: true
       });
       
-      setStream(mediaStream);
+      setStream(mediaStream); // This will trigger the useEffect
       setIsVideoOn(true);
       setIsAudioOn(true);
-      
-      // Display the camera feed
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
       
       return true;
     } catch (error) {
@@ -216,6 +242,18 @@ const AIInterview = () => {
       return;
     }
 
+    // Stop any existing recognition first
+    if (recognitionRef.current) {
+      console.log('Stopping existing recognition before starting new one');
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping existing recognition:', error);
+      }
+      recognitionRef.current = null;
+    }
+
+    console.log('Starting new speech recognition...');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
     
@@ -303,10 +341,19 @@ const AIInterview = () => {
 
   // Stop speech recognition
   const stopSpeechRecognition = () => {
+    console.log('Stopping speech recognition...');
+    
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
+      try {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+        console.log('Speech recognition stopped');
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        recognitionRef.current = null;
+      }
     }
+    
     setIsListening(false);
     setTranscript('');
   };
@@ -319,6 +366,10 @@ const AIInterview = () => {
         stream.getVideoTracks().forEach(track => track.stop());
       }
       setIsVideoOn(false);
+      // Set stream to null if no audio tracks are left
+      if (stream && stream.getAudioTracks().length === 0) {
+        setStream(null);
+      }
     } else {
       // Turn on video
       try {
@@ -326,15 +377,13 @@ const AIInterview = () => {
           video: true,
           audio: isAudioOn
         });
-        setStream(prevStream => {
-          if (prevStream) {
-            prevStream.getTracks().forEach(track => track.stop());
-          }
-          return mediaStream;
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
+        
+        // Clean up previous stream before setting the new one
+        if (stream) {
+          stream.getTracks().forEach(track => track.stop());
         }
+        
+        setStream(mediaStream); // This will trigger the useEffect
         setIsVideoOn(true);
       } catch (error) {
         console.error('Error accessing camera:', error);
@@ -344,42 +393,78 @@ const AIInterview = () => {
   };
   // Toggle audio on/off
   const toggleAudio = async () => {
-    if (isAudioOn) {
-      // Turn off audio
-      if (stream) {
-        stream.getAudioTracks().forEach(track => track.stop());
-      }
-      // Also stop speech recognition
-      stopSpeechRecognition();
-      setIsAudioOn(false);
-    } else {
-      // Turn on audio
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video: isVideoOn
-        });
-        setStream(prevStream => {
-          if (prevStream) {
-            prevStream.getTracks().forEach(track => track.stop());
+    // Prevent rapid toggling
+    if (audioToggleRef.current) {
+      console.log('Audio toggle in progress, ignoring...');
+      return;
+    }
+    
+    audioToggleRef.current = true;
+    
+    try {
+      if (isAudioOn) {
+        // Turn off audio
+        console.log('Turning off audio...');
+        
+        // Stop speech recognition first
+        stopSpeechRecognition();
+        
+        // Stop audio tracks
+        if (stream) {
+          stream.getAudioTracks().forEach(track => {
+            track.stop();
+            console.log('Audio track stopped');
+          });
+        }
+        
+        setIsAudioOn(false);
+        console.log('Audio turned off');
+        
+        // Set stream to null if no video tracks are left
+        if (stream && stream.getVideoTracks().length === 0) {
+          setStream(null);
+        }
+        
+      } else {
+        // Turn on audio
+        console.log('Turning on audio...');
+        
+        try {
+          const mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: isVideoOn
+          });
+          
+          // Clean up previous stream before setting the new one
+          if (stream) {
+            stream.getTracks().forEach(track => {
+              track.stop();
+              console.log('Previous track stopped');
+            });
           }
-          return mediaStream;
-        });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
+          
+          setStream(mediaStream); // This will trigger the useEffect
+          setIsAudioOn(true);
+          console.log('Audio turned on');
+          
+          // Start speech recognition if interview is active - with a delay
+          if (isInterviewActive) {
+            setTimeout(() => {
+              startSpeechRecognition();
+            }, 500);
+          }
+          
+        } catch (error) {
+          console.error('Error accessing microphone:', error);
+          toast.error('Could not access microphone. Please check your permissions.');
+          setIsAudioOn(false);
         }
-        
-        setIsAudioOn(true);
-        
-        // Start speech recognition if interview is active
-        if (isInterviewActive) {
-          startSpeechRecognition();
-        }
-      } catch (error) {
-        console.error('Error accessing microphone:', error);
-        toast.error('Could not access microphone. Please check your permissions.');
       }
+    } finally {
+      // Reset the toggle ref after a delay
+      setTimeout(() => {
+        audioToggleRef.current = false;
+      }, 1000);
     }
   };
 
@@ -806,23 +891,20 @@ const AIInterview = () => {
                   }}
                 >
                   {isVideoOn ? (
-                    <Box
-                      component="video"
+                    <video
                       ref={videoRef}
                       autoPlay
                       playsInline
                       muted
-                      sx={{
+                      style={{
                         width: "100%",
                         height: "100%",
-                        bgcolor: "rgba(0, 0, 0, 0.5)",
-                        borderRadius: 2,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        backgroundColor: "rgba(0, 0, 0, 0.5)",
+                        borderRadius: "8px",
                         border: "2px solid rgba(0, 180, 165, 0.5)",
                         objectFit: 'cover',
-                        transform: 'scaleX(-1)' // Mirror the video
+                        transform: 'scaleX(-1)', // Mirror the video
+                        display: 'block'
                       }}
                     />
                   ) : (
@@ -1001,16 +1083,75 @@ const AIInterview = () => {
                         >
                           Interview Chat
                         </Typography>
-                        {isInterviewActive && (
-                          <Chip 
-                            icon={<MicIcon sx={{ fontSize: 16 }} />}
-                            label={isListening ? "Listening..." : "Speech Ready"}
-                            size="small"
+                        {isInterviewActive && isListening && (
+                          <Box 
                             sx={{ 
-                              bgcolor: isListening ? "#00bfa5" : "rgba(255, 255, 255, 0.1)",
-                              color: "white"
+                              display: "flex", 
+                              alignItems: "center", 
+                              gap: 1,
+                              bgcolor: "#00bfa5",
+                              px: 1.5,
+                              py: 0.5,
+                              borderRadius: "16px",
                             }}
-                          />
+                          >
+                            <style>
+                              {`
+                            @keyframes userVoiceWave1 {
+                              0%, 100% { height: 4px; }
+                              50% { height: 12px; }
+                            }
+                            @keyframes userVoiceWave2 {
+                              0%, 100% { height: 6px; }
+                              25%, 75% { height: 10px; }
+                            }
+                            @keyframes userVoiceWave3 {
+                              0%, 100% { height: 8px; }
+                              33%, 66% { height: 14px; }
+                            }
+                            @keyframes userVoiceWave4 {
+                              0%, 100% { height: 5px; }
+                              40%, 80% { height: 11px; }
+                            }
+                            @keyframes userVoiceWave5 {
+                              0%, 100% { height: 7px; }
+                              60% { height: 13px; }
+                            }
+                          `}
+                            </style>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "2px",
+                                height: "16px",
+                              }}
+                            >
+                              {[1, 2, 3, 4, 5].map((bar) => (
+                                <div
+                                  key={bar}
+                                  style={{
+                                    width: "2px",
+                                    height: "4px",
+                                    backgroundColor: "white",
+                                    borderRadius: "1px",
+                                    animation: `userVoiceWave${bar} ${0.5 + bar * 0.08}s infinite ease-in-out`,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: "white",
+                                fontSize: "0.75rem",
+                                fontWeight: 600,
+                              }}
+                            >
+                              Listening...
+                            </Typography>
+                          </Box>
                         )}
                       </Stack>
                     </Box>
@@ -1223,7 +1364,8 @@ const AIInterview = () => {
                         mt: 'auto',
                         display: 'flex',
                         flexDirection: 'column',
-                        alignItems: 'stretch',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}>
                         <Box 
                           component="form"
@@ -1232,19 +1374,21 @@ const AIInterview = () => {
                             display: 'flex', 
                             flexDirection: 'row',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: 2,
                             borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                            p: 1.5,
-                            background: 'transparent',
+                            p: 2,
+                            background: 'rgba(255, 255, 255, 0.02)',
                             borderBottomLeftRadius: '16px',
                             borderBottomRightRadius: '16px',
-                            minWidth: 0,
+                            width: '100%',
+                            maxWidth: '100%',
                             flexShrink: 0,
                           }}
                         >
                           <TextField
                             fullWidth
-                            size="small"
+                            size="medium"
                             variant="outlined"
                             placeholder={isAudioOn ? "Speak or type your response..." : "Type your response..."}
                             value={inputMessage}
@@ -1253,26 +1397,35 @@ const AIInterview = () => {
                             multiline
                             maxRows={3}
                             sx={{
-                              borderRadius: '8px',
-                              background: 'rgba(255,255,255,0.05)',
-                              minWidth: 0,
+                              flex: 1,
+                              maxWidth: '420px',
+                              borderRadius: '12px',
+                              background: 'rgba(255,255,255,0.08)',
                               '& .MuiOutlinedInput-root': {
-                                borderRadius: '8px',
-                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                borderRadius: '12px',
+                                backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                                padding: '12px 16px',
+                                fontSize: '0.95rem',
                                 '& fieldset': {
-                                  borderColor: 'rgba(255, 255, 255, 0.2)',
+                                  borderColor: 'rgba(255, 255, 255, 0.25)',
+                                  borderWidth: '1.5px',
                                 },
                                 '&:hover fieldset': {
-                                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                                  borderColor: 'rgba(255, 255, 255, 0.4)',
                                 },
                                 '&.Mui-focused fieldset': {
                                   borderColor: '#00bfa5',
+                                  borderWidth: '2px',
+                                  boxShadow: '0 0 0 3px rgba(0, 191, 165, 0.1)',
                                 },
                               },
                               '& .MuiInputBase-input': {
                                 color: 'white',
+                                fontSize: '0.95rem',
+                                lineHeight: '1.4',
                                 '&::placeholder': {
-                                  color: 'rgba(255, 255, 255, 0.5)',
+                                  color: 'rgba(255, 255, 255, 0.6)',
+                                  opacity: 1,
                                 },
                               },
                             }}
@@ -1286,7 +1439,13 @@ const AIInterview = () => {
                                       setFinalTranscript('');
                                       setTranscript('');
                                     }}
-                                    sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                                    sx={{ 
+                                      color: 'rgba(255, 255, 255, 0.6)',
+                                      '&:hover': {
+                                        color: 'rgba(255, 255, 255, 0.8)',
+                                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                      }
+                                    }}
                                   >
                                     ✕
                                   </IconButton>
@@ -1299,98 +1458,35 @@ const AIInterview = () => {
                             variant="contained"
                             disabled={!inputMessage.trim() || isLoading}
                             sx={{
-                              borderRadius: '8px',
+                              borderRadius: '12px',
                               bgcolor: '#00bfa5',
                               color: 'white',
-                              minWidth: '80px',
-                              fontWeight: 500,
-                              whiteSpace: 'nowrap',
+                              minWidth: '60px',
+                              width: '60px',
+                              height: '50px',
+                              fontWeight: 600,
                               flexShrink: 0,
-                              height: '40px',
+                              boxShadow: '0 4px 12px rgba(0, 191, 165, 0.3)',
+                              transition: 'all 0.2s ease-in-out',
                               '&:hover': {
                                 bgcolor: '#00a38a',
+                                transform: 'translateY(-1px)',
+                                boxShadow: '0 6px 16px rgba(0, 191, 165, 0.4)',
+                              },
+                              '&:active': {
+                                transform: 'translateY(0px)',
                               },
                               '&:disabled': {
                                 bgcolor: 'rgba(255, 255, 255, 0.1)',
                                 color: 'rgba(255, 255, 255, 0.3)',
+                                boxShadow: 'none',
+                                transform: 'none',
                               },
                             }}
                           >
                             <SendIcon />
                           </Button>
                         </Box>
-                        
-                        {/* Voice Indicator for User Input */}
-                        {isListening && (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "center",
-                              alignItems: "center",
-                              py: 1,
-                              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-                            }}
-                          >
-                            <style>
-                              {`
-                            @keyframes userVoiceWave1 {
-                              0%, 100% { height: 6px; }
-                              50% { height: 18px; }
-                            }
-                            @keyframes userVoiceWave2 {
-                              0%, 100% { height: 8px; }
-                              25%, 75% { height: 15px; }
-                            }
-                            @keyframes userVoiceWave3 {
-                              0%, 100% { height: 12px; }
-                              33%, 66% { height: 20px; }
-                            }
-                            @keyframes userVoiceWave4 {
-                              0%, 100% { height: 7px; }
-                              40%, 80% { height: 16px; }
-                            }
-                            @keyframes userVoiceWave5 {
-                              0%, 100% { height: 10px; }
-                              60% { height: 18px; }
-                            }
-                          `}
-                            </style>
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                gap: "3px",
-                                height: "25px",
-                                padding: "4px",
-                              }}
-                            >
-                              {[1, 2, 3, 4, 5].map((bar) => (
-                                <div
-                                  key={bar}
-                                  style={{
-                                    width: "4px",
-                                    height: "6px",
-                                    backgroundColor: "#00bfa5",
-                                    borderRadius: "2px",
-                                    animation: `userVoiceWave${bar} ${0.5 + bar * 0.08}s infinite ease-in-out`,
-                                    opacity: 0.8,
-                                  }}
-                                />
-                              ))}
-                            </div>
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                ml: 1, 
-                                color: "rgba(255, 255, 255, 0.7)",
-                                fontSize: "0.75rem"
-                              }}
-                            >
-                              Listening...
-                            </Typography>
-                          </Box>
-                        )}
                       </Box>
                     )}
                   </CardContent>
