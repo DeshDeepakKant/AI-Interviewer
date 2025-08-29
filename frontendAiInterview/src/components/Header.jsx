@@ -39,7 +39,8 @@ import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
 import axios from "axios";
 import { formatDistanceToNow } from 'date-fns';
-import { toast } from "react-toastify"
+import { toast } from "react-toastify";
+import { clearAllUserData } from "../utils/auth";
 
 // Animation variants
 const fadeIn = {
@@ -65,7 +66,7 @@ const scaleUp = {
 };
 
 const navItems = [
-  { name: "Companies", path: "/comingSoon" },
+  // { name: "Companies", path: "/comingSoon" },
   { name: "Mock Interview", path: "/mockInterviewWay" },
   { name: "Features", path: "/features" },
   { name: "Pricing", path: "/pricing" },
@@ -259,9 +260,8 @@ const Header = () => {
         }
       );
       
-      // Clear local storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      // Clear ALL localStorage data using utility function
+      clearAllUserData();
       
       // Clear user state
       setUser(null);
@@ -274,9 +274,9 @@ const Header = () => {
     } catch (err) {
       console.error("Logout failed:", err);
       toast.error("Logout failed. Please try again.");
-      // Even if there's an error, clear the local state
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      
+      // Even if there's an error, clear ALL local state for security
+      clearAllUserData();
       setUser(null);
       navigate("/login");
     }

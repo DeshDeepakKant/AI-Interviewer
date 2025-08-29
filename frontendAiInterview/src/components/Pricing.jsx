@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useMemo, useCallback } from "react";
 import { useEffect } from "react";
 import {
   Box,
@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { NavLink } from "react-router";
 
-// Animation variants
+// Animation variants - moved outside component for optimization
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -23,6 +23,42 @@ const containerVariants = {
       staggerChildren: 0.15,
     },
   },
+};
+
+const titleVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.2
+    }
+  }
+};
+
+const letterVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      damping: 12,
+      stiffness: 200
+    }
+  }
+};
+
+// Optimized bouncing animation for letters - same as homepage
+const bouncingAnimation = {
+  y: [0, -8, 0],
+  scale: [1, 1.05, 1],
+  transition: {
+    duration: 2.5,
+    repeat: Infinity,
+    ease: "easeInOut",
+    times: [0, 0.5, 1],
+  }
 };
 
 const itemVariants = {
@@ -82,7 +118,291 @@ const featureItem = {
   },
 };
 
-const Pricing = () => {
+// Memoized pricing data
+const pricingPlans = [
+  {
+    name: "Starter",
+    price: "Free",
+    description: "Perfect for beginners",
+    features: [
+      "10 Mock Interviews per week",
+      "Basic Feedback",
+      "Email Support",
+      "Access to Community",
+      "Limited Features",
+    ],
+    popular: false,
+    buttonText: "Get Started",
+    buttonVariant: "outlined",
+  },
+  {
+    name: "Pro",
+    price: "₹199",
+    period: "/month",
+    description: "Best for serious candidates",
+    features: [
+      "Unlimited Mock Interviews",
+      "Detailed Feedback",
+      "Priority Support",
+      "Company-Specific Questions",
+      "Access to All Features",
+    ],
+    popular: true,
+    buttonText: "Go Pro",
+    buttonVariant: "contained",
+    highlight: true,
+  },
+  {
+    name: "Annual",
+    price: "₹1599",
+    period: "/year",
+    description: "Best value - Save 33%",
+    features: [
+      "Everything in Pro",
+      "12 Months Access",
+      "Priority Support",
+      "Progress Tracking",
+      "Early Access to New Features",
+    ],
+    popular: false,
+    buttonText: "Save 33%",
+    buttonVariant: "outlined",
+  },
+];
+
+// Memoized feature component for better performance
+const FeatureItem = memo(({ feature, index, theme }) => (
+  <Box
+    component="li"
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      mb: { xs: 1.5, sm: 2 }, // Responsive margin
+      color: "#e2e8f0",
+    }}
+  >
+    <motion.div
+      initial={{ scale: 0.8, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        duration: 0.3,
+        delay: index * 0.1 
+      }}
+    >
+      <CheckCircleIcon
+        sx={{
+          color: theme.palette.primary.main,
+          fontSize: { xs: "1rem", sm: "1.2rem" }, // Responsive icon size
+          mr: { xs: 1, sm: 1.5 }, // Responsive margin
+          flexShrink: 0,
+          filter: 'drop-shadow(0 0 5px rgba(0, 191, 165, 0.7))',
+          transition: 'all 0.3s ease',
+        }}
+      />
+    </motion.div>
+    <Typography 
+      variant="body2"
+      sx={{ 
+        fontSize: { xs: '0.8rem', sm: '0.875rem' } // Responsive font size
+      }}
+    >
+      {feature}
+    </Typography>
+  </Box>
+));
+
+// Memoized pricing card component
+const PricingCard = memo(({ plan, index, theme }) => {
+  // Memoized paper styles
+  const paperStyles = useMemo(() => ({
+    height: "100%",
+    borderRadius: { xs: 3, sm: 4 }, // Responsive border radius
+    overflow: "hidden",
+    border: plan.highlight
+      ? `2px solid ${theme.palette.primary.main}`
+      : "1px solid rgba(255, 255, 255, 0.1)",
+    background: "rgba(15, 23, 42, 0.7)",
+    backdropFilter: "blur(10px)",
+    position: "relative",
+    "&:hover": {
+      boxShadow: plan.highlight
+        ? `0 10px 30px -5px ${theme.palette.primary.main}40`
+        : "0 10px 30px -5px rgba(0, 0, 0, 0.2)",
+    },
+  }), [plan.highlight, theme]);
+
+  // Memoized button styles
+  const buttonStyles = useMemo(() => ({
+    py: { xs: 1.2, sm: 1.5 }, // Responsive padding
+    borderRadius: 2,
+    fontWeight: 600,
+    mb: { xs: 2, sm: 3 }, // Responsive margin
+    fontSize: { xs: '0.875rem', sm: '1rem' }, // Responsive font size
+    background: plan.highlight
+      ? `linear-gradient(45deg, ${theme.palette.primary.main}, #00b0ff)`
+      : "rgba(255, 255, 255, 0.05)",
+    border: plan.highlight 
+      ? 'none' 
+      : '1px solid rgba(255, 255, 255, 0.1)',
+    color: plan.highlight ? '#fff' : '#e2e8f0',
+    '&:hover': {
+      background: plan.highlight
+        ? `linear-gradient(45deg, ${theme.palette.primary.dark}, #0091ea)`
+        : 'rgba(255, 255, 255, 0.1)',
+      boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
+    },
+  }), [plan.highlight, theme]);
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      custom={index}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      whileHover="hover"
+      whileTap="tap"
+      style={{ height: '100%' }}
+    >
+      <Paper elevation={plan.highlight ? 8 : 2} sx={paperStyles}>
+        {plan.popular && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 0,
+              right: { xs: 15, sm: 20 }, // Responsive positioning
+              bgcolor: theme.palette.primary.main,
+              color: "#fff",
+              px: { xs: 1.5, sm: 2 }, // Responsive padding
+              py: 0.5,
+              borderBottomLeftRadius: 8,
+              borderBottomRightRadius: 8,
+              fontSize: { xs: "0.65rem", sm: "0.75rem" }, // Responsive font size
+              fontWeight: 600,
+              textTransform: "uppercase",
+              letterSpacing: "0.5px",
+            }}
+          >
+            Most Popular
+          </Box>
+        )}
+        <Box 
+          p={{ xs: 3, sm: 4 }} // Responsive padding
+          sx={{
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '2px',
+              background: `linear-gradient(90deg, transparent, ${theme.palette.primary.main}, transparent)`,
+              transform: 'translateX(-100%)',
+              transition: 'transform 0.6s ease',
+            },
+            '&:hover::before': {
+              transform: 'translateX(100%)',
+            },
+          }}
+        >
+          <Typography
+            variant="h5"
+            component="h3"
+            sx={{ 
+              color: "white", 
+              mb: 1, 
+              fontWeight: 700,
+              fontSize: { xs: '1.25rem', sm: '1.5rem' } // Responsive font size
+            }}
+          >
+            {plan.name}
+          </Typography>
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{ 
+              color: "#94a3b8", 
+              mb: { xs: 2, sm: 3 }, // Responsive margin
+              minHeight: { xs: 35, sm: 40 }, // Responsive min height
+              fontSize: { xs: '0.8rem', sm: '0.875rem' } // Responsive font size
+            }}
+          >
+            {plan.description}
+          </Typography>
+
+          <Box
+            sx={{ 
+              display: "flex", 
+              alignItems: "baseline", 
+              mb: { xs: 2, sm: 3 } // Responsive margin
+            }}
+          >
+            <Typography
+              variant="h3"
+              sx={{ 
+                color: "white", 
+                fontWeight: 800,
+                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } // Responsive font size
+              }}
+            >
+              {plan.price}
+            </Typography>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ 
+                ml: 1, 
+                color: "#94a3b8",
+                fontSize: { xs: '0.875rem', sm: '1rem' } // Responsive font size
+              }}
+            >
+              {plan.period}
+            </Typography>
+          </Box>
+
+          <NavLink to="/login" style={{ textDecoration: 'none' }}>
+            <Button
+              component={motion.button}
+              fullWidth
+              variant={plan.buttonVariant}
+              size="large"
+              whileHover={{
+                scale: 1.05,
+                transition: { duration: 0.2 }
+              }}
+              whileTap={{ scale: 0.98 }}
+              sx={buttonStyles}
+            >
+              {plan.buttonText}
+            </Button>
+          </NavLink>
+
+          <Box 
+            component="ul" 
+            sx={{ 
+              p: 0, 
+              m: 0, 
+              listStyle: "none"
+            }}
+          >
+            {plan.features.map((feature, i) => (
+              <FeatureItem 
+                key={i} 
+                feature={feature} 
+                index={i} 
+                theme={theme} 
+              />
+            ))}
+          </Box>
+        </Box>
+      </Paper>
+    </motion.div>
+  );
+});
+
+const Pricing = memo(() => {
   const theme = useTheme();
 
   // Add smooth scroll to top on component mount
@@ -90,56 +410,67 @@ const Pricing = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const pricingPlans = [
-    {
-      name: "Starter",
-      price: "Free",
-      description: "Perfect for beginners",
-      features: [
-        "10 Mock Interviews per week",
-        "Basic Feedback",
-        "Email Support",
-        "Access to Community",
-        "Limited Features",
-      ],
-      popular: false,
-      buttonText: "Get Started",
-      buttonVariant: "outlined",
+  // Memoize title letters to prevent recreation on every render - same as homepage
+  const titleLetters = useMemo(() => 
+    "AFFORDABLE PRICING".split("").map((char, index) => ({
+      char: char === " " ? "\u00A0" : char,
+      index,
+      isSpace: char === " "
+    })), []
+  );
+
+  // Memoized main container styles
+  const mainContainerStyles = useMemo(() => ({
+    minHeight: "100vh",
+    pt: { xs: 12, sm: 14, md: 16 }, // Added top padding to avoid menu bar overlap
+    pb: { xs: 6, sm: 8, md: 10 }, // Bottom padding remains the same
+    background: "linear-gradient(180deg, #0a1929 0%, #0a0f1e 100%)",
+    position: "relative",
+    overflowX: "hidden",
+    overflowY: "auto",
+    "&::before": {
+      content: '""',
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      height: "100%",
+      background:
+        "radial-gradient(circle at 50% 50%, rgba(25, 118, 210, 0.1) 0%, transparent 60%)",
+      zIndex: 0,
     },
-    {
-      name: "Pro",
-      price: "₹199",
-      period: "/month",
-      description: "Best for serious candidates",
-      features: [
-        "Unlimited Mock Interviews",
-        "Detailed Feedback",
-        "Priority Support",
-        "Company-Specific Questions",
-        "Access to All Features",
-      ],
-      popular: true,
-      buttonText: "Go Pro",
-      buttonVariant: "contained",
-      highlight: true,
-    },
-    {
-      name: "Annual",
-      price: "₹1599",
-      period: "/year",
-      description: "Best value - Save 33%",
-      features: [
-        "Everything in Pro",
-        "12 Months Access",
-        "Priority Support",
-        "Progress Tracking",
-        "Early Access to New Features",
-      ],
-      popular: false,
-      buttonText: "Save 33%",
-      buttonVariant: "outlined",
-    },
-  ];
+  }), []);
+
+  // Memoized title styles - same style as homepage
+  const titleStyles = useMemo(() => ({
+    color: "white",
+    display: "flex",
+    justifyContent: "center",
+    flexWrap: "nowrap", // Prevent wrapping to keep text on one line
+    gap: { xs: 0.1, sm: 0.2, md: 0.3 }, // Smaller gap on mobile
+    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 700,
+    letterSpacing: { xs: "0.01em", sm: "0.03em", md: "0.08em" }, // Reduced letter spacing on mobile
+    textTransform: "uppercase",
+    textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+    mb: 3,
+    fontSize: { xs: '1.4rem', sm: '2rem', md: '2.8rem', lg: '3.5rem' }, // Smaller mobile size to fit
+    lineHeight: { xs: 1.1, sm: 1.1 },
+    width: "100%",
+    overflow: "visible",
+    minHeight: { xs: '60px', sm: '80px', md: 'auto' }, // Adjusted for smaller text
+    padding: { xs: '10px 5px', sm: '15px 10px', md: '20px 15px' }, // Reduced padding
+    whiteSpace: "nowrap", // Force single line
+  }), []);
+
+  // Memoized subtitle styles
+  const subtitleStyles = useMemo(() => ({
+    color: "#94a3b8",
+    maxWidth: { xs: '90%', sm: 700 }, // Responsive max width
+    mx: "auto",
+    fontSize: { xs: '1rem', sm: '1.25rem' }, // Responsive font size
+    px: { xs: 2, sm: 0 }, // Responsive padding
+  }), []);
 
   return (
     <Box
@@ -148,25 +479,7 @@ const Pricing = () => {
       animate="visible"
       variants={containerVariants}
       id="pricing"
-      sx={{
-        minHeight: "100vh",
-        py: 10,
-        background: "linear-gradient(180deg, #0a1929 0%, #0a0f1e 100%)",
-        position: "relative",
-        overflowX: "hidden",
-        overflowY: "auto",
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "100%",
-          background:
-            "radial-gradient(circle at 50% 50%, rgba(25, 118, 210, 0.1) 0%, transparent 60%)",
-          zIndex: 0,
-        },
-      }}
+      sx={mainContainerStyles}
     >
       <Container
         maxWidth="lg"
@@ -176,6 +489,7 @@ const Pricing = () => {
           minHeight: "100%",
           display: "flex",
           flexDirection: "column",
+          px: { xs: 2, sm: 3 }, // Responsive padding
         }}
       >
         <motion.div
@@ -183,49 +497,66 @@ const Pricing = () => {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          style={{ textAlign: "center", marginBottom: '4rem' }}
+          style={{ 
+            textAlign: "center", 
+            marginBottom: '3rem',
+            padding: '0 10px', // Reduced padding for mobile
+            overflow: 'visible',
+            width: '100%'
+          }}
         >
-          <Typography
-            variant="h3"
-            align="center"
-            gutterBottom
+          <Box
             sx={{
-              color: "white",
-              display: "flex",
-              justifyContent: "center",
-              gap: 0.5,
-              fontFamily:
-                '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
-              fontWeight: 800,
-              letterSpacing: "0.05em",
-              textTransform: "uppercase",
-              textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-              mb: 2,
+              width: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              overflow: 'visible',
+              minHeight: { xs: '60px', sm: '80px' } // Ensure space for animation
             }}
           >
-            {"Affordable Pricing".split("").map((char, index) => (
-              <motion.span
-                key={index}
-                animate={{
-                  y: [0, -10, 0],
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  delay: index * 0.05,
-                  ease: [0.4, 0, 0.2, 1],
-                }}
-                style={{
-                  display: "inline-block",
-                  color: index % 2 === 0 ? "#ffffff" : "#00e5c9",
-                  minWidth: char === " " ? "0.5em" : "auto",
-                }}
-              >
-                {char === " " ? "\u00A0" : char}
-              </motion.span>
-            ))}
-          </Typography>
+            <Typography
+              variant="h2"
+              align="center"
+              gutterBottom
+              component={motion.h1}
+              variants={titleVariants}
+              initial="hidden"
+              animate="visible"
+              sx={titleStyles}
+              role="heading"
+              aria-level="1"
+            >
+              {titleLetters.map(({ char, index, isSpace }) => (
+                <motion.span
+                  key={index}
+                  variants={letterVariants}
+                  animate={{
+                    ...bouncingAnimation,
+                    transition: {
+                      ...bouncingAnimation.transition,
+                      delay: index * 0.1, // Staggered delay for wave effect
+                    }
+                  }}
+                  style={{
+                    display: "inline-block",
+                    color: index % 2 === 0 ? "#ffffff" : "#00e5c9",
+                    minWidth: isSpace ? "0.3em" : "auto", // Reduced space width for mobile
+                    textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+                    // Use transform instead of animating position properties for better performance
+                    willChange: "transform",
+                    fontSize: "inherit", // Inherit responsive font size
+                  }}
+                  whileHover={{ 
+                    scale: 1.1, // Reduced hover scale for mobile
+                    transition: { duration: 0.2 }
+                  }}
+                >
+                  {char}
+                </motion.span>
+              ))}
+            </Typography>
+          </Box>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -234,7 +565,7 @@ const Pricing = () => {
             <Typography
               variant="h6"
               color="text.secondary"
-              sx={{ color: "#94a3b8", maxWidth: 700, mx: "auto" }}
+              sx={subtitleStyles}
             >
               Choose the perfect plan for your interview preparation journey. All
               plans include a 7-day money-back guarantee.
@@ -251,196 +582,17 @@ const Pricing = () => {
         >
           <Grid
             container
-            spacing={4}
+            spacing={{ xs: 3, sm: 4 }} // Responsive spacing
             justifyContent="center"
             alignItems="stretch"
           >
             {pricingPlans.map((plan, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <motion.div
-                  variants={itemVariants}
-                  custom={index}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true, margin: "-50px" }}
-                  whileHover="hover"
-                  whileTap="tap"
-                  style={{ height: '100%' }}
-                >
-                <Paper
-                  elevation={plan.highlight ? 8 : 2}
-                  sx={{
-                    height: "100%",
-                    borderRadius: 4,
-                    overflow: "hidden",
-                    border: plan.highlight
-                      ? `2px solid ${theme.palette.primary.main}`
-                      : "1px solid rgba(255, 255, 255, 0.1)",
-                    background: "rgba(15, 23, 42, 0.7)",
-                    backdropFilter: "blur(10px)",
-                    position: "relative",
-                    "&:hover": {
-                      boxShadow: plan.highlight
-                        ? `0 10px 30px -5px ${theme.palette.primary.main}40`
-                        : "0 10px 30px -5px rgba(0, 0, 0, 0.2)",
-                    },
-                  }}
-                >
-                  {plan.popular && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: 0,
-                        right: 20,
-                        bgcolor: theme.palette.primary.main,
-                        color: "#fff",
-                        px: 2,
-                        py: 0.5,
-                        borderBottomLeftRadius: 8,
-                        borderBottomRightRadius: 8,
-                        fontSize: "0.75rem",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      Most Popular
-                    </Box>
-                  )}
-                  <Box 
-                    p={4}
-                    sx={{
-                      position: 'relative',
-                      overflow: 'hidden',
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: '2px',
-                        background: `linear-gradient(90deg, transparent, ${theme.palette.primary.main}, transparent)`,
-                        transform: 'translateX(-100%)',
-                        transition: 'transform 0.6s ease',
-                      },
-                      '&:hover::before': {
-                        transform: 'translateX(100%)',
-                      },
-                    }}
-                  >
-                    <Typography
-                      variant="h5"
-                      component="h3"
-                      sx={{ color: "white", mb: 1, fontWeight: 700 }}
-                    >
-                      {plan.name}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      sx={{ color: "#94a3b8", mb: 3, minHeight: 40 }}
-                    >
-                      {plan.description}
-                    </Typography>
-
-                    <Box
-                      sx={{ display: "flex", alignItems: "baseline", mb: 3 }}
-                    >
-                      <Typography
-                        variant="h3"
-                        sx={{ color: "white", fontWeight: 800 }}
-                      >
-                        {plan.price}
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        color="text.secondary"
-                        sx={{ ml: 1, color: "#94a3b8" }}
-                      >
-                        {plan.period}
-                      </Typography>
-                    </Box>
-
-                    <NavLink to="/login" style={{ textDecoration: 'none' }}>
-                      <Button
-                        component={motion.button}
-                        fullWidth
-                        variant={plan.buttonVariant}
-                        size="large"
-                        whileHover={{
-                          scale: 1.05,
-                          transition: { duration: 0.2 }
-                        }}
-                        whileTap={{ scale: 0.98 }}
-                        sx={{
-                          py: 1.5,
-                          borderRadius: 2,
-                          fontWeight: 600,
-                          mb: 3,
-                          background: plan.highlight
-                            ? `linear-gradient(45deg, ${theme.palette.primary.main}, #00b0ff)`
-                            : "rgba(255, 255, 255, 0.05)",
-                          border: plan.highlight 
-                            ? 'none' 
-                            : '1px solid rgba(255, 255, 255, 0.1)',
-                          color: plan.highlight ? '#fff' : '#e2e8f0',
-                          '&:hover': {
-                            background: plan.highlight
-                              ? `linear-gradient(45deg, ${theme.palette.primary.dark}, #0091ea)`
-                              : 'rgba(255, 255, 255, 0.1)',
-                            boxShadow: `0 4px 20px ${theme.palette.primary.main}40`,
-                          },
-                        }}
-                      >
-                        {plan.buttonText}
-                      </Button>
-                    </NavLink>
-
-                    <Box 
-                      component="ul" 
-                      sx={{ 
-                        p: 0, 
-                        m: 0, 
-                        listStyle: "none"
-                      }}
-                    >
-                      {plan.features.map((feature, i) => (
-                        <Box
-                          key={i}
-                          component="li"
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            mb: 2,
-                            color: "#e2e8f0",
-                          }}
-                        >
-                          <motion.div
-                            initial={{ scale: 0.8, opacity: 0.8 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ 
-                              duration: 0.3,
-                              delay: i * 0.1 
-                            }}
-                          >
-                            <CheckCircleIcon
-                              sx={{
-                                color: theme.palette.primary.main,
-                                fontSize: "1.2rem",
-                                mr: 1.5,
-                                flexShrink: 0,
-                                filter: 'drop-shadow(0 0 5px rgba(0, 191, 165, 0.7))',
-                                transition: 'all 0.3s ease',
-                              }}
-                            />
-                          </motion.div>
-                          <Typography variant="body2">{feature}</Typography>
-                        </Box>
-                      ))}
-                    </Box>
-                  </Box>
-                  </Paper>
-                </motion.div>
+              <Grid item xs={12} sm={6} md={4} key={index}>
+                <PricingCard 
+                  plan={plan} 
+                  index={index} 
+                  theme={theme} 
+                />
               </Grid>
             ))}
           </Grid>
@@ -451,20 +603,28 @@ const Pricing = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-50px" }}
           transition={{ delay: 0.2, duration: 0.6 }}
-          style={{ textAlign: "center", marginTop: '2.5rem' }}
+          style={{ 
+            textAlign: "center", 
+            marginTop: '2.5rem',
+            marginBottom: '1rem'
+          }}
         >
           <Typography
             variant="body2"
             color="text.secondary"
-            sx={{ color: "#94a3b8" }}
+            sx={{ 
+              color: "#94a3b8",
+              fontSize: { xs: '0.8rem', sm: '0.875rem' }, // Responsive font size
+              px: { xs: 2, sm: 0 } // Responsive padding
+            }}
           >
-            Need a custom plan? Contact us at patelsurlko20@gmail.com
+            Need a custom plan? Contact us at surajpatel9390@gmail.com
           </Typography>
         </motion.div>
         <Box sx={{ flexGrow: 1 }} />
       </Container>
     </Box>
   );
-};
+});
 
 export default Pricing;

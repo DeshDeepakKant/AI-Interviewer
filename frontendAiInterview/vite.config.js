@@ -13,16 +13,18 @@ export default defineConfig(({ mode }) => {
       // Expose all env variables to your app
       'import.meta.env.VITE_APP_LIVEKIT_URL': JSON.stringify(env.VITE_APP_LIVEKIT_URL),
       'import.meta.env.VITE_APP_LIVEKIT_API_KEY': JSON.stringify(env.VITE_APP_LIVEKIT_API_KEY),
+      'import.meta.env.VITE_CLOUDINARY_CLOUD_NAME': JSON.stringify(env.VITE_CLOUDINARY_CLOUD_NAME),
+      'import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET': JSON.stringify(env.VITE_CLOUDINARY_UPLOAD_PRESET),
       'process.env': {}
     },
     server: {
       proxy: {
-        // any request to /api will be forwarded to the target
         '/api': {
-          target: 'http://localhost:8000',
+          target: 'https://backend-ai-interview.vercel.app',
           changeOrigin: true,
-          secure: false,
-          // no rewrite: /api/users → https://backend-ai-interview.vercel.app/api/users
+          secure: true,
+          // Remove /api prefix if your backend doesn’t use it
+          // rewrite: (path) => path.replace(/^\/api/, ''),
         },
       },
     },

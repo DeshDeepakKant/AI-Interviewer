@@ -8,7 +8,7 @@ import {
   Route,
   createRoutesFromElements,
 } from "react-router";
-import HomePage from "./components/homepage.jsx";
+import HomePage from "./components/Homepage.jsx";
 import Layout from "./components/Layout.jsx";
 import LoginPage from "./components/loginPage.jsx";
 import Testing from "./components/testing.jsx";
@@ -16,11 +16,12 @@ import AIInterview from "./components/AIInterview.jsx";
 import LayoutWithoutFooter from "./components/LayoutWithoutFooter.jsx";
 import Features from "./components/Features.jsx";
 import Pricing from "./components/Pricing.jsx";
-import ComingSoon from "./components/ComingSoon.jsx";
+// import ComingSoon from "./components/ComingSoon.jsx";
 import UserDashboard from "./components/UserDashboard.jsx";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MockInterviewWay from "./components/MockInterviewWay.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -31,11 +32,14 @@ const router = createBrowserRouter(
         <Route path="login" element={<LoginPage />} />
         <Route path="testing" element={<Testing />} />
         <Route path="features" element={<Features />} />
-        <Route path="comingSoon" element={<ComingSoon />} />
-        <Route path="dashboard" element={<UserDashboard />} />
-        <Route path="interview" element={<AIInterview />} />
+        {/* <Route path="comingSoon" element={<ComingSoon />} /> */}
         <Route path="pricing" element={<Pricing />} />
-         <Route path="mockInterviewWay" element={<MockInterviewWay />} />
+        {/* Protected routes */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="dashboard" element={<UserDashboard />} />
+          <Route path="mockInterviewWay" element={<MockInterviewWay />} />
+          <Route path="interview" element={<AIInterview />} />
+        </Route>
       </Route>
       <Route path="/" element={<LayoutWithoutFooter />}>
 

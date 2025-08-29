@@ -98,7 +98,7 @@ const Footer = () => {
                 <GitHubIcon fontSize="small" />
               </IconButton>
               <IconButton
-                href="https://linkedin.com"
+                href="https://www.linkedin.com/in/suraj-patel-9201b2381/"
                 target="_blank"
                 size="small"
                 sx={{

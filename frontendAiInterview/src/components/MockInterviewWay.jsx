@@ -33,7 +33,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import BusinessIcon from '@mui/icons-material/Business';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-import { supabase, supabaseAdmin } from '../config/supabase';
+import { supabase} from '../config/supabase';
 // Animation keyframes
 const gradient = keyframes`
   0% { background-position: 0% 50%; }
