@@ -107,6 +107,7 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             messages = [];
         }
 
+
         messages.push(`Question Number:${data.count || 1}`);
         messages.push(`role: user, content: ${answer || ''}`);
 
@@ -119,6 +120,16 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             messages,
             answer || ''
         );
+
+        messages.push(`role: ai, content: ${ai}`);
+
+        const multi = client.multi();
+        multi.hincrby(sessionId, 'numberOfQuestionLeft', -1);
+        multi.hset(sessionId, 'messages', JSON.stringify(messages));
+        multi.hincrby(sessionId, 'count', 1);
+
+        await multi.exec()
+
 
         return res.status(200).json(
             new ApiResponse(200, {
