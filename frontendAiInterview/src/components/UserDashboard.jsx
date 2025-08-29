@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback, memo } from "react";
 import axios from "axios";
 import {
   Avatar,
-  Link,
   Box,
   Paper,
   Container,
   Typography,
-  ToggleButton,
-  ToggleButtonGroup,
   Grid,
   Divider,
   Button,
@@ -17,13 +14,15 @@ import {
   Card,
   CardContent,
   CardHeader,
-  Collapse,
   List,
   ListItem,
   ListItemText,
   ListItemIcon,
   CircularProgress,
-  Alert
+  Alert,
+  Skeleton,
+  Fade,
+  Backdrop
 } from "@mui/material";
 import { styled } from "@mui/system";
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -32,7 +31,9 @@ import TwitterIcon from '@mui/icons-material/Twitter';
 import EditIcon from '@mui/icons-material/Edit';
 import HistoryIcon from '@mui/icons-material/History';
 import StarIcon from '@mui/icons-material/Star';
-import { teal, amber, green, red, blueGrey } from '@mui/material/colors'; 
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import { teal, amber, green, red } from '@mui/material/colors'; 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from "react-router";
@@ -42,17 +43,29 @@ import { useAuth } from '../contexts/AuthContext';
 const ProfilePaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: '12px',
-  marginBottom: theme.spacing(4),
-  background: 'rgba(26, 31, 46, 0.7)',
-  backdropFilter: 'blur(10px)',
+  marginBottom: theme.spacing(3),
+  background: 'rgba(26, 31, 46, 0.8)',
+  backdropFilter: 'blur(20px)',
   border: '1px solid rgba(29, 233, 182, 0.3)',
-  boxShadow: '0 4px 20px rgba(29, 233, 182, 0.1)',
+  boxShadow: '0 4px 20px rgba(29, 233, 182, 0.15)',
   color: '#fff',
-  transition: 'all 0.3s ease-in-out',
+  position: 'relative',
+  overflow: 'hidden',
+  transition: 'all 0.3s ease',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(135deg, rgba(29, 233, 182, 0.05) 0%, rgba(29, 233, 182, 0.02) 100%)',
+    zIndex: -1,
+  },
   '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 8px 30px rgba(29, 233, 182, 0.2)',
-    borderColor: 'rgba(29, 233, 182, 0.6)',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 8px 30px rgba(29, 233, 182, 0.25)',
+    borderColor: 'rgba(29, 233, 182, 0.5)',
   },
 }));
 
@@ -60,51 +73,70 @@ const HistoryPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(3),
   borderRadius: '12px',
   minHeight: '300px',
-  background: 'rgba(26, 31, 46, 0.7)',
-  backdropFilter: 'blur(10px)',
+  background: 'rgba(26, 31, 46, 0.8)',
+  backdropFilter: 'blur(20px)',
   border: '1px solid rgba(29, 233, 182, 0.3)',
-  boxShadow: '0 4px 20px rgba(29, 233, 182, 0.1)',
+  boxShadow: '0 4px 20px rgba(29, 233, 182, 0.15)',
   color: '#fff',
   position: 'relative',
-  zIndex: 1,
-  marginBottom: theme.spacing(4),
-  transition: 'all 0.3s ease-in-out',
+  overflow: 'hidden',
+  marginBottom: theme.spacing(2),
+  transition: 'all 0.3s ease',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    background: 'linear-gradient(135deg, rgba(29, 233, 182, 0.03) 0%, rgba(29, 233, 182, 0.01) 100%)',
+    zIndex: -1,
+  },
   '&:hover': {
-    transform: 'translateY(-3px)',
-    boxShadow: '0 8px 30px rgba(29, 233, 182, 0.15)',
-    borderColor: 'rgba(29, 233, 182, 0.5)',
+    transform: 'translateY(-2px)',
+    boxShadow: '0 6px 25px rgba(29, 233, 182, 0.2)',
+    borderColor: 'rgba(29, 233, 182, 0.4)',
   },
 }));
 
-const StyledToggleButtonGroup = styled(ToggleButtonGroup)(({ theme }) => ({
-  '& .MuiToggleButtonGroup-grouped': {
-    margin: theme.spacing(0.5),
-    border: '1px solid rgba(29, 233, 182, 0.5)',
-    color: '#ffffff',
-    '&.Mui-selected': {
-      background: 'rgba(29, 233, 182, 0.2)',
-      color: '#1de9b6',
-      '&:hover': {
-        background: 'rgba(29, 233, 182, 0.3)',
-      },
-    },
-    '&:hover': {
-      background: 'rgba(29, 233, 182, 0.1)',
-    },
+const StatsCard = styled(Card)(({ theme }) => ({
+  background: 'rgba(29, 233, 182, 0.08)',
+  border: '1px solid rgba(29, 233, 182, 0.2)',
+  borderRadius: '12px',
+  transition: 'all 0.2s ease',
+  cursor: 'pointer',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 16px rgba(29, 233, 182, 0.2)',
+    background: 'rgba(29, 233, 182, 0.12)',
+    borderColor: 'rgba(29, 233, 182, 0.3)',
   },
 }));
 
 const SocialIcon = styled(IconButton)(({ theme }) => ({
   color: '#fff',
   backgroundColor: 'rgba(29, 233, 182, 0.1)',
-  transition: 'all 0.3s ease-in-out',
-  transform: 'scale(1)',
+  borderRadius: '8px',
+  transition: 'all 0.2s ease',
   '&:hover': {
-    backgroundColor: 'rgba(29, 233, 182, 0.3)',
-    transform: 'scale(1.1) translateY(-2px)',
-    boxShadow: '0 4px 10px rgba(29, 233, 182, 0.3)',
+    backgroundColor: 'rgba(29, 233, 182, 0.25)',
+    transform: 'translateY(-1px)',
   },
   margin: theme.spacing(0, 0.5),
+}));
+
+const ModernAvatar = styled(Avatar)(({ theme }) => ({
+  width: 80,
+  height: 80,
+  fontSize: '2rem',
+  background: 'linear-gradient(135deg, #1de9b6, #0ea5e9)',
+  border: '2px solid rgba(29, 233, 182, 0.5)',
+  boxShadow: '0 4px 20px rgba(29, 233, 182, 0.3)',
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'scale(1.05)',
+    boxShadow: '0 6px 25px rgba(29, 233, 182, 0.4)',
+  },
 }));
 
 const EmptyState = styled(Box)(({ theme }) => ({
@@ -115,30 +147,64 @@ const EmptyState = styled(Box)(({ theme }) => ({
   padding: theme.spacing(4),
   textAlign: 'center',
   color: '#ffffff',
-  transition: 'all 0.5s ease-in-out',
+  borderRadius: '12px',
+  background: 'rgba(29, 233, 182, 0.03)',
+  border: '2px dashed rgba(29, 233, 182, 0.2)',
   '& svg': {
     fontSize: '3rem',
     marginBottom: theme.spacing(2),
-    color: '#ffffff',
-    transition: 'all 0.3s ease-in-out',
-  },
-  '&:hover': {
-    '& svg': {
-      transform: 'scale(1.2) rotate(10deg)',
-      color: 'rgba(29, 233, 182, 0.8)',
-    },
-    '& h6': {
-      color: '#fff',
-    },
-    '& p': {
-      color: '#ffffff',
-    }
+    color: 'rgba(29, 233, 182, 0.6)',
   },
 }));
 
-export default function UserDashboard() {
+const InterviewCard = styled(Card)(({ theme, isExpanded }) => ({
+  marginBottom: theme.spacing(1.5),
+  background: isExpanded 
+    ? 'rgba(29, 233, 182, 0.12)' 
+    : 'rgba(26, 31, 46, 0.9)',
+  border: isExpanded 
+    ? '1px solid rgba(29, 233, 182, 0.5)' 
+    : '1px solid rgba(29, 233, 182, 0.2)',
+  borderRadius: '12px',
+  overflow: 'hidden',
+  transition: 'all 0.2s ease',
+  cursor: 'pointer',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: '0 4px 16px rgba(29, 233, 182, 0.2)',
+    borderColor: 'rgba(29, 233, 182, 0.4)',
+    background: isExpanded 
+      ? 'rgba(29, 233, 182, 0.15)' 
+      : 'rgba(29, 233, 182, 0.08)',
+  },
+}));
+
+// Animation variants - simplified to reduce flickering
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.3,
+      ease: 'easeOut'
+    }
+  }
+};
+
+export default memo(function UserDashboard() {
   const { user, isLoading: authLoading } = useAuth();
-  const [interviewType, setInterviewType] = useState('mock');
   const [expandedInterview, setExpandedInterview] = useState(null);
   const [interviewHistory, setInterviewHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
@@ -151,123 +217,217 @@ export default function UserDashboard() {
     stats: {
       completedInterviews: 0,
       avgRating: 0,
-      lastInterview: ''
+      lastInterview: '',
+      totalQuestions: 0,
+      successRate: 0
     }
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const initializeUserData = () => {
-      if (user) {
-        setUserData({
-          name: user.fullName || '',
-          email: user.email || '',
-          username: user.username || '',
-          role: user.role || '',
-          stats: {
-            completedInterviews: 0,
-            avgRating: 0,
-            lastInterview: ''
-          }
-        });
-        setLoading(false);
-      }
-    };
+  // Show all interviews (no filtering needed since we only have mock interviews)
+  const filteredInterviews = useMemo(() => {
+    return interviewHistory;
+  }, [interviewHistory]);
 
-    if (!authLoading) {
-      initializeUserData();
+  // Optimized stats calculation
+  const calculatedStats = useMemo(() => {
+    if (interviewHistory.length === 0) {
+      return {
+        completedInterviews: 0,
+        avgRating: 0,
+        lastInterview: '',
+        totalQuestions: 0,
+        successRate: 0
+      };
     }
-  }, [user, authLoading]);
 
+    const totalRating = interviewHistory.reduce((sum, item) => sum + item.overallRating, 0);
+    const avgRating = (totalRating / interviewHistory.length).toFixed(1);
+    const totalQuestions = interviewHistory.reduce((sum, interview) => {
+      return sum + (interview.history ? Object.keys(interview.history).length : 0);
+    }, 0);
+    const goodRatings = interviewHistory.filter(interview => interview.overallRating >= 7).length;
+    const successRate = ((goodRatings / interviewHistory.length) * 100).toFixed(0);
+
+    return {
+      completedInterviews: interviewHistory.length,
+      avgRating,
+      lastInterview: interviewHistory[0]?.createdAt.toLocaleDateString(),
+      totalQuestions,
+      successRate
+    };
+  }, [interviewHistory]);
+
+  // Optimized user data initialization
   useEffect(() => {
-    const fetchInterviewHistory = async () => {
-      try {
-        setLoadingHistory(true);
-        const response = await axios.get("/api/v1/ai/aiHistory");
-        
-        if (response.data.success && response.data.data?.histories) {
-          const historyArray = Object.entries(response.data.data.histories)
-            .map(([key, value]) => ({
-              id: key,
-              ...value,
-              createdAt: new Date(value.createdAt),
-              overallRating: parseFloat(value.overAllRating) || 0
-            }))
-            .sort((a, b) => b.createdAt - a.createdAt);
-            
-          setInterviewHistory(historyArray);
-          
-          // Update user stats if we have history
-          if (historyArray.length > 0) {
-            const totalRating = historyArray.reduce((sum, item) => sum + item.overallRating, 0);
-            const avgRating = (totalRating / historyArray.length).toFixed(1);
-            
-            setUserData(prev => ({
-              ...prev,
-              stats: {
-                ...prev.stats,
-                completedInterviews: historyArray.length,
-                avgRating,
-                lastInterview: historyArray[0].createdAt.toLocaleDateString()
-              }
-            }));
-          }
+    if (!authLoading && user) {
+      setUserData(prev => ({
+        ...prev,
+        name: user.fullName || '',
+        email: user.email || '',
+        username: user.username || '',
+        role: user.role || '',
+        stats: {
+          ...prev.stats,
+          ...calculatedStats
         }
-      } catch (err) {
+      }));
+      setLoading(false);
+    }
+  }, [user, authLoading, calculatedStats]);
+
+  // Optimized interview history fetching with error handling and AbortController
+  const fetchInterviewHistory = useCallback(async () => {
+    const controller = new AbortController();
+    
+    try {
+      setLoadingHistory(true);
+      setHistoryError(null);
+      
+      const response = await axios.get("/api/v1/ai/aiHistory", {
+        signal: controller.signal,
+        timeout: 10000 // 10 second timeout
+      });
+      
+      if (response.data.success && response.data.data?.histories) {
+        const historyArray = Object.entries(response.data.data.histories)
+          .map(([key, value]) => ({
+            id: key,
+            ...value,
+            createdAt: new Date(value.createdAt),
+            overallRating: parseFloat(value.overAllRating) || 0
+          }))
+          .sort((a, b) => b.createdAt - a.createdAt);
+          
+        setInterviewHistory(historyArray);
+      }
+    } catch (err) {
+      if (!controller.signal.aborted) {
         console.error("Error fetching interview history:", err);
         setHistoryError("Failed to load interview history. Please try again later.");
-      } finally {
+      }
+    } finally {
+      if (!controller.signal.aborted) {
         setLoadingHistory(false);
       }
-    };
-
-    fetchInterviewHistory();
+    }
+    
+    // Cleanup function
+    return () => controller.abort();
   }, []);
 
-  const handleExpandInterview = (interviewId) => {
-    setExpandedInterview(expandedInterview === interviewId ? null : interviewId);
-  };
+  useEffect(() => {
+    fetchInterviewHistory();
+  }, [fetchInterviewHistory]);
 
-  const getRatingColor = (rating) => {
+  // Optimized event handlers
+  const handleExpandInterview = useCallback((interviewId) => {
+    setExpandedInterview(prev => prev === interviewId ? null : interviewId);
+  }, []);
+
+  const getRatingColor = useCallback((rating) => {
     const numRating = parseFloat(rating);
     if (numRating >= 8) return green[500];
     if (numRating >= 6) return amber[500];
     return red[500];
-  };
+  }, []);
 
-  const renderQuestionItem = (questionData) => {
+  // Optimized components
+  const StatsCardComponent = memo(({ icon, title, value, subtitle, color = teal[300] }) => (
+    <StatsCard>
+      <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>
+        <Box sx={{ color, mb: 1.5 }}>
+          {icon}
+        </Box>
+  <Typography variant="h5" sx={{ color: '#fff', fontWeight: 'bold', mb: 0.25 }}>
+          {value}
+        </Typography>
+  <Typography variant="body2" sx={{ color: '#fff', mb: 0.25 }}>
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+            {subtitle}
+          </Typography>
+        )}
+      </CardContent>
+    </StatsCard>
+  ));
+
+  const LoadingSkeleton = memo(() => (
+    <Box>
+      <Skeleton 
+        variant="rectangular" 
+        height={200} 
+        sx={{ 
+          bgcolor: 'rgba(29, 233, 182, 0.1)', 
+          borderRadius: '16px',
+          mb: 3 
+        }} 
+      />
+      {[...Array(3)].map((_, index) => (
+        <Skeleton 
+          key={index}
+          variant="rectangular" 
+          height={120} 
+          sx={{ 
+            bgcolor: 'rgba(29, 233, 182, 0.05)', 
+            borderRadius: '12px',
+            mb: 2 
+          }} 
+        />
+      ))}
+    </Box>
+  ));
+
+  const renderQuestionItem = useCallback((questionData) => {
     return (
-      <Card key={questionData.Question} sx={{ mb: 2, bgcolor: 'rgba(29, 233, 182, 0.05)', borderLeft: `3px solid ${getRatingColor(questionData.Rating)}` }}>
-        <CardContent>
-          <Typography variant="subtitle2" color="primary" gutterBottom>
+      <Card key={questionData.Question} sx={{ 
+        mb: 2, 
+        bgcolor: 'rgba(29, 233, 182, 0.08)', 
+        borderLeft: `4px solid ${getRatingColor(questionData.Rating)}`,
+        borderRadius: '12px',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          bgcolor: 'rgba(29, 233, 182, 0.12)',
+          transform: 'translateX(8px)'
+        }
+      }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="subtitle2" color="primary" gutterBottom sx={{ fontWeight: 600 }}>
             {questionData.Question}
           </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            <strong>Your Answer:</strong> {questionData['Your Answer']}
+          <Typography variant="body2" color="text.secondary" paragraph sx={{ 
+            color: 'rgba(255, 255, 255, 0.9)',
+            lineHeight: 1.6 
+          }}>
+            <strong style={{ color: '#1de9b6' }}>Your Answer:</strong> {questionData['Your Answer']}
           </Typography>
-          <Box display="flex" justifyContent="space-between" alignItems="center">
-            <Box>
-              <Typography variant="caption" color="text.secondary">
-                <strong>Feedback:</strong> {questionData.Feedback}
-              </Typography>
-            </Box>
+          <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
+            <Typography variant="caption" sx={{ 
+              color: 'rgba(255, 255, 255, 0.8)',
+              flex: 1,
+              minWidth: '200px'
+            }}>
+              <strong style={{ color: '#1de9b6' }}>Feedback:</strong> {questionData.Feedback}
+            </Typography>
             <Chip 
-              label={`Rating: ${questionData.Rating}/10`} 
+              label={`${questionData.Rating}/10`} 
               size="small" 
               sx={{ 
                 backgroundColor: `${getRatingColor(questionData.Rating)}20`,
                 color: getRatingColor(questionData.Rating),
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                border: `1px solid ${getRatingColor(questionData.Rating)}40`
               }} 
             />
           </Box>
         </CardContent>
       </Card>
     );
-  };
+  }, [getRatingColor]);
 
-  const renderInterviewCard = (interview) => {
+  const renderInterviewCard = useCallback((interview) => {
     const questions = interview.history ? Object.entries(interview.history).map(([key, value]) => ({
       id: key,
       ...value
@@ -277,11 +437,9 @@ export default function UserDashboard() {
 
     return (
       <motion.div
+        key={interview.id}
         layout
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        transition={{ duration: 0.2, ease: 'easeInOut' }}
+        variants={itemVariants}
         onClick={() => handleExpandInterview(interview.id)}
         style={{ 
           cursor: 'pointer',
@@ -289,446 +447,457 @@ export default function UserDashboard() {
           width: '100%'
         }}
       >
-        <Card 
-          sx={{ 
-            mb: 2, 
-            bgcolor: isExpanded ? 'rgba(29, 233, 182, 0.08)' : 'rgba(26, 31, 46, 0.9)',
-            border: isExpanded ? '1px solid rgba(29, 233, 182, 0.4)' : '1px solid rgba(29, 233, 182, 0.15)',
-            color: '#ffffff',
-            borderRadius: '12px',
-            transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            '&:hover': {
-              transform: 'translateY(-3px)',
-              boxShadow: '0 6px 24px rgba(29, 233, 182, 0.12)',
-              borderColor: 'rgba(29, 233, 182, 0.3)',
-              bgcolor: isExpanded ? 'rgba(29, 233, 182, 0.12)' : 'rgba(29, 233, 182, 0.05)'
-            }
-          }}
-        >
+        <InterviewCard isExpanded={isExpanded}>
           <CardHeader
             title={
               <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="subtitle1" sx={{ color: '#ffffff' }}>
+                <Typography variant="h6" sx={{ 
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '1.1rem'
+                }}>
                   {interview.mockType || 'Mock Interview'} - {interview.position || 'Full Stack'}
                 </Typography>
-                <Chip 
-                  label={`${interview.overallRating}/10`} 
-                  size="small" 
-                  sx={{ 
-                    backgroundColor: `${getRatingColor(interview.overallRating)}20`,
-                    color: getRatingColor(interview.overallRating),
-                    fontWeight: 'bold',
-                    mr: 1
-                  }} 
-                />
-              </Box>
-            }
-          subheader={
-            <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 0.5 }}>
-              <Typography variant="caption" sx={{ 
-                color: 'rgba(255, 255, 255, 0.65)',
-                fontSize: '0.75rem',
-                letterSpacing: '0.02em'
-              }}>
-                {interview.createdAt.toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </Typography>
-              <motion.div
-                animate={{ 
-                  rotate: isExpanded ? 180 : 0,
-                  scale: isExpanded ? 1.1 : 1
-                }}
-                transition={{ duration: 0.2, ease: 'easeInOut' }}
-              >
-                <ExpandMoreIcon sx={{ 
-                  color: 'rgba(255, 255, 255, 0.7)',
-                  fontSize: '1.2rem'
-                }} />
-              </motion.div>
-            </Box>
-          }
-          sx={{ 
-            '& .MuiCardHeader-content': {
-              overflow: 'hidden',
-              textOverflow: 'ellipsis'
-            },
-            '& .MuiCardHeader-title': {
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '100%'
-            }
-          }}
-        />
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ 
-                duration: 0.3,
-                ease: [0.4, 0, 0.2, 1]
-              }}
-              style={{ 
-                transformOrigin: 'top center',
-                willChange: 'transform, opacity, height'
-              }}
-            >
-              <CardContent 
-                sx={{ 
-                  pt: 1, 
-                  px: 3, 
-                  pb: isExpanded ? 3 : 0,
-                  borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-                  transformOrigin: 'top center',
-                  '&.MuiCardContent-root': {
-                    paddingTop: isExpanded ? '16px' : 0,
-                    paddingBottom: isExpanded ? '24px' : 0,
-                    transition: 'all 0.3s ease-in-out',
-                    overflow: 'hidden',
-                    display: 'block'
-                  }
-                }}
-              >
-            <List dense>
-              {questions.map((q) => (
-                <ListItem key={q.id} sx={{ 
-                  px: 0, 
-                  py: 1.5,
-                  alignItems: 'flex-start',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
-                  '&:last-child': {
-                    borderBottom: 'none'
-                  }
-                }}>
-                  <ListItemIcon sx={{ 
-                    minWidth: 32,
-                    mt: 0.5,
-                    alignSelf: 'flex-start'
-                  }}>
-                    <CheckCircleOutlineIcon fontSize="small" color="primary" />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={q.Question} 
-                    primaryTypographyProps={{ 
-                      variant: 'body2',
-                      sx: { 
-                        color: '#ffffff',
-                        fontWeight: 500,
-                        lineHeight: 1.6,
-                        mb: 1.5,
-                        fontSize: '0.95rem',
-                        textAlign: 'justify',
-                        textJustify: 'inter-word'
-                      }
-                    }}
-                    secondary={
-                      <>
-                        <Box sx={{ mb: 2 }}>
-                          <Typography component="div" sx={{ 
-                            display: 'block', 
-                            color: 'rgba(255, 255, 255, 0.9)',
-                            fontSize: '0.92rem',
-                            lineHeight: 1.7,
-                            mb: 1.5,
-                            textAlign: 'justify',
-                            textJustify: 'inter-word'
-                          }}>
-                            <Box component="span" sx={{ 
-                              color: '#1de9b6', 
-                              fontWeight: 600, 
-                              mr: 1,
-                              fontSize: '0.95rem'
-                            }}>
-                              Your Answer:
-                            </Box>
-                            {q['Your Answer'] || 'No answer provided'}
-                          </Typography>
-                          <Typography component="div" sx={{ 
-                            display: 'block', 
-                            color: 'rgba(255, 255, 255, 0.85)', 
-                            fontSize: '0.9rem',
-                            lineHeight: 1.7,
-                            pl: '14px',
-                            borderLeft: '2px solid rgba(29, 233, 182, 0.3)',
-                            textAlign: 'justify',
-                            textJustify: 'inter-word',
-                            mt: 1
-                          }}>
-                            <Box component="span" sx={{ 
-                              color: '#1de9b6', 
-                              fontWeight: 600, 
-                              mr: 1,
-                              fontSize: '0.9rem'
-                            }}>
-                              Feedback:
-                            </Box>
-                            {q.Feedback || 'No feedback available'}
-                          </Typography>
-                        </Box>
-                        <Chip 
-                          label={`Rating: ${q.Rating || 'N/A'}/10`} 
-                          size="small" 
-                          sx={{ 
-                            mt: 1,
-                            backgroundColor: `${getRatingColor(q.Rating)}15`,
-                            color: getRatingColor(q.Rating),
-                            fontSize: '0.65rem',
-                            height: '20px',
-                            border: `1px solid ${getRatingColor(q.Rating)}30`,
-                            borderRadius: '4px',
-                            fontWeight: 600,
-                            '& .MuiChip-label': {
-                              px: 1,
-                              py: 0.25
-                            }
-                          }} 
-                        />
-                      </>
-                    }
-                    secondaryTypographyProps={{ component: 'div' }}
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Chip 
+                    label={`${interview.overallRating}/10`} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: `${getRatingColor(interview.overallRating)}25`,
+                      color: getRatingColor(interview.overallRating),
+                      fontWeight: 'bold',
+                      border: `1px solid ${getRatingColor(interview.overallRating)}50`,
+                      fontSize: '0.75rem'
+                    }} 
                   />
-                </ListItem>
-              ))}
-                </List>
-              </CardContent>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </Card>
-    </motion.div>
-    );
-  };
-
-  const handleInterviewType = (event, newType) => {
-    if (newType) {
-      setInterviewType(newType);
-    }
-  };
-
-  return (
-    <Box className="page-background" sx={{ minHeight: '100vh', pt: 12, pb: 2, background: 'linear-gradient(-45deg, #0a0f1a, #1a1a2e, #16213e, #0d1b2a)', backgroundSize: '400% 400%' }}>
-      <Container maxWidth="md">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <ProfilePaper elevation={0}>
-          <Grid container spacing={3} alignItems="center">
-            <Grid item>
-              <Avatar 
-                alt={userData.name} 
-                sx={{ 
-                  width: 80, 
-                  height: 80,
-                  bgcolor: teal[500],
-                  fontSize: '2rem',
-                  border: `2px solid ${teal[500]}`,
-                  boxShadow: `0 0 10px ${teal[500]}80`,
-                  transition: 'all 0.3s ease-in-out',
-                  '&:hover': {
-                    transform: 'scale(1.05)',
-                    boxShadow: `0 0 20px ${teal[500]}`, 
-                    borderWidth: '3px'
-                  }
-                }}
-              >
-                {userData.name ? userData.name.charAt(0).toUpperCase() : ''}
-              </Avatar>
-            </Grid>
-            <Grid item xs>
-              <Box display="flex" alignItems="center" mb={1}>
-                <Typography variant="h5" sx={{ fontWeight: 'bold', mr: 1, color: '#fff' }}>
-                  {loading ? 'Loading...' : error || userData.name}
-                </Typography>
-                <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Box>
-              <Typography variant="body2" sx={{ mb: 1, color: '#ffffff' }}>
-                {userData.email || ''}
-              </Typography>
-              {userData.username && (
-                <Typography variant="body2" sx={{ mb: 1, color: '#ffffff' }}>
-                  @{userData.username}
-                </Typography>
-              )}
-              {userData.role && (
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    mb: 1, 
-                    color: teal[300],
-                    display: 'inline-block',
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 1,
-                    bgcolor: 'rgba(29, 233, 182, 0.1)',
-                    textTransform: 'capitalize',
-                    fontSize: '0.875rem'
-                  }}
-                >
-                  {userData.role}
-                </Typography>
-              )}
-              <Box display="flex" gap={2}>
-                <Box>
-                  <Typography variant="body2" sx={{ color: '#ffffff' }}>Interviews</Typography>
-                  <Typography variant="h6" color={teal[300]}>{userData.stats.completedInterviews}</Typography>
-                </Box>
-                <Box>
-                  <Typography variant="body2" sx={{ color: '#ffffff' }}>Avg. Rating</Typography>
-                  <Box display="flex" alignItems="center">
-                    <StarIcon fontSize="small" sx={{ color: '#ffc107', mr: 0.5 }} />
-                    <Typography variant="h6" color={teal[300]}>{userData.stats.avgRating}</Typography>
-                  </Box>
+                  <motion.div
+                    animate={{ 
+                      rotate: isExpanded ? 180 : 0,
+                      scale: isExpanded ? 1.2 : 1
+                    }}
+                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                  >
+                    <ExpandMoreIcon sx={{ 
+                      color: 'rgba(255, 255, 255, 0.7)',
+                      fontSize: '1.5rem'
+                    }} />
+                  </motion.div>
                 </Box>
               </Box>
-            </Grid>
-            <Grid item>
-              <Box display="flex">
-                <SocialIcon href="https://linkedin.com" target="_blank">
-                  <LinkedInIcon />
-                </SocialIcon>
-                <SocialIcon href="https://leetcode.com" target="_blank">
-                  <CodeIcon />
-                </SocialIcon>
-                <SocialIcon href="https://twitter.com" target="_blank">
-                  <TwitterIcon />
-                </SocialIcon>
+            }
+            subheader={
+              <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
+                <Typography variant="body2" sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  fontSize: '0.85rem'
+                }}>
+                  {interview.createdAt.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </Typography>
+                <Typography variant="caption" sx={{ 
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5
+                }}>
+                  <AssessmentIcon fontSize="small" />
+                  {questions.length} Questions
+                </Typography>
               </Box>
-            </Grid>
-          </Grid>
-          </ProfilePaper>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-        >
-          <Box textAlign="center" my={4}>
-          <StyledToggleButtonGroup
-            value={interviewType}
-            exclusive
-            onChange={handleInterviewType}
-            aria-label="Interview Type"
+            }
             sx={{ 
-              mb: 3,
-              '& .MuiToggleButton-root': {
-                transition: 'all 0.2s ease-in-out',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 8px rgba(29, 233, 182, 0.2)'
-                },
-                '&.Mui-selected': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 4px 12px rgba(29, 233, 182, 0.3)'
-                }
+              pb: 1,
+              '& .MuiCardHeader-content': {
+                overflow: 'hidden'
               }
             }}
-          >
-            <ToggleButton value="company" aria-label="Company Interview">
-              Company Interviews
-            </ToggleButton>
-            <ToggleButton value="mock" aria-label="Mock Interview">
-              Mock Interviews
-            </ToggleButton>
-          </StyledToggleButtonGroup>
-          </Box>
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <HistoryPaper elevation={0}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-              <HistoryIcon sx={{ verticalAlign: 'middle', mr: 1, color: teal[300] }} />
-              Interview History
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#ffffff' }}>
-              Last updated: {new Date().toLocaleDateString()}
-            </Typography>
-          </Box>
-          
-          <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)', mb: 3 }} />
-          
-          {loadingHistory ? (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-              <CircularProgress color="primary" />
-            </Box>
-          ) : historyError ? (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {historyError}
-            </Alert>
-          ) : interviewHistory.length === 0 ? (
-            <EmptyState>
-              <HistoryIcon />
-              <Typography variant="h6" gutterBottom>No interviews yet</Typography>
-              <Typography variant="body2" sx={{ maxWidth: '400px', mb: 2, color: '#ffffff' }}>
-                You haven't completed any interviews yet. Start your first interview to see your history here.
-              </Typography>
-              <Button 
-                variant="outlined" 
-                color="primary"
-                component={RouterLink}
-                to="/mockInterviewWay"
-                sx={{ 
-                  color: '#1de9b6',
-                  borderColor: 'rgba(29, 233, 182, 0.5)',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:before': {
-                    content: '""',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    background: 'linear-gradient(45deg, rgba(29, 233, 182, 0.1), transparent)',
-                    transform: 'translateX(-100%)',
-                    transition: 'transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-                  },
-                  '&:hover': {
-                    borderColor: '#1de9b6',
-                    backgroundColor: 'rgba(29, 233, 182, 0.15)',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 15px rgba(29, 233, 182, 0.2)',
-                    '&:before': {
-                      transform: 'translateX(100%)',
-                    }
-                  },
-                  '&:active': {
-                    transform: 'translateY(0)',
-                  }
+          />
+          <AnimatePresence mode="wait">
+            {isExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ 
+                  duration: 0.4,
+                  ease: [0.4, 0, 0.2, 1]
                 }}
               >
-                Start Interview
-              </Button>
-            </EmptyState>
-          ) : (
-            <Box>
-              <AnimatePresence>
-                {interviewHistory
-                  .filter(interview => interview.mockType?.toLowerCase().includes(interviewType === 'mock' ? 'mock' : 'company'))
-                  .map(renderInterviewCard)}
-              </AnimatePresence>
-            </Box>
-          )}
-          </HistoryPaper>
+                <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+                <CardContent sx={{ pt: 3, px: 3, pb: 3 }}>
+                  <List dense sx={{ maxHeight: '400px', overflowY: 'auto', pr: 2, scrollbarGutter: 'stable' }}>
+                    {questions.map((q, index) => (
+                      <motion.div
+                        key={q.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <ListItem sx={{ 
+                          px: 0, 
+                          py: 2,
+                          alignItems: 'flex-start',
+                          borderBottom: index < questions.length - 1 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
+                          borderRadius: '8px',
+                          mb: 1,
+                          '&:hover': {
+                            bgcolor: 'rgba(29, 233, 182, 0.05)'
+                          }
+                        }}>
+                          <ListItemIcon sx={{ 
+                            minWidth: 40,
+                            mt: 0.5
+                          }}>
+                            <Box sx={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              bgcolor: 'rgba(29, 233, 182, 0.2)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '0.75rem',
+                              color: '#1de9b6',
+                              fontWeight: 'bold'
+                            }}>
+                              {index + 1}
+                            </Box>
+                          </ListItemIcon>
+                          <ListItemText 
+                            primary={q.Question} 
+                            primaryTypographyProps={{ 
+                              variant: 'body2',
+                              sx: { 
+                                color: '#ffffff',
+                                fontWeight: 600,
+                                lineHeight: 1.6,
+                                mb: 2
+                              }
+                            }}
+                            secondary={
+                              <Box sx={{ mt: 1 }}>
+                                <Typography component="div" sx={{ 
+                                  color: 'rgba(255, 255, 255, 0.9)',
+                                  fontSize: '0.9rem',
+                                  lineHeight: 1.7,
+                                  mb: 2,
+                                  p: 2,
+                                  bgcolor: 'rgba(29, 233, 182, 0.05)',
+                                  borderRadius: '8px',
+                                  borderLeft: '3px solid rgba(29, 233, 182, 0.3)'
+                                }}>
+                                  <Box component="span" sx={{ 
+                                    color: '#1de9b6', 
+                                    fontWeight: 600,
+                                    display: 'block',
+                                    mb: 1
+                                  }}>
+                                    Your Answer:
+                                  </Box>
+                                  {q['Your Answer'] || 'No answer provided'}
+                                </Typography>
+                                
+                                <Typography component="div" sx={{ 
+                                  color: 'rgba(255, 255, 255, 0.85)', 
+                                  fontSize: '0.85rem',
+                                  lineHeight: 1.6,
+                                  p: 2,
+                                  bgcolor: 'rgba(255, 255, 255, 0.03)',
+                                  borderRadius: '8px',
+                                  mb: 2
+                                }}>
+                                  <Box component="span" sx={{ 
+                                    color: '#1de9b6', 
+                                    fontWeight: 600,
+                                    display: 'block',
+                                    mb: 1
+                                  }}>
+                                    AI Feedback:
+                                  </Box>
+                                  {q.Feedback || 'No feedback available'}
+                                </Typography>
+                                
+                                <Chip 
+                                  label={`Score: ${q.Rating || 'N/A'}/10`} 
+                                  size="small" 
+                                  sx={{ 
+                                    backgroundColor: `${getRatingColor(q.Rating)}20`,
+                                    color: getRatingColor(q.Rating),
+                                    fontSize: '0.7rem',
+                                    fontWeight: 700,
+                                    border: `1px solid ${getRatingColor(q.Rating)}40`,
+                                    borderRadius: '6px'
+                                  }} 
+                                />
+                              </Box>
+                            }
+                            secondaryTypographyProps={{ component: 'div' }}
+                          />
+                        </ListItem>
+                      </motion.div>
+                    ))}
+                  </List>
+                </CardContent>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </InterviewCard>
+      </motion.div>
+    );
+  }, [expandedInterview, handleExpandInterview, getRatingColor]);
+
+  return (
+    <Box 
+      className="page-background" 
+      sx={{ 
+        minHeight: '100vh', 
+        pt: 10, 
+        pb: 2, 
+        background: 'linear-gradient(-45deg, #0a0f1a, #1a1a2e, #16213e, #0d1b2a)', 
+        backgroundSize: '400% 400%'
+      }}
+    >
+  <Container maxWidth="xl">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Enhanced Profile Section */}
+          <motion.div variants={itemVariants}>
+            <ProfilePaper elevation={0}>
+              <Grid container spacing={3} alignItems="center">
+                <Grid item>
+                  <ModernAvatar alt={userData.name}>
+                    {userData.name ? userData.name.charAt(0).toUpperCase() : ''}
+                  </ModernAvatar>
+                </Grid>
+                <Grid item xs>
+                  <Box display="flex" alignItems="center" mb={1.5}>
+                    <Typography variant="h4" sx={{ 
+                      fontWeight: 'bold', 
+                      mr: 2, 
+                      color: '#fff'
+                    }}>
+                      {loading ? 'Loading...' : userData.name || 'User'}
+                    </Typography>
+                    <IconButton 
+                      size="small" 
+                      sx={{ 
+                        color: 'rgba(255, 255, 255, 0.7)',
+                        '&:hover': { 
+                          color: '#1de9b6'
+                        }
+                      }}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  
+                  <Typography variant="body1" sx={{ 
+                    mb: 1, 
+                    color: 'rgba(255, 255, 255, 0.9)'
+                  }}>
+                    {userData.email}
+                  </Typography>
+                  
+                  {userData.username && (
+                    <Typography variant="body2" sx={{ 
+                      mb: 1.5, 
+                      color: 'rgba(255, 255, 255, 0.7)'
+                    }}>
+                      @{userData.username}
+                    </Typography>
+                  )}
+                  
+                  {userData.role && (
+                    <Chip
+                      label={userData.role}
+                      size="small"
+                      sx={{ 
+                        color: '#1de9b6',
+                        bgcolor: 'rgba(29, 233, 182, 0.15)',
+                        border: '1px solid rgba(29, 233, 182, 0.3)',
+                        textTransform: 'capitalize',
+                        fontWeight: 600
+                      }}
+                    />
+                  )}
+                </Grid>
+                
+                <Grid item>
+                  <Box display="flex" gap={1}>
+                    <SocialIcon href="https://linkedin.com" target="_blank">
+                      <LinkedInIcon />
+                    </SocialIcon>
+                    <SocialIcon href="https://leetcode.com" target="_blank">
+                      <CodeIcon />
+                    </SocialIcon>
+                    <SocialIcon href="https://twitter.com" target="_blank">
+                      <TwitterIcon />
+                    </SocialIcon>
+                  </Box>
+                </Grid>
+              </Grid>
+            </ProfilePaper>
+          </motion.div>
+
+          {/* Enhanced Stats Cards */}
+          <motion.div variants={itemVariants}>
+            <Grid
+              container
+              spacing={2}
+              justifyContent="center"
+              sx={{ mt: 1, mb: 2, mx: 'auto', maxWidth: 1200 }}
+            >
+              <Grid item xs={12} sm={6} md={3}>
+                <StatsCardComponent
+                  icon={<AssessmentIcon fontSize="large" />}
+                  title="Total Interviews"
+                  value={userData.stats.completedInterviews}
+                  subtitle="Completed"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <StatsCardComponent
+                  icon={<StarIcon fontSize="large" />}
+                  title="Average Rating"
+                  value={userData.stats.avgRating}
+                  subtitle="Out of 10"
+                  color={amber[400]}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <StatsCardComponent
+                  icon={<CheckCircleOutlineIcon fontSize="large" />}
+                  title="Total Questions"
+                  value={userData.stats.totalQuestions}
+                  subtitle="Answered"
+                  color={green[400]}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <StatsCardComponent
+                  icon={<TrendingUpIcon fontSize="large" />}
+                  title="Success Rate"
+                  value={`${userData.stats.successRate}%`}
+                  subtitle="Above 7/10"
+                  color={red[400]}
+                />
+              </Grid>
+            </Grid>
+          </motion.div>
+
+          {/* Enhanced History Section */}
+          <motion.div variants={itemVariants}>
+            <HistoryPaper elevation={0} sx={{ mt: 1 }}>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+                <Typography variant="h5" sx={{ 
+                  fontWeight: 'bold',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5
+                }}>
+                  <HistoryIcon sx={{ color: teal[300] }} />
+                  Mock Interview History
+                </Typography>
+                <Typography variant="body2" sx={{ 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1
+                }}>
+                  <Box component="span" sx={{ 
+                    width: 8, 
+                    height: 8, 
+                    borderRadius: '50%', 
+                    bgcolor: '#1de9b6',
+                    display: 'inline-block'
+                  }} />
+                  Last updated: {new Date().toLocaleDateString()}
+                </Typography>
+              </Box>
+              
+              <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.15)', mb: 4 }} />
+              
+              {loadingHistory ? (
+                <LoadingSkeleton />
+              ) : historyError ? (
+                <Alert 
+                  severity="error" 
+                  sx={{ 
+                    mb: 2,
+                    bgcolor: 'rgba(244, 67, 54, 0.1)',
+                    border: '1px solid rgba(244, 67, 54, 0.3)',
+                    '& .MuiAlert-message': {
+                      color: '#fff'
+                    }
+                  }}
+                >
+                  {historyError}
+                  <Button 
+                    size="small" 
+                    onClick={fetchInterviewHistory}
+                    sx={{ ml: 2, color: '#1de9b6' }}
+                  >
+                    Retry
+                  </Button>
+                </Alert>
+              ) : filteredInterviews.length === 0 ? (
+                <EmptyState>
+                  <HistoryIcon />
+                  <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
+                    No mock interviews yet
+                  </Typography>
+                  <Typography variant="body1" sx={{ 
+                    maxWidth: '500px', 
+                    mb: 3, 
+                    color: 'rgba(255, 255, 255, 0.8)',
+                    lineHeight: 1.6
+                  }}>
+                    Ready to ace your next interview? Start practicing with our AI-powered mock interview system and get instant feedback.
+                  </Typography>
+                  <Button 
+                    variant="contained"
+                    size="large"
+                    component={RouterLink}
+                    to="/mockInterviewWay"
+                    sx={{ 
+                      background: 'linear-gradient(135deg, #1de9b6, #0ea5e9)',
+                      color: '#fff',
+                      fontWeight: 600,
+                      py: 1.5,
+                      px: 4,
+                      borderRadius: '12px',
+                      textTransform: 'none',
+                      fontSize: '1rem',
+                      boxShadow: '0 8px 24px rgba(29, 233, 182, 0.3)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #0ea5e9, #1de9b6)',
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 12px 32px rgba(29, 233, 182, 0.4)'
+                      }
+                    }}
+                  >
+                    Start Your First Interview
+                  </Button>
+                </EmptyState>
+              ) : (
+                <motion.div variants={containerVariants}>
+                  <AnimatePresence mode="wait">
+                    {filteredInterviews.map(renderInterviewCard)}
+                  </AnimatePresence>
+                </motion.div>
+              )}
+            </HistoryPaper>
+          </motion.div>
         </motion.div>
       </Container>
     </Box>
   );
-}
+});

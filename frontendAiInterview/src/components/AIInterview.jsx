@@ -17,19 +17,18 @@ import {
   Stack,
   TextField,
   InputAdornment,
+  Chip,
 } from "@mui/material";
 import VideocamIcon from "@mui/icons-material/Videocam";
 import MicIcon from "@mui/icons-material/Mic";
 import MicOffIcon from "@mui/icons-material/MicOff";
 import VideocamOffIcon from "@mui/icons-material/VideocamOff";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import StopIcon from "@mui/icons-material/Stop";
+import SendIcon from '@mui/icons-material/Send';
 import ai from "../assets/ai.jpeg";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
-import SendIcon from '@mui/icons-material/Send';
-
-// Initialize MediaRecorder and other variables
-let mediaRecorder;
-let recordedChunks = [];
 const GlassCard = styled(Card)(({ theme }) => ({
   background: "rgba(255, 255, 255, 0.05)",
   backdropFilter: "blur(10px)",
@@ -75,24 +74,36 @@ const AIInterview = () => {
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Core states
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
-  
-  // State for session and interview details
   const [sessionId, setSessionId] = useState('');
-  const [interviewDetails, setInterviewDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  
+  // Media states
+  const [isInterviewActive, setIsInterviewActive] = useState(false);
+  const [isVideoOn, setIsVideoOn] = useState(false);
+  const [isAudioOn, setIsAudioOn] = useState(false);
+  const [stream, setStream] = useState(null);
+  
+  // Speech recognition states
+  const [isListening, setIsListening] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [finalTranscript, setFinalTranscript] = useState("");
+  
+  // Refs
+  const videoRef = useRef(null);
   const audioRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const initialMessageSent = useRef(false);
   
   // Initialize session and interview details when component mounts
   useEffect(() => {
-
-    
     // Get from location state (passed during navigation)
     const stateData = location.state || {};
     const stateSessionId = stateData.sessionId;
-    const stateInterviewDetails = stateData.interviewDetails;
     
     // Get from sessionStorage
     const storedSessionId = sessionStorage.getItem('interviewSessionId');
@@ -110,14 +121,22 @@ const AIInterview = () => {
       navigate('/');
     }
     
-    // Clean up session storage when component unmounts or tab is closed
+    // Clean up when component unmounts
     return () => {
-      // We don't clear here to maintain the session across page refreshes
-      // It will be cleared when the tab is closed
+      stopAllMedia();
     };
   }, [location, navigate]);
   
-  // Log the session ID when it's available and fetch interview data
+  // Auto-scroll messages
+  useEffect(() => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  }, [messages]);
+
   // Function to play audio from URL
   const playAudio = (audioUrl) => {
     if (!audioUrl) return;
@@ -133,26 +152,199 @@ const AIInterview = () => {
     audioRef.current.play().catch(e => console.error('Error playing audio:', e));
   };
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [isVideoOn, setIsVideoOn] = useState(true);
-  const [isAudioOn, setIsAudioOn] = useState(true);
-  const [answer, setAnswer] = useState('');
-  const [stream, setStream] = useState(null);
+  // Stop all media streams and recognition
+  const stopAllMedia = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    setIsListening(false);
+    setIsVideoOn(false);
+    setIsAudioOn(false);
+  };
+
+  // Start camera and microphone
+  const startMedia = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true
+      });
+      
+      setStream(mediaStream);
+      setIsVideoOn(true);
+      setIsAudioOn(true);
+      
+      // Display the camera feed
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error accessing media devices:', error);
+      toast.error('Could not access camera/microphone. Please check your permissions.');
+      return false;
+    }
+  };
+
+  // Start speech recognition
+  const startSpeechRecognition = () => {
+    if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+      toast.error('Speech recognition not supported in this browser');
+      return;
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = () => {
+      setIsListening(true);
+      console.log('Speech recognition started');
+    };
+    
+    recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalText = '';
+      
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        const transcript = result[0].transcript;
+        
+        if (result.isFinal) {
+          finalText += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+      
+      // Update interim transcript for display
+      setTranscript(interimTranscript);
+      
+      // If we have final text, add it to the input message
+      if (finalText.trim()) {
+        console.log('Final transcript:', finalText);
+        setFinalTranscript(prev => {
+          const newFinal = prev + ' ' + finalText.trim();
+          return newFinal.trim();
+        });
+        
+        // Add to input message
+        setInputMessage(prev => {
+          const newMessage = (prev + ' ' + finalText.trim()).trim();
+          console.log('Updated input message:', newMessage);
+          return newMessage;
+        });
+        
+        setTranscript(''); // Clear interim transcript after adding to final
+      }
+    };
+    
+    recognition.onerror = (event) => {
+      console.error('Speech recognition error:', event.error);
+      setIsListening(false);
+      
+      // Don't restart on certain errors
+      if (event.error === 'no-speech' || event.error === 'audio-capture') {
+        toast.error('Microphone not detecting speech. Please check your microphone.');
+      }
+    };
+    
+    recognition.onend = () => {
+      console.log('Speech recognition ended');
+      setIsListening(false);
+      
+      // Auto-restart if interview is still active and no error occurred
+      if (isInterviewActive) {
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch (error) {
+            console.error('Error restarting recognition:', error);
+          }
+        }, 500);
+      }
+    };
+    
+    recognitionRef.current = recognition;
+    
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Error starting speech recognition:', error);
+      toast.error('Could not start speech recognition. Please try again.');
+    }
+  };
+
+  // Stop speech recognition
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+    setTranscript('');
+  };
   
-  // Toggle audio on/off - this is the main implementation
+  // Toggle video on/off
+  const toggleVideo = async () => {
+    if (isVideoOn) {
+      // Turn off video
+      if (stream) {
+        stream.getVideoTracks().forEach(track => track.stop());
+      }
+      setIsVideoOn(false);
+    } else {
+      // Turn on video
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: isAudioOn
+        });
+        setStream(prevStream => {
+          if (prevStream) {
+            prevStream.getTracks().forEach(track => track.stop());
+          }
+          return mediaStream;
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+        setIsVideoOn(true);
+      } catch (error) {
+        console.error('Error accessing camera:', error);
+        toast.error('Could not access camera. Please check your permissions.');
+      }
+    }
+  };
+  // Toggle audio on/off
   const toggleAudio = async () => {
     if (isAudioOn) {
       // Turn off audio
       if (stream) {
         stream.getAudioTracks().forEach(track => track.stop());
       }
+      // Also stop speech recognition
+      stopSpeechRecognition();
       setIsAudioOn(false);
     } else {
       // Turn on audio
       try {
         const mediaStream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video: isVideoOn  // Keep existing video state
+          video: isVideoOn
         });
         setStream(prevStream => {
           if (prevStream) {
@@ -161,35 +353,141 @@ const AIInterview = () => {
           return mediaStream;
         });
         
-        // Update video element if it exists
         if (videoRef.current) {
           videoRef.current.srcObject = mediaStream;
         }
         
         setIsAudioOn(true);
+        
+        // Start speech recognition if interview is active
+        if (isInterviewActive) {
+          startSpeechRecognition();
+        }
       } catch (error) {
         console.error('Error accessing microphone:', error);
         toast.error('Could not access microphone. Please check your permissions.');
       }
     }
   };
-  
-  const handleAnswerSubmit = (e) => {
-    e.preventDefault();
-    if (answer.trim()) {
-      // Handle the answer submission here
 
-      // You can add your logic to process the answer
+  // Start the interview
+  const startInterview = async () => {
+    // Start media first
+    const mediaStarted = await startMedia();
+    if (!mediaStarted) return;
+
+    // Start the interview session
+    if (!initialMessageSent.current) {
+      initialMessageSent.current = true;
+      setIsLoading(true);
       
-      // Clear the input after submission
-      setAnswer('');
+      try {
+        const response = await axios.post(`/api/v1/ai/aiStart`, {
+          answer: "Let's start the interview",
+          sessionId: sessionId
+        });
+        
+        setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
+        
+        if (response.data.data.audioUrl) {
+          playAudio(response.data.data.audioUrl);
+        }
+        
+        setIsInterviewActive(true);
+        
+        // Start speech recognition after a short delay
+        setTimeout(() => {
+          startSpeechRecognition();
+        }, 1000);
+        
+        toast.success("Interview started! You can now speak or type your responses.");
+        
+      } catch (error) {
+        console.error('Error starting interview:', error);
+        toast.error("Failed to start interview.");
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
-  const [transcript, setTranscript] = useState("");
-  const transcriptionRef = useRef(null);
-  const videoRef = useRef(null);
-  const videoPreviewRef = useRef(null);
-  
+
+  // End the interview
+  const endInterview = async () => {
+    setIsInterviewActive(false);
+    stopAllMedia();
+    
+    const toastId = toast.loading(
+      <div>
+        <div>Analyzing your responses...</div>
+        <div style={{
+          width: '100%',
+          height: '4px',
+          backgroundColor: 'rgba(255, 255, 255, 0.2)',
+          marginTop: '8px',
+          borderRadius: '2px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: '0%',
+            height: '100%',
+            backgroundColor: '#4CAF50',
+            transition: 'width 0.3s ease-in-out'
+          }} id="progress-bar"></div>
+        </div>
+      </div>,
+      {
+        autoClose: false,
+        closeButton: false,
+        closeOnClick: false,
+        draggable: false,
+        isLoading: true,
+        style: {
+          minWidth: '300px',
+          padding: '16px'
+        }
+      }
+    );
+
+    try {
+      // Simulate progress
+      const progressBar = document.getElementById('progress-bar');
+      if (progressBar) {
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 5;
+          if (progress > 90) clearInterval(interval);
+          progressBar.style.width = `${progress}%`;
+        }, 200);
+      }
+      
+      await axios.post('/api/v1/ai/aiAnalysis', { sessionId });
+      
+      if (progressBar) progressBar.style.width = '100%';
+      
+      toast.update(toastId, {
+        render: 'Analysis complete! Redirecting to dashboard...',
+        type: 'success',
+        isLoading: false,
+        autoClose: 1500,
+        closeButton: true,
+        closeOnClick: true,
+        draggable: true
+      });
+      
+      setTimeout(() => navigate('/dashboard'), 1500);
+    } catch (error) {
+      console.error('Error in analysis:', error);
+      toast.update(toastId, {
+        render: 'Something went wrong while analyzing. Please try again.',
+        type: 'error',
+        isLoading: false,
+        autoClose: 3000,
+        closeButton: true,
+        closeOnClick: true,
+        draggable: true
+      });
+    }
+  };
   // Animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -234,283 +532,17 @@ const AIInterview = () => {
     }
   };
 
-  useEffect(() => {
-    // Clean up function to stop all media tracks when component unmounts
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [stream]);
-
-  const handleTranscriptionUpdate = (interimTranscript) => {
-    // Update the transcript with the latest interim results
-    setTranscript(prev => {
-      const finalPart = prev.split('|')[0];
-      return `${finalPart}|${interimTranscript}`;
-    });
-  };
-
-  const handleTranscriptionComplete = (finalTranscript) => {
-    // Update the final transcript
-    setTranscript(prev => {
-      const currentFinal = prev.split('|')[0];
-      return `${currentFinal} ${finalTranscript}`.trim() + ' |';
-    });
-  };
-
-  const startRecording = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: isVideoOn,
-        audio: isAudioOn
-      });
-      
-      setStream(mediaStream);
-      
-      // Display the camera feed
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
-      
-      // Start recording
-      recordedChunks = [];
-      mediaRecorder = new MediaRecorder(mediaStream, {
-        mimeType: 'video/webm;codecs=vp9,opus'
-      });
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recordedChunks.push(event.data);
-        }
-      };
-      
-      // mediaRecorder.onstop = () => {
-      //   const blob = new Blob(recordedChunks, { type: 'video/webm' });
-      //   const url = URL.createObjectURL(blob);
-        
-      //   // Show preview of the recorded video
-      //   if (videoPreviewRef.current) {
-      //     videoPreviewRef.current.src = url;
-      //     videoPreviewRef.current.controls = true;
-      //   }
-        
-      //   // Create download link
-      //   const a = document.createElement('a');
-      //   a.href = url;
-      //   a.download = `interview-${new Date().toISOString()}.webm`;
-      //   document.body.appendChild(a);
-      //   a.click();
-      //   document.body.removeChild(a);
-        
-      //   // Clean up
-      //   if (stream) {
-      //     stream.getTracks().forEach(track => track.stop());
-      //     setStream(null);
-      //   }
-      // };
-      
-      // Start live transcription
-      setTranscript('');
-      transcriptionRef.current = startLiveTranscription(
-        60000, // 1 minute timeout (will auto-renew)
-        handleTranscriptionUpdate,
-        (final) => {
-          handleTranscriptionComplete(final);
-          // Restart transcription if still recording
-          if (isRecording) {
-            transcriptionRef.current = startLiveTranscription(
-              60000,
-              handleTranscriptionUpdate,
-              handleTranscriptionComplete,
-              console.error
-            );
-          }
-        },
-        console.error
-      );
-      
-      mediaRecorder.start(100); // Collect 100ms of data
-      setIsRecording(true);
-      
-    } catch (error) {
-      console.error('Error accessing media devices:', error);
-      alert('Could not access camera/microphone. Please check your permissions.');
-    }
-  };
-  
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-      // Stop any ongoing transcription
-      if (transcriptionRef.current && transcriptionRef.current.stop) {
-        transcriptionRef.current.stop();
-      }
-      // Stop any currently playing audio
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
-      setIsRecording(false);
-      setIsVideoOn(false);
-      setIsAudioOn(false);
-    }
-  };
-  
-  const toggleRecording = async () => {
-    if (isRecording) {
-      await stopRecording();
-      const sessionId = sessionStorage.getItem('interviewSessionId');
-      if (!sessionId) {
-        toast.error(
-          "No session ID found, so analysis can't proceed. Sorry for the inconvenience."
-        );
-        return;
-      }
-    
-      const toastId = toast.loading(
-        <div>
-          <div>Analyzing your responses...</div>
-          <div style={{
-            width: '100%',
-            height: '4px',
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            marginTop: '8px',
-            borderRadius: '2px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              width: '0%',
-              height: '100%',
-              backgroundColor: '#4CAF50',
-              transition: 'width 0.3s ease-in-out'
-            }} id="progress-bar"></div>
-          </div>
-        </div>,
-        {
-          autoClose: false,
-          closeButton: false,
-          closeOnClick: false,
-          draggable: false,
-          isLoading: true,
-          style: {
-            minWidth: '300px',
-            padding: '16px'
-          }
-        }
-      );
-    
-      try {
-        // Simulate progress (remove this in production)
-        const progressBar = document.getElementById('progress-bar');
-        if (progressBar) {
-          let progress = 0;
-          const interval = setInterval(() => {
-            progress += 5;
-            if (progress > 90) clearInterval(interval);
-            progressBar.style.width = `${progress}%`;
-          }, 200);
-        }
-        
-        await axios.post('/api/v1/ai/aiAnalysis', { sessionId });
-        
-        // Complete the progress bar
-        if (progressBar) progressBar.style.width = '100%';
-        
-        toast.update(toastId, {
-          render: 'Analysis complete! Redirecting to dashboard...',
-          type: 'success',
-          isLoading: false,
-          autoClose: 1500,
-          closeButton: true,
-          closeOnClick: true,
-          draggable: true
-        });
-        
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } catch (err) {
-        console.error(err);
-        toast.error(
-          "Something went wrong while submitting for analysis. Please try again."
-        );
-        // You might decide whether to still navigate or not. Probably not, until it succeeds.
-      }
-    } else if (!initialMessageSent.current) {
-      // When starting interview, fetch the first AI message and play audio
-      // Only do this if we haven't sent the initial message yet
-      initialMessageSent.current = true;
-      setIsLoading(true);
-      try {
-        const response = await axios.post(`/api/v1/ai/aiStart`, {
-          answer: "Let's start the interview",
-          sessionId: sessionId
-        });
-        setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
-        if (response.data.data.audioUrl) {
-          playAudio(response.data.data.audioUrl);
-        }
-        startRecording();
-        toast.success("Interview begins.");
-      } catch (e) {
-        toast.error("Failed to start interview.");
-      } finally {
-        setIsLoading(false);
-      }
-    }
-  };
-
-  const toggleVideo = async () => {
-    if (isVideoOn) {
-      // Turn off video
-      if (stream) {
-        stream.getVideoTracks().forEach(track => track.stop());
-      }
-      setIsVideoOn(false);
-    } else {
-      // Turn on video
-      try {
-        const mediaStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: isAudioOn
-        });
-        setStream(prevStream => {
-          if (prevStream) {
-            prevStream.getTracks().forEach(track => track.stop());
-          }
-          return mediaStream;
-        });
-        if (videoRef.current) {
-          videoRef.current.srcObject = mediaStream;
-        }
-        setIsVideoOn(true);
-      } catch (error) {
-        console.error('Error accessing camera:', error);
-        toast.error('Could not access camera. Please check your permissions.');
-      }
-    }
-  };
-
-  const messagesContainerRef = useRef(null);
-  const initialMessageSent = useRef(false);
-
-  useEffect(() => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTo({
-        top: messagesContainerRef.current.scrollHeight,
-        behavior: "smooth"
-      });
-    }
-  }, [messages]);
-
+  // Handle form submission (send message)
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // If this is the first message (starting the interview)
-    const isFirstMessage = messages.length === 0;
-    const userText = inputMessage.trim() || "Let's start the interview";
+    const userText = inputMessage.trim();
+    if (!userText) return;
     
     setMessages(prev => [...prev, {text: userText, sender: 'user'}]);
     setInputMessage('');
+    setFinalTranscript(''); // Clear speech transcript
+    setTranscript(''); // Clear interim transcript
     setIsLoading(true);
     
     try {
@@ -522,24 +554,20 @@ const AIInterview = () => {
       if (!response.data.success) {
         throw new Error(response.data.data);
       }
-      const data = response.data.data.result;
-      // Add AI response to messages
-
-      setMessages(prev => [...prev, {text: response.data.data.result, sender: 'ai'}]);
       
-      // Play audio if audioUrl exists in response
+      const aiResponse = response.data.data.result;
+      setMessages(prev => [...prev, {text: aiResponse, sender: 'ai'}]);
+      
+      // Play audio if available
       if (response.data.data.audioUrl) {
         playAudio(response.data.data.audioUrl);
       }
       
-      // If this was the first message, start recording
-      if (isFirstMessage) {
-        startRecording();
-        toast.success("Interview begins.");
+      // Check if interview is ending
+      if (aiResponse.includes("Your interview is over")) {
+        setTimeout(endInterview, 6000);
       }
-      if (data.includes("Your interview is over")) {
-        setTimeout(toggleRecording, 6000);
-      }
+      
     } catch (error) {
       console.error('Error in handleSubmit:', error);
       setMessages(prev => [
@@ -552,7 +580,7 @@ const AIInterview = () => {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   return (
     <Box
@@ -619,16 +647,14 @@ const AIInterview = () => {
 
         <Stack justifyContent="center" alignItems="center">
           <Grid container spacing={3} sx={{ minHeight: "calc(100vh - 160px)" }}>
-            {/* Left column */}
-
-            {/* fix this */}
+            {/* Left column - Video and Controls */}
             <Grid
               item
               xs={12}
               md={7}
               sx={{ display: "flex", flexDirection: "column" }}
             >
-              {/* AI Assistant */}
+              {/* AI Assistant Status */}
               <GlassCard 
                 component={motion.div}
                 variants={itemVariants}
@@ -641,25 +667,38 @@ const AIInterview = () => {
                         sx={{
                           width: 8,
                           height: 8,
-                          bgcolor: "#00bfa5",
+                          bgcolor: isInterviewActive ? "#00bfa5" : "rgba(255, 255, 255, 0.3)",
                           borderRadius: "50%",
                           mr: 1,
-                          animation: "pulse 2s infinite",
+                          animation: isInterviewActive ? "pulse 2s infinite" : "none",
                         }}
                       />
                       <Typography
                         variant="subtitle1"
-                        sx={{ fontWeight: 600, color: "#00bfa5" }}
+                        sx={{ fontWeight: 600, color: isInterviewActive ? "#00bfa5" : "rgba(255, 255, 255, 0.7)" }}
                       >
                         AI Assistant
                       </Typography>
+                      {isInterviewActive && (
+                        <Chip 
+                          label="LIVE" 
+                          size="small" 
+                          sx={{ 
+                            ml: 2, 
+                            bgcolor: "#00bfa5", 
+                            color: "white",
+                            fontWeight: 600,
+                            fontSize: "0.7rem"
+                          }} 
+                        />
+                      )}
                     </Box>
 
                     <Typography
                       variant="body1"
                       sx={{ color: "rgba(255, 255, 255, 0.8)", mt: 1 }}
                     >
-                      {isRecording ? (
+                      {isInterviewActive ? (
                         <div
                           style={{
                             display: "flex",
@@ -698,7 +737,7 @@ const AIInterview = () => {
                           />
                         </div>
                       ) : (
-                        "Click the start button to begin your interview. I'll ask you a series of questions."
+                        "Ready to start your interview. Click the start button to begin."
                       )}
                     </Typography>
                   </Box>
@@ -746,13 +785,7 @@ const AIInterview = () => {
                         objectFit: 'cover',
                         transform: 'scaleX(-1)' // Mirror the video
                       }}
-                    >
-                      {!stream && (
-                        <VideocamIcon
-                          sx={{ fontSize: 60, color: "rgba(255, 255, 255, 0.2)", position: 'absolute' }}
-                        />
-                      )}
-                    </Box>
+                    />
                   ) : (
                     <Box
                       sx={{
@@ -772,6 +805,7 @@ const AIInterview = () => {
                     </Box>
                   )}
 
+                  {/* Media Control Buttons */}
                   <Box
                     sx={{
                       position: "absolute",
@@ -789,6 +823,7 @@ const AIInterview = () => {
                   >
                     <IconButton
                       onClick={toggleVideo}
+                      disabled={!isInterviewActive}
                       sx={{
                         bgcolor: isVideoOn
                           ? "rgba(255, 255, 255, 0.1)"
@@ -797,6 +832,9 @@ const AIInterview = () => {
                           bgcolor: isVideoOn
                             ? "rgba(255, 255, 255, 0.15)"
                             : "rgba(255, 0, 0, 0.3)",
+                        },
+                        "&:disabled": {
+                          bgcolor: "rgba(255, 255, 255, 0.05)",
                         },
                       }}
                     >
@@ -808,6 +846,7 @@ const AIInterview = () => {
                     </IconButton>
                     <IconButton
                       onClick={toggleAudio}
+                      disabled={!isInterviewActive}
                       sx={{
                         bgcolor: isAudioOn
                           ? "rgba(255, 255, 255, 0.1)"
@@ -816,6 +855,9 @@ const AIInterview = () => {
                           bgcolor: isAudioOn
                             ? "rgba(255, 255, 255, 0.15)"
                             : "rgba(255, 0, 0, 0.3)",
+                        },
+                        "&:disabled": {
+                          bgcolor: "rgba(255, 255, 255, 0.05)",
                         },
                       }}
                     >
@@ -826,8 +868,97 @@ const AIInterview = () => {
                       )}
                     </IconButton>
                   </Box>
+
+                  {/* Speech Recognition Status */}
+                  {isListening && (
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        bgcolor: "rgba(0, 191, 165, 0.8)",
+                        p: 1,
+                        borderRadius: 2,
+                        zIndex: 2,
+                      }}
+                    >
+                      <MicIcon sx={{ fontSize: 16, color: "white" }} />
+                      <Typography variant="caption" sx={{ color: "white", fontWeight: 600 }}>
+                        Listening...
+                      </Typography>
+                    </Box>
+                  )}
                 </CardContent>
               </GlassCard>
+
+              {/* Speech Recognition Display */}
+              {isInterviewActive && (
+                <GlassCard 
+                  component={motion.div}
+                  variants={itemVariants}
+                  sx={{ mb: 3 }}
+                >
+                  <CardContent>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Typography variant="subtitle2" sx={{ color: "#00bfa5" }}>
+                        Speech Recognition:
+                      </Typography>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          if (isListening) {
+                            stopSpeechRecognition();
+                          } else {
+                            startSpeechRecognition();
+                          }
+                        }}
+                        sx={{
+                          borderColor: '#00bfa5',
+                          color: '#00bfa5',
+                          fontSize: '0.75rem',
+                          minWidth: '80px',
+                          '&:hover': {
+                            borderColor: '#00a38a',
+                            backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                          }
+                        }}
+                      >
+                        {isListening ? 'Stop' : 'Start'} Mic
+                      </Button>
+                    </Box>
+                    <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.8)", minHeight: '20px' }}>
+                      {finalTranscript && (
+                        <span style={{ color: "rgba(255, 255, 255, 0.9)" }}>
+                          {finalTranscript}
+                        </span>
+                      )}
+                      {transcript && (
+                        <span style={{ 
+                          color: "rgba(0, 191, 165, 0.8)", 
+                          fontStyle: "italic",
+                          marginLeft: finalTranscript ? " " : "" 
+                        }}>
+                          {transcript}
+                        </span>
+                      )}
+                      {isListening && !transcript && !finalTranscript && (
+                        <span style={{ color: "rgba(255, 255, 255, 0.5)" }}>
+                          Listening for speech... Try saying something!
+                        </span>
+                      )}
+                      {!isListening && !transcript && !finalTranscript && (
+                        <span style={{ color: "rgba(255, 255, 255, 0.3)" }}>
+                          Click "Start Mic" to begin speech recognition
+                        </span>
+                      )}
+                    </Typography>
+                  </CardContent>
+                </GlassCard>
+              )}
 
               {/* Action Buttons */}
               <Box
@@ -840,45 +971,32 @@ const AIInterview = () => {
                   mt: "auto",
                 }}
               >
-                {!isRecording ? (
+                {!isInterviewActive ? (
                   <PrimaryButton
-                    onClick={toggleRecording}
-                    startIcon={
-                      <Box
-                        sx={{
-                          width: 12,
-                          height: 12,
-                          bgcolor: "#fff",
-                          borderRadius: "50%",
-                          animation: isRecording
-                            ? "pulse 1.5s infinite"
-                            : "none",
-                        }}
-                      />
-                    }
+                    onClick={startInterview}
+                    disabled={isLoading}
+                    startIcon={<PlayArrowIcon />}
                   >
-                    Start Interview
+                    {isLoading ? "Starting..." : "Start Interview"}
                   </PrimaryButton>
                 ) : (
-                  <>
-                    <PrimaryButton
-                      onClick={toggleRecording}
-                      sx={{
-                        background:
-                          "linear-gradient(45deg, #ff5252 30%, #ff1744 90%)",
-                        "&:hover": {
-                          boxShadow: "0 6px 12px rgba(255, 82, 82, 0.3)",
-                        },
-                      }}
-                    >
-                      End Interview
-                    </PrimaryButton>
-                  </>
+                  <PrimaryButton
+                    onClick={endInterview}
+                    startIcon={<StopIcon />}
+                    sx={{
+                      background: "linear-gradient(45deg, #ff5252 30%, #ff1744 90%)",
+                      "&:hover": {
+                        boxShadow: "0 6px 12px rgba(255, 82, 82, 0.3)",
+                      },
+                    }}
+                  >
+                    End Interview
+                  </PrimaryButton>
                 )}
               </Box>
             </Grid>
 
-            {/* Right column - Transcript */}
+            {/* Right column - Chat Interface */}
             <Grid 
               component={motion.div}
               variants={itemVariants}
@@ -891,13 +1009,12 @@ const AIInterview = () => {
                   height: "75vh",
                   display: "flex",
                   flexDirection: "column",
-
                   overflow: "hidden",
                 }}
               >
                 <Box
                   sx={{
-                    width: 500, // fix width if needed
+                    width: 500,
                     display: "flex",
                     flexDirection: "column",
                     minHeight: 0,
@@ -925,16 +1042,27 @@ const AIInterview = () => {
                         background: 'transparent',
                       }}
                     >
-                      <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography
-                        variant="h6"
-                        sx={{ fontWeight: 500, color: "#fff" }}
-                      >
-                        Interview Transcript
-                      </Typography>
-
+                      <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
+                        <Typography
+                          variant="h6"
+                          sx={{ fontWeight: 500, color: "#fff" }}
+                        >
+                          Interview Chat
+                        </Typography>
+                        {isInterviewActive && (
+                          <Chip 
+                            icon={<MicIcon sx={{ fontSize: 16 }} />}
+                            label={isListening ? "Listening..." : "Speech Ready"}
+                            size="small"
+                            sx={{ 
+                              bgcolor: isListening ? "#00bfa5" : "rgba(255, 255, 255, 0.1)",
+                              color: "white"
+                            }}
+                          />
+                        )}
                       </Stack>
                     </Box>
+
                     {/* Messages Area */}
                     <Box
                       ref={messagesContainerRef}
@@ -964,12 +1092,11 @@ const AIInterview = () => {
                             width: '8px',
                           },
                         },
-                        // Smooth scrolling for Firefox
                         scrollbarWidth: 'thin',
                         scrollbarColor: 'rgba(0, 191, 165, 0.4) rgba(255, 255, 255, 0.03)',
                       }}
                     >
-                      {isRecording ? (
+                      {isInterviewActive || messages.length > 0 ? (
                         messages.length > 0 ? (
                           messages.map((msg, index) => (
                             <motion.div
@@ -1063,12 +1190,12 @@ const AIInterview = () => {
                               p: 4,
                             }}
                           >
-                            <VideocamIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                            <MicIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
                             <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
-                              Interview in Progress
+                              Interview Active
                             </Typography>
                             <Typography variant="body2">
-                              Your conversation will appear here. Start speaking when you're ready.
+                              Your conversation will appear here. Start speaking or typing to interact.
                             </Typography>
                           </Box>
                         )
@@ -1088,23 +1215,60 @@ const AIInterview = () => {
                             border: '1px dashed rgba(255, 255, 255, 0.1)',
                           }}
                         >
-                          <MicIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                          <PlayArrowIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
                           <Typography variant="h6" sx={{ mb: 1, fontWeight: 500 }}>
                             Ready to Start
                           </Typography>
                           <Typography variant="body2">
-                            Click the "Start Interview" button to begin your session.
-                            Your transcript will appear here once you start speaking.
+                            Click "Start Interview" to begin your session.
+                            Your conversation will appear here once you start.
                           </Typography>
                         </Box>
                       )}
+
+                      {/* Loading indicator */}
+                      {isLoading && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          style={{
+                            alignSelf: 'flex-start',
+                            maxWidth: '85%',
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              p: 2.5,
+                              borderRadius: '18px',
+                              background: 'rgba(255, 255, 255, 0.08)',
+                              border: '1px solid rgba(255, 255, 255, 0.12)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 2,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                bgcolor: '#00bfa5',
+                                animation: 'pulse 1.5s infinite',
+                              }}
+                            />
+                            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                              AI is thinking...
+                            </Typography>
+                          </Box>
+                        </motion.div>
+                      )}
                     </Box>
-                    {/* Input Area - always at the bottom */}
-                    {isRecording && (
+
+                    {/* Input Area */}
+                    {isInterviewActive && (
                       <Box sx={{
                         width: '100%',
-                        mt: 'auto', // Push to bottom of parent flex
-                        mb: -3.0, // Add bottom margin to the group
+                        mt: 'auto',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'stretch',
@@ -1118,56 +1282,70 @@ const AIInterview = () => {
                             alignItems: 'center',
                             gap: 2,
                             borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-                            p: 1.2,
+                            p: 1.5,
                             background: 'transparent',
                             borderBottomLeftRadius: '16px',
                             borderBottomRightRadius: '16px',
                             minWidth: 0,
                             flexShrink: 0,
-                            mb: 0.5,
                           }}
                         >
-                          <Box sx={{ flex: '1 1 0%', minWidth: 0 }}>
-
-                            <TextField
-                              fullWidth
-                              size="small"
-                              variant="outlined"
-                              placeholder="If the mic is not working then please type"
-                              value={inputMessage}
-                              onChange={(e) => setInputMessage(e.target.value)}
-                              sx={{
+                          <TextField
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            placeholder={isAudioOn ? "Speak or type your response..." : "Type your response..."}
+                            value={inputMessage}
+                            onChange={(e) => setInputMessage(e.target.value)}
+                            disabled={isLoading}
+                            multiline
+                            maxRows={3}
+                            sx={{
+                              borderRadius: '8px',
+                              background: 'rgba(255,255,255,0.05)',
+                              minWidth: 0,
+                              '& .MuiOutlinedInput-root': {
                                 borderRadius: '8px',
-                                background: 'rgba(255,255,255,0.05)',
-                                minWidth: 0,
-                                '& .MuiOutlinedInput-root': {
-                                  borderRadius: '8px',
-                                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                  '& fieldset': {
-                                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                                  },
-                                  '&:hover fieldset': {
-                                    borderColor: 'rgba(255, 255, 255, 0.3)',
-                                  },
-                                  '&.Mui-focused fieldset': {
-                                    borderColor: '#00bfa5',
-                                  },
+                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                '& fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.2)',
                                 },
-                                '& .MuiInputBase-input': {
-                                  color: 'white',
-                                  '&::placeholder': {
-                                    color: 'rgba(255, 255, 255, 0.5)',
-                                  },
+                                '&:hover fieldset': {
+                                  borderColor: 'rgba(255, 255, 255, 0.3)',
                                 },
-                              }}
-                            />
-
-
-                          </Box>
+                                '&.Mui-focused fieldset': {
+                                  borderColor: '#00bfa5',
+                                },
+                              },
+                              '& .MuiInputBase-input': {
+                                color: 'white',
+                                '&::placeholder': {
+                                  color: 'rgba(255, 255, 255, 0.5)',
+                                },
+                              },
+                            }}
+                            InputProps={{
+                              endAdornment: inputMessage && (
+                                <InputAdornment position="end">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      setInputMessage('');
+                                      setFinalTranscript('');
+                                      setTranscript('');
+                                    }}
+                                    sx={{ color: 'rgba(255, 255, 255, 0.5)' }}
+                                  >
+                                    ✕
+                                  </IconButton>
+                                </InputAdornment>
+                              )
+                            }}
+                          />
                           <Button 
                             type="submit" 
                             variant="contained"
-                            disabled={!inputMessage.trim()}
+                            disabled={!inputMessage.trim() || isLoading}
                             sx={{
                               borderRadius: '8px',
                               bgcolor: '#00bfa5',
@@ -1177,7 +1355,6 @@ const AIInterview = () => {
                               whiteSpace: 'nowrap',
                               flexShrink: 0,
                               height: '40px',
-                              ml: 1,
                               '&:hover': {
                                 bgcolor: '#00a38a',
                               },
@@ -1187,11 +1364,9 @@ const AIInterview = () => {
                               },
                             }}
                           >
-                            Send
+                            <SendIcon />
                           </Button>
                         </Box>
-
-
                       </Box>
                     )}
                   </CardContent>
@@ -1199,7 +1374,7 @@ const AIInterview = () => {
               </GlassCard>
             </Grid>
           </Grid>
-          </Stack>
+        </Stack>
         </Box>
 
       {/* Global styles */}

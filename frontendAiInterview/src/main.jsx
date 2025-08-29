@@ -34,13 +34,13 @@ const router = createBrowserRouter(
         <Route path="features" element={<Features />} />
         {/* <Route path="comingSoon" element={<ComingSoon />} /> */}
         <Route path="pricing" element={<Pricing />} />
-        <Route path="mockInterviewWay" element={<MockInterviewWay />} />
         
         <Route element={<PublicRoute />}>
           <Route path="login" element={<LoginPage />} />
         </Route>
         
         <Route element={<ProtectedRoute />}>
+          <Route path="mockInterviewWay" element={<MockInterviewWay />} />
           <Route path="dashboard" element={<UserDashboard />} />
           <Route path="interview" element={<AIInterview />} />
         </Route>
