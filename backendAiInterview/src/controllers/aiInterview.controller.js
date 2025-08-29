@@ -52,7 +52,7 @@ const aiResumeFile = asyncHandler(async(req, res) => {
     } finally {
         if (resumeFile) {
             try {
-                await fs.unlink(resumeFile.path); // Use the correct path and async version
+                await fs.unlink(resumeFile.path);
                 console.log(`Successfully deleted temporary file: ${resumeFile.path}`);
             } catch (cleanupError) {
                 console.error(`Error during file cleanup: ${cleanupError}`);
