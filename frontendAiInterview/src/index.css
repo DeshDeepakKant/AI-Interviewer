@@ -7,18 +7,6 @@ html, body, #root {
   padding: 0;
 }
 
-/* The page-wide teal-glow background */
-.page-background {
-  position: relative;
-  min-height: 100vh;
-  background-color: #0a0f1a;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  padding: 16px; /* match your p:2 in sx */
-}
-
 /* Animated teal glow for dashboard */
 .dashboard-glow {
   pointer-events: none;
@@ -46,9 +34,10 @@ html, body, #root {
   }
 }
 
-/* Optionally, smooth out the page background */
-.page-background {
-  transition: background 0.7s;
+/* Optionally, smooth out the background transitions */
+.hero-background,
+.features-background {
+  transition: background 0.7s ease;
 }
 
 

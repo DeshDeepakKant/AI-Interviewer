@@ -15,7 +15,7 @@ import {
 
 import { motion } from "framer-motion";
 
-// Optimized animation variants - moved outside component to prevent recreation
+
 const titleVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -102,12 +102,13 @@ const HeroSection = memo(() => {
 
   return (
     <Box 
-      className="page-background" 
       sx={{ 
         textAlign: "center", 
-        py: { xs: 4, sm: 6, md: 8 }, // Responsive padding
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
         px: { xs: 2, sm: 3 }, // Responsive horizontal padding
-        minHeight: { xs: '80vh', md: '100vh' } // Adjust height for mobile
+        minHeight: { xs: '80vh', md: '90vh' } // Adjust height for mobile
       }}
       component="section"
       aria-label="Hero section"
@@ -422,7 +423,6 @@ const FeaturesSection = memo(() => {
       whileInView="visible"
       viewport={{ once: true, margin: "-10%" }}
       variants={featuresContainerVariants}
-      className="page-background"
       sx={sectionStyles}
       aria-label="How it works section"
     >
@@ -469,7 +469,7 @@ FeatureCard.displayName = 'FeatureCard';
 
 const HomePage = memo(() => {
   return (
-    <main role="main">
+    <main role="main" className="hero-background" style={{ minHeight: '100vh' }}>
       <HeroSection />
       <FeaturesSection />
     </main>

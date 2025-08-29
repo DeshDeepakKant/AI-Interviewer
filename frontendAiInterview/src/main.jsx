@@ -24,6 +24,7 @@ import MockInterviewWay from "./components/MockInterviewWay.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import PublicRoute from "./components/PublicRoute.jsx";
 import { AuthProvider } from "./contexts/AuthContext.jsx";
+import VoiceVisualizer from "./components/VoiceVisualizer.jsx";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
@@ -33,6 +34,7 @@ const router = createBrowserRouter(
         <Route path="testing" element={<Testing />} />
         <Route path="features" element={<Features />} />
         {/* <Route path="comingSoon" element={<ComingSoon />} /> */}
+        
         <Route path="pricing" element={<Pricing />} />
         
         <Route element={<PublicRoute />}>
@@ -44,10 +46,6 @@ const router = createBrowserRouter(
           <Route path="dashboard" element={<UserDashboard />} />
           <Route path="interview" element={<AIInterview />} />
         </Route>
-      </Route>
-
-      <Route path="/" element={<LayoutWithoutFooter />}>
-
       </Route>
 
     </>,

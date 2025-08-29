@@ -26,7 +26,6 @@ import VideocamOffIcon from "@mui/icons-material/VideocamOff";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import StopIcon from "@mui/icons-material/Stop";
 import SendIcon from '@mui/icons-material/Send';
-import ai from "../assets/ai.jpeg";
 import {useNavigate} from "react-router";
 import {toast} from "react-toastify";
 const GlassCard = styled(Card)(({ theme }) => ({
@@ -55,20 +54,20 @@ const PrimaryButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const SecondaryButton = styled(Button)(({ theme }) => ({
-  background: "rgba(255, 255, 255, 0.1)",
-  color: "#fff",
-  padding: "10px 24px",
-  fontWeight: 500,
-  textTransform: "none",
-  borderRadius: "8px",
-  border: "1px solid rgba(255, 255, 255, 0.2)",
-  transition: "all 0.3s ease",
-  "&:hover": {
-    background: "rgba(255, 255, 255, 0.15)",
-    transform: "translateY(-2px)",
-  },
-}));
+// const SecondaryButton = styled(Button)(({ theme }) => ({
+//   background: "rgba(255, 255, 255, 0.1)",
+//   color: "#fff",
+//   padding: "10px 24px",
+//   fontWeight: 500,
+//   textTransform: "none",
+//   borderRadius: "8px",
+//   border: "1px solid rgba(255, 255, 255, 0.2)",
+//   transition: "all 0.3s ease",
+//   "&:hover": {
+//     background: "rgba(255, 255, 255, 0.15)",
+//     transform: "translateY(-2px)",
+//   },
+// }));
 
 const AIInterview = () => {
   const theme = useTheme();
@@ -91,6 +90,9 @@ const AIInterview = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [finalTranscript, setFinalTranscript] = useState("");
+  
+  // Audio playing state
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   
   // Refs
   const videoRef = useRef(null);
@@ -149,7 +151,17 @@ const AIInterview = () => {
     
     // Create new audio instance and play
     audioRef.current = new Audio(audioUrl);
-    audioRef.current.play().catch(e => console.error('Error playing audio:', e));
+    
+    // Set up event listeners for audio state
+    audioRef.current.onplay = () => setIsAudioPlaying(true);
+    audioRef.current.onended = () => setIsAudioPlaying(false);
+    audioRef.current.onpause = () => setIsAudioPlaying(false);
+    audioRef.current.onerror = () => setIsAudioPlaying(false);
+    
+    audioRef.current.play().catch(e => {
+      console.error('Error playing audio:', e);
+      setIsAudioPlaying(false);
+    });
   };
 
   // Stop all media streams and recognition
@@ -169,6 +181,7 @@ const AIInterview = () => {
     setIsListening(false);
     setIsVideoOn(false);
     setIsAudioOn(false);
+    setIsAudioPlaying(false);
   };
 
   // Start camera and microphone
@@ -708,33 +721,59 @@ const AIInterview = () => {
                             width: "fit-content",
                             margin: "0 auto",
                             padding: "8px",
-                            borderRadius: "50%",
-                            animation: "glow 2s infinite alternate",
                           }}
                         >
                           <style>
                             {`
-                          @keyframes glow {
-                            from {
-                              box-shadow: 0 0 5px 2px rgba(0, 191, 165, 0.5);
-                            }
-                            to {
-                              box-shadow: 0 0 20px 8px rgba(0, 191, 165, 0.8);
-                            }
+                          @keyframes voiceWave1 {
+                            0%, 100% { height: 8px; }
+                            50% { height: 24px; }
+                          }
+                          @keyframes voiceWave2 {
+                            0%, 100% { height: 12px; }
+                            25%, 75% { height: 20px; }
+                          }
+                          @keyframes voiceWave3 {
+                            0%, 100% { height: 16px; }
+                            33%, 66% { height: 28px; }
+                          }
+                          @keyframes voiceWave4 {
+                            0%, 100% { height: 10px; }
+                            40%, 80% { height: 22px; }
+                          }
+                          @keyframes voiceWave5 {
+                            0%, 100% { height: 14px; }
+                            60% { height: 26px; }
                           }
                         `}
                           </style>
-                          <img
-                            src={ai}
-                            alt="AI Listening"
-                            width={40}
+                          <div
                             style={{
-                              borderRadius: "50%",
-                              transition: "all 0.3s ease",
-                              position: "relative",
-                              zIndex: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: "4px",
+                              height: "40px",
+                              padding: "8px",
                             }}
-                          />
+                          >
+                            {[1, 2, 3, 4, 5].map((bar) => (
+                              <div
+                                key={bar}
+                                style={{
+                                  width: "6px",
+                                  height: "8px",
+                                  backgroundColor: "#00bfa5",
+                                  borderRadius: "3px",
+                                  animation: isAudioPlaying 
+                                    ? `voiceWave${bar} ${0.6 + bar * 0.1}s infinite ease-in-out`
+                                    : "none",
+                                  opacity: isAudioPlaying ? 1 : 0.3,
+                                  transition: "opacity 0.3s ease",
+                                }}
+                              />
+                            ))}
+                          </div>
                         </div>
                       ) : (
                         "Ready to start your interview. Click the start button to begin."
@@ -869,96 +908,9 @@ const AIInterview = () => {
                     </IconButton>
                   </Box>
 
-                  {/* Speech Recognition Status */}
-                  {isListening && (
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: 16,
-                        right: 16,
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 1,
-                        bgcolor: "rgba(0, 191, 165, 0.8)",
-                        p: 1,
-                        borderRadius: 2,
-                        zIndex: 2,
-                      }}
-                    >
-                      <MicIcon sx={{ fontSize: 16, color: "white" }} />
-                      <Typography variant="caption" sx={{ color: "white", fontWeight: 600 }}>
-                        Listening...
-                      </Typography>
-                    </Box>
-                  )}
                 </CardContent>
               </GlassCard>
 
-              {/* Speech Recognition Display */}
-              {isInterviewActive && (
-                <GlassCard 
-                  component={motion.div}
-                  variants={itemVariants}
-                  sx={{ mb: 3 }}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle2" sx={{ color: "#00bfa5" }}>
-                        Speech Recognition:
-                      </Typography>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => {
-                          if (isListening) {
-                            stopSpeechRecognition();
-                          } else {
-                            startSpeechRecognition();
-                          }
-                        }}
-                        sx={{
-                          borderColor: '#00bfa5',
-                          color: '#00bfa5',
-                          fontSize: '0.75rem',
-                          minWidth: '80px',
-                          '&:hover': {
-                            borderColor: '#00a38a',
-                            backgroundColor: 'rgba(0, 191, 165, 0.1)',
-                          }
-                        }}
-                      >
-                        {isListening ? 'Stop' : 'Start'} Mic
-                      </Button>
-                    </Box>
-                    <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.8)", minHeight: '20px' }}>
-                      {finalTranscript && (
-                        <span style={{ color: "rgba(255, 255, 255, 0.9)" }}>
-                          {finalTranscript}
-                        </span>
-                      )}
-                      {transcript && (
-                        <span style={{ 
-                          color: "rgba(0, 191, 165, 0.8)", 
-                          fontStyle: "italic",
-                          marginLeft: finalTranscript ? " " : "" 
-                        }}>
-                          {transcript}
-                        </span>
-                      )}
-                      {isListening && !transcript && !finalTranscript && (
-                        <span style={{ color: "rgba(255, 255, 255, 0.5)" }}>
-                          Listening for speech... Try saying something!
-                        </span>
-                      )}
-                      {!isListening && !transcript && !finalTranscript && (
-                        <span style={{ color: "rgba(255, 255, 255, 0.3)" }}>
-                          Click "Start Mic" to begin speech recognition
-                        </span>
-                      )}
-                    </Typography>
-                  </CardContent>
-                </GlassCard>
-              )}
 
               {/* Action Buttons */}
               <Box
@@ -1367,6 +1319,78 @@ const AIInterview = () => {
                             <SendIcon />
                           </Button>
                         </Box>
+                        
+                        {/* Voice Indicator for User Input */}
+                        {isListening && (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              py: 1,
+                              borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+                            }}
+                          >
+                            <style>
+                              {`
+                            @keyframes userVoiceWave1 {
+                              0%, 100% { height: 6px; }
+                              50% { height: 18px; }
+                            }
+                            @keyframes userVoiceWave2 {
+                              0%, 100% { height: 8px; }
+                              25%, 75% { height: 15px; }
+                            }
+                            @keyframes userVoiceWave3 {
+                              0%, 100% { height: 12px; }
+                              33%, 66% { height: 20px; }
+                            }
+                            @keyframes userVoiceWave4 {
+                              0%, 100% { height: 7px; }
+                              40%, 80% { height: 16px; }
+                            }
+                            @keyframes userVoiceWave5 {
+                              0%, 100% { height: 10px; }
+                              60% { height: 18px; }
+                            }
+                          `}
+                            </style>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "3px",
+                                height: "25px",
+                                padding: "4px",
+                              }}
+                            >
+                              {[1, 2, 3, 4, 5].map((bar) => (
+                                <div
+                                  key={bar}
+                                  style={{
+                                    width: "4px",
+                                    height: "6px",
+                                    backgroundColor: "#00bfa5",
+                                    borderRadius: "2px",
+                                    animation: `userVoiceWave${bar} ${0.5 + bar * 0.08}s infinite ease-in-out`,
+                                    opacity: 0.8,
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                ml: 1, 
+                                color: "rgba(255, 255, 255, 0.7)",
+                                fontSize: "0.75rem"
+                              }}
+                            >
+                              Listening...
+                            </Typography>
+                          </Box>
+                        )}
                       </Box>
                     )}
                   </CardContent>
