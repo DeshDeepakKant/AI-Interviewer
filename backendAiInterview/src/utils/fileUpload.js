@@ -2,7 +2,7 @@ import multer from "multer";
 import path from "path"; 
 import fs from "fs"; 
 
-const uploadDir = "./uploads";
+const uploadDir = path.join(os.tmpdir(), "uploads")
 
 
 if (!fs.existsSync(uploadDir)) {
