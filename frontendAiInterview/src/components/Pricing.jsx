@@ -605,7 +605,7 @@ const Pricing = memo(() => {
               px: { xs: 2, sm: 0 } 
             }}
           >
-            Need a custom plan? Contact us at surajpatel9390@gmail.com
+            Need a custom plan? Contact us at deshdeepakkant@gmail.com
           </Typography>
         </motion.div>
         <Box sx={{ flexGrow: 1 }} />

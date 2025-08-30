@@ -81,7 +81,7 @@ const Footer = () => {
             <Box sx={{ color: "rgba(255, 255, 255, 0.1)" }}>•</Box>
             <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
               <IconButton
-                href="https://github.com/SurajPatel04/AI-Interview"
+                href="https://github.com/DeshDeepakKant/AI-Interviewer"
                 target="_blank"
                 size="small"
                 sx={{
@@ -98,7 +98,7 @@ const Footer = () => {
                 <GitHubIcon fontSize="small" />
               </IconButton>
               <IconButton
-                href="https://www.linkedin.com/in/suraj-patel-9201b2381/"
+                href="https://www.linkedin.com/in/deshdeepakkant/"
                 target="_blank"
                 size="small"
                 sx={{
