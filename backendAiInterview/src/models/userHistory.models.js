@@ -1,42 +1,31 @@
 import mongoose from "mongoose";
-import { User } from "./user.models.js";
 
-// Define schema for a single Q&A item
-const qaItemSchema = new mongoose.Schema({
-  Question: { type: String, required: true },
-  "Your Answer": { type: String, required: true },
-  Feedback: { type: String },
-  Rating: { type: String }
-}, { _id: false });
+const historySessionSchema = new mongoose.Schema({
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
+        index: true
+    },
+    resumeSummary: { type: String },
+    experienceLevel: { type: String, index: true },
+    position: { type: String, index: true },
+    mockType: {
+        type: String,
+        enum: ["Company Interview", "Mock Interview"],
+        default: "Mock Interview",
+        index: true
+    },
+    numberOfQuestions: { type: Number, index: true },
+    overAllRating: { type: Number, index: true },
+    
+    qaItems: [{
+        question: { type: String, required: true },
+        userAnswer: { type: String, required: true }, 
+        feedback: { type: String },
+        rating: { type: Number } 
+    }]
 
-// Define schema for one history session
-const historyItemSchema = new mongoose.Schema({
-  history: {
-    type: Map,
-    of: qaItemSchema,
-    required: true
-  },
-  resume: { type: String },
-  experienceLevel: { type: String },
-  position: { type: String },
-  numberOfQuestions: { type: String },
-  overAllRating: { type: String },
-  mockType: {type: String, enum: ["Company Interview", "Mock Interview"], default: "Mock Interview"}
-}, {
-  timestamps: { createdAt: true, updatedAt: false }
-});
+}, { timestamps: true });
 
-// Update to use Map instead of array
-const userHistorySchema = new mongoose.Schema({
-  userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: User.modelName,
-    required: true
-  },
-  histories: {
-    type: Map,
-    of: historyItemSchema
-  }
-});
-
-export const UserHistory = mongoose.model("UserHistory", userHistorySchema);
+export const HistorySession = mongoose.model("HistorySession", historySessionSchema);

@@ -6,7 +6,7 @@ import client from "../utils/reddisClient.js";
 import aiInterview from "../utils/ai/index.js";
 import aiAnalysis from "../utils/ai/aiAnalysis.js";
 import { console } from "inspector";
-import { UserHistory } from "../models/userHistory.models.js";
+import { HistorySession } from "../models/userHistory.models.js";
 import {User} from "../models/user.models.js";
 import fs from 'fs/promises';
 import dotenv from "dotenv";
@@ -150,39 +150,39 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
         }
 
         const data = await client.hgetall(sessionId);
-        if(!data){
-            throw new ApiError(404, "Session not found");
+        if (!data || Object.keys(data).length === 0) {
+            throw new ApiError(404, "Session not found or is empty.");
         }
-        const ai = await aiAnalysis(data.resume, data.position, data.experienceLevel, data.messages);
-        const { overAllRating, ...questionEntries } = ai;
-        const interviewData = {
-            history: questionEntries,
-            resume: data.resume,
+        const aiResponse = await aiAnalysis(data.resume, data.position, data.experienceLevel, data.messages);
+        // const { overAllRating, ...questionEntries } = ai;
+        const qaItemsArray = aiResponse.analysis.map(item => {
+            return {
+                question: item.question,
+                // --- FIX 2: Map 'yourAnswer' from Zod to 'userAnswer' in Mongoose ---
+                userAnswer: item.userAnswer, 
+                // --- FIX 3: Ensure correct casing for 'feedback' ---
+                feedback: item.feedback,
+                rating: item.rating || 0 // Default to 0 if rating is not provided
+            };
+        });
+        const newHistoryEntry = {
+            userId: data.userId,
+            resumeSummary: data.resume,
             experienceLevel: data.experienceLevel,
             position: data.position,
-            numberOfQuestions: data.numberOfQuestionYouShouldAsk,
-            overAllRating: overAllRating
+            mockType: data.mockType || "Mock Interview", 
+            numberOfQuestions: qaItemsArray.length,
+            overAllRating: aiResponse.overAllRating || 0,
+            qaItems: qaItemsArray
         };
-
-        const user = await User.findById(data.userId);
-        if (!user) {
-                    console.error("Error in aiInterview.controller.js:", error);
-        return res.status(500).json(new ApiResponse(500, error.message));
+        const savedSession = await HistorySession.create(newHistoryEntry);
+        if (!savedSession) {
+            throw new ApiError(500, "Failed to save the interview session to the database.");
         }
-
-        const historyKey = `history ${Date.now()}`; // or use a UUID or other unique key
-        const update = {};
-        update[`histories.${historyKey}`] = interviewData;
-
-        await UserHistory.findOneAndUpdate(
-            { userId: data.userId },
-            { $set: update },
-            { upsert: true, new: true }
-        );
 
         await client.del(sessionId);
 
-        return res.status(200).json(new ApiResponse(200, "Interview analysis completed successfully"));
+        return res.status(200).json(new ApiResponse(200, savedSession, "Interview analysis completed successfully"));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
         return res.status(500).json(new ApiResponse(500, error.message));
@@ -195,7 +195,10 @@ const aiHistory = asyncHandler(async(req, res)=>{
         if (!userId) {
             throw new ApiError(400, "User ID is required");
         }
-        const history = await UserHistory.findOne({userId: userId});
+        const history = await HistorySession.find({userId: userId}).sort({ createdAt: -1 });
+        if (!history) {
+            return res.status(200).json(new ApiResponse(200, [], "No history found for this user."));
+        }
         return res.status(200).json(new ApiResponse(200, history));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);

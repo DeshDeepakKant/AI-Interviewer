@@ -1,5 +1,9 @@
 import { tracedChatTool } from "./ai.js";
-const aiAnalysis = async (resume, position, experienceLevel, chatHistory, user="Do the analysis of the interview") => {
+import { z } from "zod";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
+
+
+const aiAnalysis = async (resume, position, experienceLevel, chatHistory) => {
 
   let systemPrompt = `You are AI assistant for interview Analysis you will get these things["Position", "Experience Level","resume", "whole Interview"]. You do analysis of the interview and provide the analysis of the interview in JSON format:
 
@@ -25,13 +29,39 @@ Note:
 
 
 `
+const outputSchema = z.object({
+  overAllRating: z.number()
+    .int()
+    .min(0)
+    .max(10)
+    .describe("The overall rating for the entire interview, from 0 to 10."),
 
-let userDetails = `${user}
-User Details
-Position: ${position}
-Experience Level: ${experienceLevel}
-Resume: ${resume}
-Whole Interview: ${chatHistory}`
+  // Use z.array() to define an array of objects
+  analysis: z.array(
+    z.object({
+      question: z.string().describe("The question that was asked."),
+      userAnswer: z.string().describe("The candidate's full answer to the question."),
+      feedback: z.string().describe("Constructive feedback on the candidate's answer."),
+      rating: z.number()
+        .int()
+        .min(0)
+        .max(10)
+        .describe("A rating for this specific answer, from 0 to 10.")
+    })
+  ).describe("An array of objects, where each object is an analysis of a single question and answer.")
+});
+
+  const llm = new ChatGoogleGenerativeAI({
+    model: "gemini-2.5-flash", // Using 1.5 Flash as it has great structured output support
+  });
+
+  const structuredLlm = llm.withStructuredOutput(outputSchema);
+
+  let userDetails = `Please perform the analysis based on the following information:
+    Position: ${position}
+    Experience Level: ${experienceLevel}
+    Resume: ${resume}
+    Whole Interview: ${chatHistory}`
 //   After the candidate's final answer, say “Your interview is over.” and some greating And in the end assign the candidate a score out of 10 
 
   // After provide a concise review of each question and answer in this format: 
@@ -48,20 +78,9 @@ Whole Interview: ${chatHistory}`
     ];  
 
     // console.log("Going to call tracedChatTool");
-    const aiResponse = await tracedChatTool(messages);
-    
-
-    try {
-      // Check if response is wrapped in markdown code block
-      const jsonMatch = aiResponse.match(/```(?:json)?\n([\s\S]*?)\n```/);
-      const jsonString = jsonMatch ? jsonMatch[1] : aiResponse;
-      
-      // Parse the JSON string
-      return JSON.parse(jsonString);
-    } catch (error) {
-      console.error('Error parsing AI response:', error);
-      return aiResponse;
-    }
+    const aiResponse = await structuredLlm.invoke(messages);
+    console.log(aiResponse)
+    return aiResponse
     
 };
 
