@@ -603,14 +603,19 @@ const AIInterview = () => {
   return (
     <Box 
       sx={{ 
-        height: { xs: '100vh', md: '100vh' },
+        height: '100vh',
         display: 'flex',
         flexDirection: { xs: 'column', md: 'row' },
         gap: { xs: 1, sm: 1.5, md: 2 },
         p: { xs: 1, sm: 1.5, md: 2 },
         backgroundColor: 'var(--dark-bg)',
         fontFamily: 'Inter, sans-serif',
-        overflow: { xs: 'auto', md: 'hidden' }
+        overflow: 'hidden',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0
       }}
     >
       {/* Left Side */}
@@ -620,40 +625,42 @@ const AIInterview = () => {
         height: { xs: 'auto', md: '100%' },
         display: 'flex', 
         flexDirection: { xs: 'row', md: 'column' }, 
-        gap: { xs: 1, sm: 1.5, md: 2 }
+        gap: { xs: 1, sm: 1.5, md: 2 },
+        flexShrink: 0
       }}>
         
         {/* AI Assistant Box */}
         <Paper 
           elevation={3}
           sx={{ 
-            p: { xs: 1.5, sm: 2, md: 3 },
+            p: { xs: 1, sm: 2, md: 3 },
             backgroundColor: 'var(--darker-bg)',
             border: '1px solid rgba(0, 191, 165, 0.2)',
             borderRadius: 2,
-            height: { xs: 'auto', md: '200px' },
+            height: { xs: '120px', sm: '140px', md: '200px' },
             flex: { xs: '1', md: 'none' },
-            minHeight: { xs: '120px', sm: '140px', md: '200px' }
+            minHeight: { xs: '120px', sm: '140px', md: '200px' },
+            overflow: 'hidden'
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 1, md: 2 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 0.5, md: 2 } }}>
             <Avatar 
               sx={{ 
                 bgcolor: 'var(--primary-color)', 
-                mr: { xs: 1, md: 2 },
-                width: { xs: 32, sm: 36, md: 40 },
-                height: { xs: 32, sm: 36, md: 40 },
-                fontSize: { xs: '0.9rem', md: '1rem' }
+                mr: { xs: 0.5, md: 2 },
+                width: { xs: 24, sm: 36, md: 40 },
+                height: { xs: 24, sm: 36, md: 40 },
+                fontSize: { xs: '0.8rem', md: '1rem' }
               }}
             >
-              <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.2rem' } }} />
+              <AIIcon sx={{ fontSize: { xs: '0.9rem', md: '1.2rem' } }} />
             </Avatar>
             <Typography 
               variant="h6" 
               sx={{ 
                 color: 'var(--text-primary)',
                 fontWeight: 600,
-                fontSize: { xs: '1rem', sm: '1.1rem', md: '1.25rem' }
+                fontSize: { xs: '0.8rem', sm: '1.1rem', md: '1.25rem' }
               }}
             >
               AI Assistant
@@ -664,32 +671,32 @@ const AIInterview = () => {
             variant="body2" 
             sx={{ 
               color: 'var(--text-secondary)',
-              mb: { xs: 1, md: 2 },
-              lineHeight: 1.6,
-              fontSize: { xs: '0.8rem', md: '0.875rem' }
+              mb: { xs: 0.5, md: 2 },
+              lineHeight: 1.4,
+              fontSize: { xs: '0.65rem', md: '0.875rem' }
             }}
           >
             Status: {isInterviewActive ? 'Interview in Progress' : 'Ready to Start'}
           </Typography>
           
           {/* Progress Bar */}
-          <Box sx={{ mb: { xs: 1, md: 2 } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+          <Box sx={{ mb: { xs: 0, md: 2 } }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
               <Typography 
                 variant="caption" 
                 sx={{ 
                   color: 'var(--text-primary)',
-                  fontSize: { xs: '0.7rem', md: '0.75rem' },
+                  fontSize: { xs: '0.6rem', md: '0.75rem' },
                   fontWeight: 600
                 }}
               >
-                Question Progress
+                Progress
               </Typography>
               <Typography 
                 variant="caption" 
                 sx={{ 
                   color: 'var(--primary-color)',
-                  fontSize: { xs: '0.7rem', md: '0.75rem' },
+                  fontSize: { xs: '0.6rem', md: '0.75rem' },
                   fontWeight: 600
                 }}
               >
@@ -700,7 +707,7 @@ const AIInterview = () => {
               variant="determinate"
               value={(currentQuestion / totalQuestions) * 100}
               sx={{
-                height: { xs: 6, md: 8 },
+                height: { xs: 3, md: 8 },
                 borderRadius: 3,
                 backgroundColor: 'rgba(0, 191, 165, 0.1)',
                 '& .MuiLinearProgress-bar': {
@@ -709,17 +716,6 @@ const AIInterview = () => {
                 }
               }}
             />
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: 'var(--text-secondary)',
-                fontSize: { xs: '0.65rem', md: '0.7rem' },
-                mt: 0.5,
-                display: 'block'
-              }}
-            >
-              {totalQuestions - currentQuestion} questions remaining
-            </Typography>
           </Box>
           
         </Paper>
@@ -734,17 +730,17 @@ const AIInterview = () => {
             borderRadius: 2,
             overflow: 'hidden',
             position: 'relative',
-            minHeight: { xs: '120px', sm: '180px', md: '300px' },
-            height: { xs: 'auto', md: 'auto' }
+            height: { xs: '120px', sm: '180px', md: 'auto' },
+            minHeight: { xs: '120px', sm: '180px', md: '300px' }
           }}
         >
-          <Box sx={{ p: { xs: 1.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)' }}>
+          <Box sx={{ p: { xs: 0.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)' }}>
             <Typography 
               variant="h6" 
               sx={{ 
                 color: 'var(--text-primary)',
                 fontWeight: 600,
-                fontSize: { xs: '1rem', md: '1.25rem' }
+                fontSize: { xs: '0.8rem', md: '1.25rem' }
               }}
             >
               Camera View
@@ -753,7 +749,7 @@ const AIInterview = () => {
           
           <Box sx={{ 
             position: 'relative', 
-            height: { xs: 'calc(100% - 50px)', md: 'calc(100% - 60px)' },
+            height: { xs: 'calc(100% - 30px)', md: 'calc(100% - 60px)' },
             backgroundColor: '#000',
             display: 'flex',
             alignItems: 'center',
@@ -775,8 +771,8 @@ const AIInterview = () => {
                 textAlign: 'center',
                 color: 'var(--text-secondary)'
               }}>
-                <VideocamOffIcon sx={{ fontSize: { xs: 32, md: 48 }, mb: 1 }} />
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.8rem', md: '0.875rem' } }}>
+                <VideocamOffIcon sx={{ fontSize: { xs: 16, md: 48 }, mb: { xs: 0, md: 1 } }} />
+                <Typography variant="body2" sx={{ fontSize: { xs: '0.6rem', md: '0.875rem' } }}>
                   Camera is off
                 </Typography>
               </Box>
@@ -784,15 +780,17 @@ const AIInterview = () => {
             
             <IconButton
               onClick={toggleCamera}
-              size={window.innerWidth < 600 ? 'small' : 'medium'}
+              size="small"
               sx={{
                 position: 'absolute',
-                bottom: { xs: 5, md: 10 },
-                right: { xs: 5, md: 10 },
+                bottom: { xs: 2, md: 10 },
+                right: { xs: 2, md: 10 },
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 color: isCameraOn ? 'var(--primary-color)' : 'var(--text-secondary)',
                 border: `1px solid ${isCameraOn ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'}`,
                 backdropFilter: 'blur(10px)',
+                width: { xs: 20, md: 'auto' },
+                height: { xs: 20, md: 'auto' },
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.8)',
                   transform: 'scale(1.05)'
@@ -800,21 +798,23 @@ const AIInterview = () => {
                 transition: 'all 0.3s ease'
               }}
             >
-              {isCameraOn ? <VideocamIcon /> : <VideocamOffIcon />}
+              {isCameraOn ? <VideocamIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} /> : <VideocamOffIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} />}
             </IconButton>
 
             <IconButton
               onClick={toggleMic}
-              size={window.innerWidth < 600 ? 'small' : 'medium'}
+              size="small"
               sx={{
                 position: 'absolute',
-                bottom: { xs: 5, md: 10 },
-                right: { xs: 55, md: 70 },
+                bottom: { xs: 2, md: 10 },
+                right: { xs: 24, md: 70 },
                 backgroundColor: 'rgba(0, 0, 0, 0.7)',
                 color: isMicOn ? 'var(--primary-color)' : 'var(--text-secondary)',
                 border: `1px solid ${isListening ? 'var(--primary-color)' : isMicOn ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'}`,
                 backdropFilter: 'blur(10px)',
                 animation: isListening ? 'micPulse 1.5s ease-in-out infinite' : 'none',
+                width: { xs: 20, md: 'auto' },
+                height: { xs: 20, md: 'auto' },
                 '&:hover': {
                   backgroundColor: 'rgba(0, 0, 0, 0.8)',
                   transform: 'scale(1.05)'
@@ -832,7 +832,7 @@ const AIInterview = () => {
                 }
               }}
             >
-              {isMicOn ? <MicIcon /> : <MicOffIcon />}
+              {isMicOn ? <MicIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} /> : <MicOffIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} />}
             </IconButton>
           </Box>
         </Paper>
@@ -840,13 +840,14 @@ const AIInterview = () => {
 
       {/* Right Side - Chat Area */}
       <Box sx={{ 
-        flex: { xs: 'none', md: 1 }, 
+        flex: { xs: '1', md: 1 }, 
         width: { xs: '100%', md: 'auto' },
         height: { xs: 'auto', md: '100%' },
         display: 'flex', 
         flexDirection: 'column',
-        gap: { xs: 0.5, sm: 1, md: 2 }, // Reduced gap for mobile
-        minHeight: { xs: '400px', md: 'auto' } // Increased min height for mobile
+        gap: { xs: 1, sm: 1, md: 2 },
+        minHeight: { xs: '0', md: 'auto' },
+        overflow: 'hidden'
       }}>
         
         {/* Chat Box */}
@@ -861,10 +862,11 @@ const AIInterview = () => {
             overflow: 'hidden',
             flex: 1,
             height: { 
-              xs: 'calc(100vh - 280px)', // More height for mobile 
-              sm: 'calc(100vh - 250px)', // Tablet optimization
-              md: 'calc(100vh - 120px)' 
-            }
+              xs: 'calc(100vh - 320px)',
+              sm: 'calc(100vh - 400px)',
+              md: 'calc(100vh - 150px)' 
+            },
+            minHeight: { xs: '150px', md: 'auto' }
           }}
         >
           {/* Chat Header */}
@@ -950,7 +952,22 @@ const AIInterview = () => {
               flex: 1,
               p: { xs: 1, md: 2 },
               overflowY: 'auto',
-              height: '100%'
+              height: '100%',
+              minHeight: 0,
+              '&::-webkit-scrollbar': {
+                width: '6px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '3px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: 'var(--primary-color)',
+                borderRadius: '3px',
+              },
+              '&::-webkit-scrollbar-thumb:hover': {
+                background: 'var(--primary-dark)',
+              },
             }}
           >
             {/* Instructions - Show only when interview is not active */}
@@ -1277,29 +1294,31 @@ const AIInterview = () => {
         </Paper>
 
         {/* Start/End Interview Button */}
-        <Button
-          variant="contained"
-          size={window.innerWidth < 600 ? 'medium' : 'large'}
-          onClick={toggleInterview}
-          startIcon={isInterviewActive ? <StopIcon /> : <PlayIcon />}
-          sx={{
-            backgroundColor: isInterviewActive ? '#ff6b6b' : 'var(--primary-color)',
-            color: 'white',
-            py: { xs: 1, md: 2 }, // Reduced padding for mobile
-            px: { xs: 2, md: 3 },
-            fontSize: { xs: '0.85rem', sm: '0.9rem', md: '1.1rem' }, // Smaller font for mobile
-            fontWeight: 600,
-            '&:hover': {
-              backgroundColor: isInterviewActive ? '#e55a5a' : 'var(--primary-dark)',
-            },
-            borderRadius: 2,
-            textTransform: 'none',
-            width: '100%',
-            minHeight: { xs: '44px', md: 'auto' } // Controlled height for mobile
-          }}
-        >
-          {isInterviewActive ? 'End Interview' : 'Start Interview'}
-        </Button>
+        <Box sx={{ flexShrink: 0 }}>
+          <Button
+            variant="contained"
+            size={window.innerWidth < 600 ? 'medium' : 'large'}
+            onClick={toggleInterview}
+            startIcon={isInterviewActive ? <StopIcon /> : <PlayIcon />}
+            sx={{
+              backgroundColor: isInterviewActive ? '#ff6b6b' : 'var(--primary-color)',
+              color: 'white',
+              py: { xs: 1.5, md: 2 },
+              px: { xs: 2, md: 3 },
+              fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
+              fontWeight: 600,
+              '&:hover': {
+                backgroundColor: isInterviewActive ? '#e55a5a' : 'var(--primary-dark)',
+              },
+              borderRadius: 2,
+              textTransform: 'none',
+              width: '100%',
+              minHeight: { xs: '48px', md: 'auto' }
+            }}
+          >
+            {isInterviewActive ? 'End Interview' : 'Start Interview'}
+          </Button>
+        </Box>
       </Box>
     </Box>
   );
