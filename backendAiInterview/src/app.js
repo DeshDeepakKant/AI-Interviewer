@@ -11,7 +11,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://ai-interview-r4kaoxqra-surajpatel04s-projects.vercel.app',
   'https://ai-interview-git-main-surajpatel04s-projects.vercel.app',
-  'https://ai-interview-seven-chi.vercel.app'
+  'https://ai-interview-seven-chi.vercel.app',
 ];
 
 app.use(cors({

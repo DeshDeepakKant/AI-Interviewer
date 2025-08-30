@@ -79,7 +79,7 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
                 messages: JSON.stringify([]),
             }
         )
-        return res.status(200).json(new ApiResponse(200, "AI interview started successfully"));
+        return res.status(200).json(new ApiResponse(200, {numberOfQuestion: numberOfQuestionYouShouldAsk}));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
         return res.status(500).json(new ApiResponse(500, error.message));
@@ -133,7 +133,7 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
 
         return res.status(200).json(
             new ApiResponse(200, {
-                result: ai,
+                result: ai
             })
         );
     } catch (error) {
