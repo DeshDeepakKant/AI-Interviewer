@@ -13,7 +13,7 @@ import Layout from "./components/Layout.jsx";
 import LoginPage from "./components/LoginPage.jsx";
 import Testing from "./components/testing.jsx";
 import AIInterview from "./components/AIInterview.jsx";
-import LayoutWithoutFooter from "./components/LayoutWithoutFooter.jsx";
+// import LayoutWithoutFooter from "./components/LayoutWithoutFooter.jsx";
 import Features from "./components/Features.jsx";
 import Pricing from "./components/Pricing.jsx";
 // import ComingSoon from "./components/ComingSoon.jsx";
@@ -43,8 +43,11 @@ const router = createBrowserRouter(
         <Route element={<ProtectedRoute />}>
           <Route path="mockInterviewWay" element={<MockInterviewWay />} />
           <Route path="dashboard" element={<UserDashboard />} />
-          <Route path="interview" element={<AIInterview />} />
         </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute />}>
+        <Route path="interview" element={<AIInterview />} />
       </Route>
 
     </>,
@@ -79,4 +82,3 @@ createRoot(document.getElementById("root")).render(
     </AuthProvider>
   </StrictMode>,
 );
-
