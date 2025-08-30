@@ -30,6 +30,7 @@ import QuizIcon from '@mui/icons-material/Quiz';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import BusinessIcon from '@mui/icons-material/Business';
+import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 // Animation keyframes
@@ -118,6 +119,8 @@ const MockInterviewWay = () => {
   const [position, setPosition] = useState(positions[0]);
   const experienceLevels = ['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'];
   const [experience, setExperience] = useState(experienceLevels[0]);
+  const interviewModes = ['Guided Mode', 'Hard Mode'];
+  const [interviewMode, setInterviewMode] = useState(interviewModes[0]);
   const [resumeFile, setResumeFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -128,6 +131,7 @@ const MockInterviewWay = () => {
   const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
   const handleExperienceChange = (event) => setExperience(event.target.value);
   const handlePositionChange = (event) => setPosition(event.target.value);
+  const handleInterviewModeChange = (event) => setInterviewMode(event.target.value);
   const handleFileUpload = async (event) => {
     // Check if we have a file from the event
     const file = event?.target?.files?.[0] || event;
@@ -293,6 +297,7 @@ const MockInterviewWay = () => {
         navigate('/interview', { 
           state: { 
             sessionId: currentSessionId,
+            numberOfQuestions: response.data.data.numberOfQuestion,
           },
           replace: true
         });
@@ -649,6 +654,85 @@ const MockInterviewWay = () => {
                           }}
                         >
                           {exp}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.45 }}
+                >
+                  <FormControl fullWidth variant="outlined">
+                    <InputLabel id="interview-mode-label" sx={{ color: '#ffffff' }}>
+                      Interview Mode
+                    </InputLabel>
+                    <Select
+                      labelId="interview-mode-label"
+                      id="interview-mode"
+                      value={interviewMode}
+                      onChange={handleInterviewModeChange}
+                      label="Interview Mode"
+                      startAdornment={
+                        <RecordVoiceOverIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', mr: 1, fontSize: 20 }} />
+                      }
+                      MenuProps={{
+                        PaperProps: {
+                          sx: {
+                            bgcolor: '#1a1f2e',
+                            color: '#ffffff',
+                            '& .MuiMenuItem-root': {
+                              padding: '8px 16px',
+                              '&:hover': {
+                                backgroundColor: 'rgba(0, 191, 165, 0.15)',
+                              },
+                              '&.Mui-selected': {
+                                backgroundColor: 'rgba(0, 191, 165, 0.25)',
+                                '&:hover': {
+                                  backgroundColor: 'rgba(0, 191, 165, 0.3)',
+                                },
+                              },
+                            },
+                          },
+                        },
+                      }}
+                      sx={{
+                        color: '#ffffff',
+                        '& .MuiSelect-icon': {
+                          color: 'rgba(255, 255, 255, 0.7)',
+                        },
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.1)',
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(0, 191, 165, 0.5)',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#00bfa5',
+                        },
+                        mb: 2
+                      }}
+                    >
+                      {interviewModes.map((mode) => (
+                        <MenuItem 
+                          key={mode} 
+                          value={mode}
+                          sx={{
+                            color: '#ffffff',
+                            '&:hover': {
+                              backgroundColor: 'rgba(0, 191, 165, 0.15)',
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: 'rgba(0, 191, 165, 0.25)',
+                              '&:hover': {
+                                backgroundColor: 'rgba(0, 191, 165, 0.3)',
+                              },
+                            },
+                          }}
+                        >
+                          {mode === 'Guided Mode' ? '📚 ' : '🔥 '}{mode}
                         </MenuItem>
                       ))}
                     </Select>

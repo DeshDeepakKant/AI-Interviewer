@@ -9,7 +9,12 @@ import {
   Avatar,
   Divider,
   CircularProgress,
-  LinearProgress
+  LinearProgress,
+  Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { 
   Send as SendIcon, 
@@ -20,7 +25,9 @@ import {
   PlayArrow as PlayIcon,
   Stop as StopIcon,
   AutoAwesome as AIIcon,
-  Person as UserIcon
+  Person as UserIcon,
+  Info as InfoIcon,
+  RecordVoiceOver as MockInterviewIcon
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -32,8 +39,8 @@ const AIInterview = () => {
   
   // Session and API states
   const [sessionId, setSessionId] = useState('');
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const [totalQuestions] = useState(10); // Assuming 10 questions total
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [totalQuestions, setTotalQuestions] = useState(10); // Default value, will be updated from API
   
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -49,6 +56,9 @@ const AIInterview = () => {
   const [finalTranscript, setFinalTranscript] = useState('');
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [interviewMode, setInterviewMode] = useState('Guided Mode');
+  const [isMobileView, setIsMobileView] = useState(false);
   
   const videoRef = useRef(null);
   const chatEndRef = useRef(null);
@@ -137,6 +147,39 @@ const AIInterview = () => {
     };
   }, [isInterviewActive, sessionId, navigate]);
 
+  // Detect mobile view
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    
+    checkMobileView();
+    window.addEventListener('resize', checkMobileView);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobileView);
+    };
+  }, []);
+
+  // Handle outside clicks to close tooltip
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isTooltipOpen && !event.target.closest('[data-tooltip-trigger]')) {
+        setIsTooltipOpen(false);
+      }
+    };
+
+    if (isMobileView) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isTooltipOpen, isMobileView]);
+
   // Initialize session when component mounts
   useEffect(() => {
     const stateData = location.state || {};
@@ -147,6 +190,17 @@ const AIInterview = () => {
     if (activeSessionId) {
       setSessionId(activeSessionId);
       sessionStorage.setItem('interviewSessionId', activeSessionId);
+      
+      // Set number of questions if provided in state or stored in sessionStorage
+      if (stateData.numberOfQuestions) {
+        setTotalQuestions(stateData.numberOfQuestions);
+        sessionStorage.setItem('numberOfQuestions', stateData.numberOfQuestions.toString());
+      } else {
+        const storedQuestions = sessionStorage.getItem('numberOfQuestions');
+        if (storedQuestions) {
+          setTotalQuestions(parseInt(storedQuestions));
+        }
+      }
     } else {
       toast.error('No active interview session found');
       navigate('/');
@@ -206,6 +260,11 @@ const AIInterview = () => {
       console.error('Error playing audio:', e);
       setIsAudioPlaying(false);
     });
+  };
+
+  // Handle interview mode change
+  const handleModeChange = (event) => {
+    setInterviewMode(event.target.value);
   };
 
   // Stop all media streams and recognition
@@ -539,6 +598,7 @@ const AIInterview = () => {
           }
           
           setIsInterviewActive(true);
+          setCurrentQuestion(1); // Set to 1 when interview starts
           setTabSwitchCount(0); // Reset tab switch count when interview starts
           
           setTimeout(() => {
@@ -557,7 +617,12 @@ const AIInterview = () => {
     } else {
       // End interview
       setIsInterviewActive(false);
+      setCurrentQuestion(0); // Reset to 0 when interview ends
       stopAllMedia();
+      
+      // Clean up session storage
+      sessionStorage.removeItem('interviewSessionId');
+      sessionStorage.removeItem('numberOfQuestions');
       
       // Start analysis in background without waiting
       axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
@@ -601,23 +666,42 @@ const AIInterview = () => {
   };
 
   return (
-    <Box 
-      sx={{ 
-        height: '100vh',
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        gap: { xs: 1, sm: 1.5, md: 2 },
-        p: { xs: 1, sm: 1.5, md: 2 },
-        backgroundColor: 'var(--dark-bg)',
-        fontFamily: 'Inter, sans-serif',
-        overflow: 'hidden',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0
-      }}
-    >
+    <>
+      <Box 
+        sx={{ 
+          height: '100vh',
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          gap: { xs: 1, sm: 1.5, md: 2 },
+          p: { xs: 1, sm: 1.5, md: 2 },
+          backgroundColor: 'var(--dark-bg)',
+          fontFamily: 'Inter, sans-serif',
+          overflow: 'hidden',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          filter: isTooltipOpen ? 'blur(3px)' : 'none',
+          transition: 'filter 0.3s ease-in-out'
+        }}
+      >
+      
+      {/* Backdrop Blur Overlay */}
+      {isTooltipOpen && (
+        <Box
+          sx={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 9998,
+            pointerEvents: 'none'
+          }}
+        />
+      )}
       {/* Left Side */}
       <Box sx={{ 
         flex: { xs: 'none', md: '0 0 40%' }, 
@@ -637,9 +721,9 @@ const AIInterview = () => {
             backgroundColor: 'var(--darker-bg)',
             border: '1px solid rgba(0, 191, 165, 0.2)',
             borderRadius: 2,
-            height: { xs: '120px', sm: '140px', md: '200px' },
+            height: { xs: 'auto', sm: 'auto', md: 'auto' },
             flex: { xs: '1', md: 'none' },
-            minHeight: { xs: '120px', sm: '140px', md: '200px' },
+            minHeight: { xs: '160px', sm: '180px', md: 'auto' }, // Reduced mobile minHeight
             overflow: 'hidden'
           }}
         >
@@ -653,7 +737,7 @@ const AIInterview = () => {
                 fontSize: { xs: '0.8rem', md: '1rem' }
               }}
             >
-              <AIIcon sx={{ fontSize: { xs: '0.9rem', md: '1.2rem' } }} />
+              <MockInterviewIcon sx={{ fontSize: { xs: '0.9rem', md: '1.2rem' } }} />
             </Avatar>
             <Typography 
               variant="h6" 
@@ -663,7 +747,7 @@ const AIInterview = () => {
                 fontSize: { xs: '0.8rem', sm: '1.1rem', md: '1.25rem' }
               }}
             >
-              AI Assistant
+              Mock Interview
             </Typography>
           </Box>
           
@@ -718,6 +802,113 @@ const AIInterview = () => {
             />
           </Box>
           
+          {/* Mode Selector */}
+          <Box sx={{ mt: { xs: 1, md: 2 } }}>
+            <FormControl fullWidth variant="outlined" size="small">
+              <InputLabel 
+                id="mode-label" 
+                sx={{ 
+                  color: 'var(--text-secondary)',
+                  fontSize: { xs: '0.7rem', md: '0.875rem' },
+                  '&.Mui-focused': {
+                    color: 'var(--primary-color)'
+                  }
+                }}
+              >
+                Interview Mode
+              </InputLabel>
+              <Select
+                labelId="mode-label"
+                id="interview-mode"
+                value={interviewMode}
+                onChange={handleModeChange}
+                label="Interview Mode"
+                disabled={isInterviewActive}
+                MenuProps={{
+                  PaperProps: {
+                    sx: {
+                      bgcolor: 'var(--darker-bg)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid rgba(0, 191, 165, 0.2)',
+                      '& .MuiMenuItem-root': {
+                        padding: '8px 16px',
+                        fontSize: { xs: '0.8rem', md: '0.875rem' },
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 191, 165, 0.15)',
+                        },
+                        '&.Mui-selected': {
+                          backgroundColor: 'rgba(0, 191, 165, 0.25)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 191, 165, 0.3)',
+                          },
+                        },
+                      },
+                    },
+                  },
+                }}
+                sx={{
+                  color: 'var(--text-primary)',
+                  fontSize: { xs: '0.8rem', md: '0.875rem' },
+                  '& .MuiSelect-icon': {
+                    color: 'var(--text-secondary)',
+                  },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(0, 191, 165, 0.2)',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'rgba(0, 191, 165, 0.5)',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: 'var(--primary-color)',
+                  },
+                  '&.Mui-disabled': {
+                    opacity: 0.6,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                  },
+                }}
+              >
+                <MenuItem 
+                  value="Guided Mode"
+                  sx={{
+                    color: 'var(--text-primary)',
+                    fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 191, 165, 0.15)',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(0, 191, 165, 0.25)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 191, 165, 0.3)',
+                      },
+                    },
+                  }}
+                >
+                  📚 Guided Mode
+                </MenuItem>
+                <MenuItem 
+                  value="Hard Mode"
+                  sx={{
+                    color: 'var(--text-primary)',
+                    fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    '&:hover': {
+                      backgroundColor: 'rgba(0, 191, 165, 0.15)',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'rgba(0, 191, 165, 0.25)',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 191, 165, 0.3)',
+                      },
+                    },
+                  }}
+                >
+                  🔥 Hard Mode
+                </MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          
         </Paper>
 
         {/* Camera View Box */}
@@ -730,8 +921,8 @@ const AIInterview = () => {
             borderRadius: 2,
             overflow: 'hidden',
             position: 'relative',
-            height: { xs: '120px', sm: '180px', md: 'auto' },
-            minHeight: { xs: '120px', sm: '180px', md: '300px' }
+            height: { xs: 'auto', sm: 'auto', md: 'auto' },
+            minHeight: { xs: '160px', sm: '180px', md: 'auto' } // Reduced to match AI Assistant
           }}
         >
           <Box sx={{ p: { xs: 0.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)' }}>
@@ -871,16 +1062,125 @@ const AIInterview = () => {
         >
           {/* Chat Header */}
           <Box sx={{ p: { xs: 1.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'var(--text-primary)',
-                fontWeight: 600,
-                fontSize: { xs: '1rem', md: '1.25rem' }
-              }}
-            >
-              AI Chat
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  fontSize: { xs: '1rem', md: '1.25rem' }
+                }}
+              >
+                AI Chat
+              </Typography>
+              
+              <Tooltip 
+                open={isTooltipOpen}
+                onClose={() => setIsTooltipOpen(false)}
+                onOpen={() => setIsTooltipOpen(true)}
+                disableFocusListener={isMobileView}
+                disableHoverListener={isMobileView}
+                disableTouchListener={!isMobileView}
+                title={
+                  <Box sx={{ p: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ 
+                      fontWeight: 700, 
+                      mb: 1.5, 
+                      color: '#00e5ff',
+                      textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
+                      fontSize: { xs: '0.9rem', md: '1rem' }
+                    }}>
+                      📋 Important Instructions:
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      mb: 1, 
+                      color: '#ffffff',
+                      fontWeight: 500,
+                      lineHeight: 1.6,
+                      fontSize: { xs: '0.8rem', md: '0.9rem' }
+                    }}>
+                      • Tab switching is monitored - after 3 tab switches, your interview will end automatically
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      mb: 1, 
+                      color: '#ffffff',
+                      fontWeight: 500,
+                      lineHeight: 1.6,
+                      fontSize: { xs: '0.8rem', md: '0.9rem' }
+                    }}>
+                      • Your interview analysis will be available in the dashboard after completion
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      mb: 1, 
+                      color: '#ffffff',
+                      fontWeight: 500,
+                      lineHeight: 1.6,
+                      fontSize: { xs: '0.8rem', md: '0.9rem' }
+                    }}>
+                      • To submit your answer: Click the submit button or press Enter
+                    </Typography>
+                    <Typography variant="body2" sx={{ 
+                      color: '#ffffff',
+                      fontWeight: 500,
+                      lineHeight: 1.6,
+                      fontSize: { xs: '0.8rem', md: '0.9rem' }
+                    }}>
+                      • For new line in your response: Press Shift + Enter
+                    </Typography>
+                  </Box>
+                }
+                placement="bottom-start"
+                arrow
+                sx={{
+                  '& .MuiTooltip-tooltip': {
+                    background: '#05131C',
+                    border: '1px solid rgba(0, 191, 165, 0.4)',
+                    borderRadius: '16px',
+                    boxShadow: '0 12px 40px rgba(0, 191, 165, 0.25), 0 4px 16px rgba(0, 0, 0, 0.3)',
+                    maxWidth: { xs: '400px', md: '600px' },
+                    zIndex: 10000,
+                    color: '#ffffff',
+                    padding: { xs: '12px 16px', md: '16px 20px' },
+                    fontSize: { xs: '0.8rem', md: '0.9rem' },
+                    filter: 'none !important',
+                    isolation: 'isolate'
+                  },
+                  '& .MuiTooltip-arrow': {
+                    color: '#05131C',
+                    zIndex: 10000,
+                    filter: 'none !important',
+                    '&::before': {
+                      border: '1px solid rgba(0, 191, 165, 0.4)',
+                      background: '#05131C'
+                    }
+                  },
+                  '& .MuiTooltip-popper': {
+                    zIndex: 10000,
+                    filter: 'none !important',
+                    isolation: 'isolate'
+                  }
+                }}
+              >
+                <IconButton 
+                  size="small"
+                  data-tooltip-trigger
+                  onClick={isMobileView ? () => setIsTooltipOpen(!isTooltipOpen) : undefined}
+                  onMouseEnter={!isMobileView ? () => setIsTooltipOpen(true) : undefined}
+                  onMouseLeave={!isMobileView ? () => setIsTooltipOpen(false) : undefined}
+                  sx={{ 
+                    color: 'rgba(0, 191, 165, 0.7)',
+                    '&:hover': { 
+                      color: 'var(--primary-color)',
+                      backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                      transform: 'scale(1.1)'
+                    },
+                    transition: 'all 0.2s ease-in-out'
+                  }}
+                >
+                  <InfoIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
             
             {/* Voice Animation */}
             {isListening && (
@@ -1321,6 +1621,7 @@ const AIInterview = () => {
         </Box>
       </Box>
     </Box>
+    </>
   );
 };
 
