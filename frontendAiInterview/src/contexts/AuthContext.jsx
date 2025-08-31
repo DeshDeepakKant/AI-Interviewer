@@ -82,9 +82,25 @@ export const AuthProvider = ({ children }) => {
       const savedUser = getUserData();
       if (savedUser) {
         setUser(savedUser);
+        setIsInitialized(true);
+        setIsLoading(false);
+        
+        // Only verify with server if user data is old or on critical actions
+        // Optional: Add timestamp check here
+        const lastVerified = localStorage.getItem('lastVerified');
+        const now = Date.now();
+        const VERIFICATION_INTERVAL = 30 * 60 * 1000; // 30 minutes
+        
+        if (!lastVerified || (now - parseInt(lastVerified)) > VERIFICATION_INTERVAL) {
+          // Verify in background without blocking UI
+          verifyAuthentication().then(() => {
+            localStorage.setItem('lastVerified', now.toString());
+          });
+        }
+      } else {
+        // No saved user, need to verify
+        await verifyAuthentication();
       }
-      
-      await verifyAuthentication();
     };
 
     initializeAuth();
