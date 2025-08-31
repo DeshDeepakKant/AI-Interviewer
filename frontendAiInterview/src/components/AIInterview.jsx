@@ -27,7 +27,9 @@ import {
   AutoAwesome as AIIcon,
   Person as UserIcon,
   Info as InfoIcon,
-  RecordVoiceOver as MockInterviewIcon
+  RecordVoiceOver as MockInterviewIcon,
+  School as SchoolIcon,
+  Whatshot as WhatshotIcon
 } from '@mui/icons-material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -180,6 +182,59 @@ const AIInterview = () => {
     };
   }, [isTooltipOpen, isMobileView]);
 
+  // Handle Alt+Tab warning during interview
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      // Check for Alt+Tab (Alt key + Tab key)
+      if (event.altKey && event.key === 'Tab' && isInterviewActive) {
+        event.preventDefault(); // Prevent the actual tab switching
+        
+        toast.warning('⚠️ Warning: Switching tabs during interview is not allowed!', {
+          position: "top-center",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          style: {
+            backgroundColor: '#ff9800',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        });
+      }
+      
+      // Also check for Cmd+Tab on Mac (Meta key + Tab key)
+      if (event.metaKey && event.key === 'Tab' && isInterviewActive) {
+        event.preventDefault();
+        
+        toast.warning('⚠️ Warning: Switching applications during interview is not allowed!', {
+          position: "top-center",
+          autoClose: 4000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          style: {
+            backgroundColor: '#ff9800',
+            color: 'white',
+            fontWeight: 'bold'
+          }
+        });
+      }
+    };
+
+    // Add event listener when interview is active
+    if (isInterviewActive) {
+      document.addEventListener('keydown', handleKeyDown);
+    }
+
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isInterviewActive]);
+
   // Initialize session when component mounts
   useEffect(() => {
     const stateData = location.state || {};
@@ -264,7 +319,38 @@ const AIInterview = () => {
 
   // Handle interview mode change
   const handleModeChange = (event) => {
-    setInterviewMode(event.target.value);
+    const newMode = event.target.value;
+    const oldMode = interviewMode;
+    
+    setInterviewMode(newMode);
+    
+    // Show a toast notification about the mode change
+    if (isInterviewActive && newMode !== oldMode) {
+      toast.info(
+        `Interview mode changed to ${newMode}. The AI will adjust its questioning style accordingly.`,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
+      
+      // Add a message to the chat to indicate the mode change
+      const modeChangeMessage = {
+        id: Date.now(), // Use timestamp as unique ID
+        sender: 'system',
+        text: `Mode changed to ${newMode}`,
+        timestamp: new Date(),
+        isSystem: true,
+        modeChange: true,
+        newMode: newMode
+      };
+      
+      setMessages(prev => [...prev, modeChangeMessage]);
+    }
   };
 
   // Stop all media streams and recognition
@@ -823,7 +909,16 @@ const AIInterview = () => {
                 value={interviewMode}
                 onChange={handleModeChange}
                 label="Interview Mode"
-                disabled={isInterviewActive}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {selected === 'Guided Mode' ? (
+                      <SchoolIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
+                    ) : (
+                      <WhatshotIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
+                    )}
+                    {selected}
+                  </Box>
+                )}
                 MenuProps={{
                   PaperProps: {
                     sx: {
@@ -874,6 +969,9 @@ const AIInterview = () => {
                   sx={{
                     color: 'var(--text-primary)',
                     fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
                     '&:hover': {
                       backgroundColor: 'rgba(0, 191, 165, 0.15)',
                     },
@@ -885,13 +983,17 @@ const AIInterview = () => {
                     },
                   }}
                 >
-                  📚 Guided Mode
+                  <SchoolIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
+                  <Box component="span" sx={{ ml: 0.5 }}>Guided Mode</Box>
                 </MenuItem>
                 <MenuItem 
                   value="Hard Mode"
                   sx={{
                     color: 'var(--text-primary)',
                     fontSize: { xs: '0.8rem', md: '0.875rem' },
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1,
                     '&:hover': {
                       backgroundColor: 'rgba(0, 191, 165, 0.15)',
                     },
@@ -903,7 +1005,8 @@ const AIInterview = () => {
                     },
                   }}
                 >
-                  🔥 Hard Mode
+                  <WhatshotIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
+                  <Box component="span" sx={{ ml: 0.5 }}>Hard Mode</Box>
                 </MenuItem>
               </Select>
             </FormControl>
@@ -1394,77 +1497,136 @@ const AIInterview = () => {
             )}
 
             {/* Chat Messages - Show only when interview is active */}
-            {isInterviewActive && messages.map((message) => (
-              <Box 
-                key={message.id}
-                sx={{ 
-                  mb: { xs: 1.5, md: 2 },
-                  display: 'flex',
-                  justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-                  alignItems: 'flex-start',
-                  gap: 1
-                }}
-              >
-                {message.sender === 'ai' && (
-                  <Avatar 
+            {isInterviewActive && messages.map((message) => {
+              // Special rendering for system messages (mode changes)
+              if (message.sender === 'system' && message.modeChange) {
+                return (
+                  <Box 
+                    key={message.id}
                     sx={{ 
-                      bgcolor: 'var(--primary-color)', 
-                      width: { xs: 28, md: 32 },
-                      height: { xs: 28, md: 32 },
-                      fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      mb: { xs: 2, md: 3 },
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center'
                     }}
                   >
-                    <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
-                  </Avatar>
-                )}
-                
-                <Paper
-                  sx={{
-                    p: { xs: 1.5, md: 2 },
-                    maxWidth: { xs: '85%', sm: '80%', md: '75%' },
-                    backgroundColor: message.sender === 'user' 
-                      ? 'var(--primary-color)' 
-                      : 'rgba(255, 255, 255, 0.05)',
-                    color: message.sender === 'user' 
-                      ? 'white' 
-                      : 'var(--text-primary)',
-                    borderRadius: 2
+                    <Paper
+                      sx={{
+                        px: { xs: 3, md: 4 },
+                        py: { xs: 1.5, md: 2 },
+                        backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                        border: '1px solid rgba(0, 191, 165, 0.3)',
+                        borderRadius: 3,
+                        textAlign: 'center',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5
+                      }}
+                    >
+                      {message.newMode === 'Guided Mode' ? (
+                        <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                      ) : (
+                        <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                      )}
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: { xs: '0.9rem', md: '1rem' },
+                          fontWeight: 600,
+                          color: 'var(--primary-color)'
+                        }}
+                      >
+                        {message.text}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          opacity: 0.7,
+                          fontSize: { xs: '0.65rem', md: '0.7rem' },
+                          color: 'var(--text-secondary)',
+                          ml: 1
+                        }}
+                      >
+                        {message.timestamp.toLocaleTimeString()}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                );
+              }
+
+              // Regular message rendering
+              return (
+                <Box 
+                  key={message.id}
+                  sx={{ 
+                    mb: { xs: 1.5, md: 2 },
+                    display: 'flex',
+                    justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+                    alignItems: 'flex-start',
+                    gap: 1
                   }}
                 >
-                  <Typography variant="body2" sx={{ 
-                    fontSize: { xs: '0.85rem', md: '0.875rem' },
-                    color: message.sender === 'user' ? 'white' : 'inherit'
-                  }}>
-                    {message.text}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    sx={{ 
-                      opacity: 0.7,
-                      fontSize: { xs: '0.65rem', md: '0.7rem' },
-                      mt: 0.5,
-                      display: 'block',
+                  {message.sender === 'ai' && (
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: 'var(--primary-color)', 
+                        width: { xs: 28, md: 32 },
+                        height: { xs: 28, md: 32 },
+                        fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      }}
+                    >
+                      <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
+                    </Avatar>
+                  )}
+                  
+                  <Paper
+                    sx={{
+                      p: { xs: 1.5, md: 2 },
+                      maxWidth: { xs: '85%', sm: '80%', md: '75%' },
+                      backgroundColor: message.sender === 'user' 
+                        ? 'var(--primary-color)' 
+                        : 'rgba(255, 255, 255, 0.05)',
+                      color: message.sender === 'user' 
+                        ? 'white' 
+                        : 'var(--text-primary)',
+                      borderRadius: 2
+                    }}
+                  >
+                    <Typography variant="body2" sx={{ 
+                      fontSize: { xs: '0.85rem', md: '0.875rem' },
                       color: message.sender === 'user' ? 'white' : 'inherit'
-                    }}
-                  >
-                    {message.timestamp.toLocaleTimeString()}
-                  </Typography>
-                </Paper>
+                    }}>
+                      {message.text}
+                    </Typography>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        opacity: 0.7,
+                        fontSize: { xs: '0.65rem', md: '0.7rem' },
+                        mt: 0.5,
+                        display: 'block',
+                        color: message.sender === 'user' ? 'white' : 'inherit'
+                      }}
+                    >
+                      {message.timestamp.toLocaleTimeString()}
+                    </Typography>
+                  </Paper>
 
-                {message.sender === 'user' && (
-                  <Avatar 
-                    sx={{ 
-                      bgcolor: 'var(--primary-color)', 
-                      width: { xs: 28, md: 32 },
-                      height: { xs: 28, md: 32 },
-                      fontSize: { xs: '0.8rem', md: '0.9rem' }
-                    }}
-                  >
-                    <UserIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
-                  </Avatar>
-                )}
-              </Box>
-            ))}
+                  {message.sender === 'user' && (
+                    <Avatar 
+                      sx={{ 
+                        bgcolor: 'var(--primary-color)', 
+                        width: { xs: 28, md: 32 },
+                        height: { xs: 28, md: 32 },
+                        fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      }}
+                    >
+                      <UserIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
+                    </Avatar>
+                  )}
+                </Box>
+              );
+            })}
             
             {isInterviewActive && isLoading && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 1, mb: { xs: 1.5, md: 2 } }}>
@@ -1599,16 +1761,40 @@ const AIInterview = () => {
             variant="contained"
             size={window.innerWidth < 600 ? 'medium' : 'large'}
             onClick={toggleInterview}
-            startIcon={isInterviewActive ? <StopIcon /> : <PlayIcon />}
+            disabled={isLoading}
+            startIcon={
+              isLoading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : isInterviewActive ? (
+                <StopIcon />
+              ) : (
+                <PlayIcon />
+              )
+            }
             sx={{
-              backgroundColor: isInterviewActive ? '#ff6b6b' : 'var(--primary-color)',
+              backgroundColor: isLoading 
+                ? '#ff9800' // Orange color during loading
+                : isInterviewActive 
+                  ? '#ff6b6b' // Red when interview is active
+                  : 'var(--primary-color)', // Primary color when ready to start
               color: 'white',
               py: { xs: 1.5, md: 2 },
               px: { xs: 2, md: 3 },
               fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
               fontWeight: 600,
               '&:hover': {
-                backgroundColor: isInterviewActive ? '#e55a5a' : 'var(--primary-dark)',
+                backgroundColor: isLoading 
+                  ? '#17171bff' // Darker orange on hover during loading
+                  : isInterviewActive 
+                    ? '#e55a5a' // Darker red when interview is active
+                    : 'var(--primary-dark)', // Darker primary when ready to start
+              },
+              '&.Mui-disabled': {
+                backgroundColor: isLoading 
+                  ? '#37374A' // Keep orange during loading
+                  : 'rgba(255, 255, 255, 0.12)',
+                color: 'white',
+                opacity: isLoading ? 0.9 : 0.3,
               },
               borderRadius: 2,
               textTransform: 'none',
@@ -1616,7 +1802,13 @@ const AIInterview = () => {
               minHeight: { xs: '48px', md: 'auto' }
             }}
           >
-            {isInterviewActive ? 'End Interview' : 'Start Interview'}
+            {isLoading ? (
+              'Starting Interview...'
+            ) : isInterviewActive ? (
+              'End Interview'
+            ) : (
+              'Start Interview'
+            )}
           </Button>
         </Box>
       </Box>

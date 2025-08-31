@@ -31,6 +31,8 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
 import BusinessIcon from '@mui/icons-material/Business';
 import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import SchoolIcon from '@mui/icons-material/School';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 // Animation keyframes
@@ -675,9 +677,16 @@ const MockInterviewWay = () => {
                       value={interviewMode}
                       onChange={handleInterviewModeChange}
                       label="Interview Mode"
-                      startAdornment={
-                        <RecordVoiceOverIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', mr: 1, fontSize: 20 }} />
-                      }
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {selected === 'Guided Mode' ? (
+                            <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                          ) : (
+                            <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                          )}
+                          {selected}
+                        </Box>
+                      )}
                       MenuProps={{
                         PaperProps: {
                           sx: {
@@ -721,6 +730,9 @@ const MockInterviewWay = () => {
                           value={mode}
                           sx={{
                             color: '#ffffff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
                             '&:hover': {
                               backgroundColor: 'rgba(0, 191, 165, 0.15)',
                             },
@@ -732,7 +744,17 @@ const MockInterviewWay = () => {
                             },
                           }}
                         >
-                          {mode === 'Guided Mode' ? '📚 ' : '🔥 '}{mode}
+                          {mode === 'Guided Mode' ? (
+                            <>
+                              <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                              <Box component="span" sx={{ ml: 1 }}>{mode}</Box>
+                            </>
+                          ) : (
+                            <>
+                              <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                              <Box component="span" sx={{ ml: 1 }}>{mode}</Box>
+                            </>
+                          )}
                         </MenuItem>
                       ))}
                     </Select>

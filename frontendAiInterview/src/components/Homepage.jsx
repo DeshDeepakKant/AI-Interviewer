@@ -9,6 +9,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import QuizIcon from "@mui/icons-material/Quiz";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import WhatshotIcon from "@mui/icons-material/Whatshot";
 
 import {
   Typography,
@@ -250,8 +251,15 @@ const FEATURES_DATA = [
   },
   {
     title: "Interview Mode",
-    description:
-      "Choose between Guided Mode (📚) for structured guidance or Hard Mode (🔥) for challenging questions.",
+    description: (
+      <span>
+        Choose between Guided Mode{" "}
+        <SchoolIcon sx={{ fontSize: 16, color: '#193E50', verticalAlign: 'middle', mx: 0.3 }} />
+        {" "}for structured guidance or Hard Mode{" "}
+        <WhatshotIcon sx={{ fontSize: 16, color: '#193E50', verticalAlign: 'middle', mx: 0.3 }} />
+        {" "}for challenging questions.
+      </span>
+    ),
     icon: SettingsIcon,
   },
   {
