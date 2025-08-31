@@ -10,11 +10,7 @@ import {
   Divider,
   CircularProgress,
   LinearProgress,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
+  Tooltip
 } from '@mui/material';
 import { 
   Send as SendIcon, 
@@ -246,6 +242,17 @@ const AIInterview = () => {
       setSessionId(activeSessionId);
       sessionStorage.setItem('interviewSessionId', activeSessionId);
       
+      // Set interview mode if provided in state or stored in sessionStorage
+      if (stateData.interviewMode) {
+        setInterviewMode(stateData.interviewMode);
+        sessionStorage.setItem('interviewMode', stateData.interviewMode);
+      } else {
+        const storedMode = sessionStorage.getItem('interviewMode');
+        if (storedMode) {
+          setInterviewMode(storedMode);
+        }
+      }
+      
       // Set number of questions if provided in state or stored in sessionStorage
       if (stateData.numberOfQuestions) {
         setTotalQuestions(stateData.numberOfQuestions);
@@ -315,42 +322,6 @@ const AIInterview = () => {
       console.error('Error playing audio:', e);
       setIsAudioPlaying(false);
     });
-  };
-
-  // Handle interview mode change
-  const handleModeChange = (event) => {
-    const newMode = event.target.value;
-    const oldMode = interviewMode;
-    
-    setInterviewMode(newMode);
-    
-    // Show a toast notification about the mode change
-    if (isInterviewActive && newMode !== oldMode) {
-      toast.info(
-        `Interview mode changed to ${newMode}. The AI will adjust its questioning style accordingly.`,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        }
-      );
-      
-      // Add a message to the chat to indicate the mode change
-      const modeChangeMessage = {
-        id: Date.now(), // Use timestamp as unique ID
-        sender: 'system',
-        text: `Mode changed to ${newMode}`,
-        timestamp: new Date(),
-        isSystem: true,
-        modeChange: true,
-        newMode: newMode
-      };
-      
-      setMessages(prev => [...prev, modeChangeMessage]);
-    }
   };
 
   // Stop all media streams and recognition
@@ -617,6 +588,8 @@ const AIInterview = () => {
       }
       
       const aiResponse = response.data.data.result;
+      const numberOfQuestionLeft = response.data.data.numberOfQuestionLeft;
+      
       const aiMessage = {
         id: messages.length + 2,
         sender: 'ai',
@@ -626,9 +599,10 @@ const AIInterview = () => {
       
       setMessages(prev => [...prev, aiMessage]);
       
-      // Update question progress when AI responds
-      if (aiResponse && !aiResponse.includes("Your interview is over")) {
-        setCurrentQuestion(prev => Math.min(prev + 1, totalQuestions));
+      // Update question progress using numberOfQuestionLeft from API response
+      if (aiResponse && !aiResponse.includes("Your interview is over") && numberOfQuestionLeft !== undefined) {
+        const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
+        setCurrentQuestion(Math.max(0, currentQuestionNumber));
       }
       
       if (response.data.data.audioUrl) {
@@ -670,6 +644,8 @@ const AIInterview = () => {
             sessionId: sessionId
           });
           
+          const numberOfQuestionLeft = response.data.data.numberOfQuestionLeft;
+          
           const aiMessage = {
             id: messages.length + 1,
             sender: 'ai',
@@ -684,7 +660,15 @@ const AIInterview = () => {
           }
           
           setIsInterviewActive(true);
-          setCurrentQuestion(1); // Set to 1 when interview starts
+          
+          // Set current question based on numberOfQuestionLeft from API
+          if (numberOfQuestionLeft !== undefined) {
+            const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
+            setCurrentQuestion(Math.max(1, currentQuestionNumber));
+          } else {
+            setCurrentQuestion(1); // Fallback to 1 when interview starts
+          }
+          
           setTabSwitchCount(0); // Reset tab switch count when interview starts
           
           setTimeout(() => {
@@ -709,6 +693,7 @@ const AIInterview = () => {
       // Clean up session storage
       sessionStorage.removeItem('interviewSessionId');
       sessionStorage.removeItem('numberOfQuestions');
+      sessionStorage.removeItem('interviewMode');
       
       // Start analysis in background without waiting
       axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
@@ -888,128 +873,51 @@ const AIInterview = () => {
             />
           </Box>
           
-          {/* Mode Selector */}
+          {/* Mode Display */}
           <Box sx={{ mt: { xs: 1, md: 2 } }}>
-            <FormControl fullWidth variant="outlined" size="small">
-              <InputLabel 
-                id="mode-label" 
-                sx={{ 
-                  color: 'var(--text-secondary)',
-                  fontSize: { xs: '0.7rem', md: '0.875rem' },
-                  '&.Mui-focused': {
-                    color: 'var(--primary-color)'
-                  }
-                }}
-              >
-                Interview Mode
-              </InputLabel>
-              <Select
-                labelId="mode-label"
-                id="interview-mode"
-                value={interviewMode}
-                onChange={handleModeChange}
-                label="Interview Mode"
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {selected === 'Guided Mode' ? (
-                      <SchoolIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
-                    ) : (
-                      <WhatshotIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
-                    )}
-                    {selected}
-                  </Box>
-                )}
-                MenuProps={{
-                  PaperProps: {
-                    sx: {
-                      bgcolor: 'var(--darker-bg)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid rgba(0, 191, 165, 0.2)',
-                      '& .MuiMenuItem-root': {
-                        padding: '8px 16px',
-                        fontSize: { xs: '0.8rem', md: '0.875rem' },
-                        '&:hover': {
-                          backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                        },
-                        '&.Mui-selected': {
-                          backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                          '&:hover': {
-                            backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                          },
-                        },
-                      },
-                    },
-                  },
-                }}
-                sx={{
-                  color: 'var(--text-primary)',
-                  fontSize: { xs: '0.8rem', md: '0.875rem' },
-                  '& .MuiSelect-icon': {
+            <Paper
+              sx={{
+                p: 2,
+                backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                border: '1px solid rgba(0, 191, 165, 0.2)',
+                borderRadius: 2,
+              }}
+            >
+              <Box sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 1,
+                justifyContent: 'center'
+              }}>
+                <Typography
+                  variant="body2"
+                  sx={{
                     color: 'var(--text-secondary)',
-                  },
-                  '& .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 191, 165, 0.2)',
-                  },
-                  '&:hover .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'rgba(0, 191, 165, 0.5)',
-                  },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                    borderColor: 'var(--primary-color)',
-                  },
-                  '&.Mui-disabled': {
-                    opacity: 0.6,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: 'rgba(255, 255, 255, 0.1)',
-                    },
-                  },
-                }}
-              >
-                <MenuItem 
-                  value="Guided Mode"
-                  sx={{
-                    color: 'var(--text-primary)',
                     fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                    },
-                    '&.Mui-selected': {
-                      backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                      },
-                    },
+                    fontWeight: 500,
                   }}
                 >
-                  <SchoolIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
-                  <Box component="span" sx={{ ml: 0.5 }}>Guided Mode</Box>
-                </MenuItem>
-                <MenuItem 
-                  value="Hard Mode"
-                  sx={{
-                    color: 'var(--text-primary)',
-                    fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1,
-                    '&:hover': {
-                      backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                    },
-                    '&.Mui-selected': {
-                      backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                      '&:hover': {
-                        backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                      },
-                    },
-                  }}
-                >
-                  <WhatshotIcon sx={{ fontSize: 18, color: '#BCBCC4' }} />
-                  <Box component="span" sx={{ ml: 0.5 }}>Hard Mode</Box>
-                </MenuItem>
-              </Select>
-            </FormControl>
+                  Mode:
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {interviewMode === 'Guided Mode' ? (
+                    <SchoolIcon sx={{ fontSize: 18, color: '#00bfa5' }} />
+                  ) : (
+                    <WhatshotIcon sx={{ fontSize: 18, color: '#ff6b35' }} />
+                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: 'var(--text-primary)',
+                      fontSize: { xs: '0.8rem', md: '0.875rem' },
+                      fontWeight: 600,
+                    }}
+                  >
+                    {interviewMode}
+                  </Typography>
+                </Box>
+              </Box>
+            </Paper>
           </Box>
           
         </Paper>
@@ -1230,6 +1138,31 @@ const AIInterview = () => {
                     }}>
                       • For new line in your response: Press Shift + Enter
                     </Typography>
+                  {interviewMode === 'Guided Mode' && (
+                      <>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: 'var(--primary-color)',
+                            mb: 1,
+                            fontSize: { xs: '0.9rem', md: '1rem' },
+                            mt: 1
+                          }}
+                        >
+                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span> For question explanation type <code>//explanation</code>
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: 'var(--primary-color)',
+                            mb: 1,
+                            fontSize: { xs: '0.9rem', md: '1rem' }
+                          }}
+                        >
+                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span> After explanation, to get next question type <code>//yes</code>
+                        </Typography>
+                      </>
+                    )}
                   </Box>
                 }
                 placement="bottom-start"
@@ -1373,7 +1306,6 @@ const AIInterview = () => {
               },
             }}
           >
-            {/* Instructions - Show only when interview is not active */}
             {!isInterviewActive && (
               <Box 
                 sx={{ 
@@ -1386,17 +1318,6 @@ const AIInterview = () => {
                   gap: 3
                 }}
               >
-                {/* <Typography 
-                  variant="h5" 
-                  sx={{ 
-                    color: 'var(--primary-color)',
-                    fontWeight: 700,
-                    fontSize: { xs: '1.5rem', md: '1.75rem' },
-                    mb: 2
-                  }}
-                >
-                  Welcome to AI Interview
-                </Typography> */}
                 
                 <Paper
                   sx={{
@@ -1421,6 +1342,7 @@ const AIInterview = () => {
                   </Typography>
                   
                   <Box sx={{ textAlign: 'left' }}>
+
                     <Typography 
                       variant="body2" 
                       sx={{ 
@@ -1479,6 +1401,40 @@ const AIInterview = () => {
                       <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
                       For new line in your response: Press Shift + Enter
                     </Typography>
+                  {interviewMode === 'Guided Mode' && (
+                      <>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: 'var(--primary-color)',
+                            mb: 1,
+                            fontSize: { xs: '0.9rem', md: '1rem' },
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1,
+                            mt: 1
+                          }}
+                        >
+                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                          For question explanation type //explanation
+                        </Typography>
+                        <Typography 
+                          variant="body2" 
+                          sx={{ 
+                            color: 'var(--primary-color)',
+                            mb: 1,
+                            fontSize: { xs: '0.9rem', md: '1rem' },
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: 1
+                          }}
+                        >
+                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                          After explanation, to get next question type //yes
+                        </Typography>
+                      </>
+                    )}
+                    
                   </Box>
                 </Paper>
                 

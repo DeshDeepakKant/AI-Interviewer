@@ -22,7 +22,8 @@ import {
   Alert,
   Skeleton,
   Fade,
-  Backdrop
+  Backdrop,
+  Pagination
 } from "@mui/material";
 import { styled } from "@mui/system";
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -33,7 +34,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import StarIcon from '@mui/icons-material/Star';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { teal, amber, green, red } from '@mui/material/colors'; 
+import { teal, amber, green, red, orange } from '@mui/material/colors'; 
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from "react-router";
@@ -209,6 +210,14 @@ export default memo(function UserDashboard() {
   const [interviewHistory, setInterviewHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [historyError, setHistoryError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    itemsPerPage: 10,
+    hasNextPage: false,
+    hasPrevPage: false
+  });
   const [userData, setUserData] = useState({
     name: '',
     email: '',
@@ -229,36 +238,48 @@ export default memo(function UserDashboard() {
     return interviewHistory;
   }, [interviewHistory]);
 
-  // Optimized stats calculation
-  const calculatedStats = useMemo(() => {
-    if (interviewHistory.length === 0) {
+  // Optimized user stats calculation
+  const userStats = useMemo(() => {
+    if (!interviewHistory.length) {
       return {
         completedInterviews: 0,
-        avgRating: 0,
+        avgRating: '0.0',
         lastInterview: '',
         totalQuestions: 0,
-        successRate: 0
+        successRate: 0,
+        successThreshold: 7,
+        goodInterviews: 0,
+        totalInterviews: 0
       };
     }
 
-    const totalRating = interviewHistory.reduce((sum, item) => sum + item.overallRating, 0);
+    const totalRating = interviewHistory.reduce((sum, item) => sum + (item.overAllRating || 0), 0);
     const avgRating = (totalRating / interviewHistory.length).toFixed(1);
     const totalQuestions = interviewHistory.reduce((sum, interview) => {
-      return sum + (interview.history ? Object.keys(interview.history).length : 0);
+      return sum + (interview.numberOfQuestions || 0);
     }, 0);
-    const goodRatings = interviewHistory.filter(interview => interview.overallRating >= 7).length;
-    const successRate = ((goodRatings / interviewHistory.length) * 100).toFixed(0);
+    
+    const successThreshold = 7;
+    const totalInterviews = interviewHistory.length;
+    const goodInterviews = interviewHistory.filter(interview => {
+      const rating = interview.overAllRating || 0;
+      return rating >= successThreshold;
+    }).length;
+    
+    const successRate = totalInterviews > 0 ? 
+      Math.round((goodInterviews / totalInterviews) * 100) : 0;
 
     return {
-      completedInterviews: interviewHistory.length,
+      completedInterviews: pagination.totalItems || interviewHistory.length,
       avgRating,
-      lastInterview: interviewHistory[0]?.createdAt.toLocaleDateString(),
+      lastInterview: interviewHistory[0]?.createdAt ? new Date(interviewHistory[0].createdAt).toLocaleDateString() : '',
       totalQuestions,
-      successRate
+      successRate,
+      successThreshold,
+      goodInterviews,
+      totalInterviews
     };
-  }, [interviewHistory]);
-
-  // Optimized user data initialization
+  }, [interviewHistory, pagination.totalItems]);  // Optimized user data initialization
   useEffect(() => {
     if (!authLoading && user) {
       setUserData(prev => ({
@@ -269,37 +290,40 @@ export default memo(function UserDashboard() {
         role: user.role || '',
         stats: {
           ...prev.stats,
-          ...calculatedStats
+          ...userStats
         }
       }));
       setLoading(false);
     }
-  }, [user, authLoading, calculatedStats]);
+  }, [user, authLoading, userStats]);
 
   // Optimized interview history fetching with error handling and AbortController
-  const fetchInterviewHistory = useCallback(async () => {
+  const fetchInterviewHistory = useCallback(async (page = 1, limit = 10) => {
     const controller = new AbortController();
     
     try {
       setLoadingHistory(true);
       setHistoryError(null);
       
-      const response = await axios.get("/api/v1/ai/aiHistory", {
+      const response = await axios.get(`/api/v1/ai/aiHistory?page=${page}&limit=${limit}`, {
         signal: controller.signal,
         timeout: 10000 // 10 second timeout
       });
       
-      if (response.data.success && response.data.data?.histories) {
-        const historyArray = Object.entries(response.data.data.histories)
-          .map(([key, value]) => ({
-            id: key,
-            ...value,
-            createdAt: new Date(value.createdAt),
-            overallRating: parseFloat(value.overAllRating) || 0
-          }))
-          .sort((a, b) => b.createdAt - a.createdAt);
+      if (response.data.success && response.data.data?.data) {
+        const historyArray = response.data.data.data.map((interview) => ({
+          id: interview._id,
+          ...interview,
+          createdAt: new Date(interview.createdAt),
+          overAllRating: parseFloat(interview.overAllRating) || 0
+        }));
           
         setInterviewHistory(historyArray);
+        
+        // Update pagination info
+        if (response.data.data.pagination) {
+          setPagination(response.data.data.pagination);
+        }
       }
     } catch (err) {
       if (!controller.signal.aborted) {
@@ -317,8 +341,14 @@ export default memo(function UserDashboard() {
   }, []);
 
   useEffect(() => {
-    fetchInterviewHistory();
+    fetchInterviewHistory(1, 10);
   }, [fetchInterviewHistory]);
+
+  // Handle pagination change
+  const handlePageChange = useCallback((event, newPage) => {
+    fetchInterviewHistory(newPage, pagination.itemsPerPage);
+    setExpandedInterview(null); // Close any expanded interview when changing pages
+  }, [fetchInterviewHistory, pagination.itemsPerPage]);
 
   // Optimized event handlers
   const handleExpandInterview = useCallback((interviewId) => {
@@ -428,11 +458,7 @@ export default memo(function UserDashboard() {
   }, [getRatingColor]);
 
   const renderInterviewCard = useCallback((interview) => {
-    const questions = interview.history ? Object.entries(interview.history).map(([key, value]) => ({
-      id: key,
-      ...value
-    })) : [];
-
+    const questions = interview.qaItems || [];
     const isExpanded = expandedInterview === interview.id;
 
     return (
@@ -456,17 +482,29 @@ export default memo(function UserDashboard() {
                   fontWeight: 600,
                   fontSize: '1.1rem'
                 }}>
-                  {interview.mockType || 'Mock Interview'} - {interview.position || 'Full Stack'}
+                  {interview.interviewName || 'NA'}
                 </Typography>
                 <Box display="flex" alignItems="center" gap={1}>
                   <Chip 
-                    label={`${interview.overallRating}/10`} 
+                    label={interview.interviewMode || 'Guided Mode'} 
                     size="small" 
                     sx={{ 
-                      backgroundColor: `${getRatingColor(interview.overallRating)}25`,
-                      color: getRatingColor(interview.overallRating),
+                      backgroundColor: 'rgba(29, 233, 182, 0.2)',
+                      color: '#1de9b6',
                       fontWeight: 'bold',
-                      border: `1px solid ${getRatingColor(interview.overallRating)}50`,
+                      border: '1px solid rgba(29, 233, 182, 0.3)',
+                      fontSize: '0.7rem',
+                      mr: 1
+                    }} 
+                  />
+                  <Chip 
+                    label={`${interview.overAllRating}/10`} 
+                    size="small" 
+                    sx={{ 
+                      backgroundColor: `${getRatingColor(interview.overAllRating)}25`,
+                      color: getRatingColor(interview.overAllRating),
+                      fontWeight: 'bold',
+                      border: `1px solid ${getRatingColor(interview.overAllRating)}50`,
                       fontSize: '0.75rem'
                     }} 
                   />
@@ -530,10 +568,78 @@ export default memo(function UserDashboard() {
               >
                 <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
                 <CardContent sx={{ pt: 3, px: 3, pb: 3 }}>
+                  {/* Resume Summary Section */}
+                  {interview.resumeSummary && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle2" sx={{ 
+                        color: '#1de9b6', 
+                        fontWeight: 600, 
+                        mb: 1 
+                      }}>
+                        Resume Summary:
+                      </Typography>
+                      <Typography variant="body2" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.8)',
+                        p: 2,
+                        bgcolor: 'rgba(29, 233, 182, 0.05)',
+                        borderRadius: '8px',
+                        borderLeft: '3px solid rgba(29, 233, 182, 0.3)',
+                        lineHeight: 1.6
+                      }}>
+                        {interview.resumeSummary}
+                      </Typography>
+                    </Box>
+                  )}
+                  
+                  {/* Explanations Section */}
+                  {interview.explanations && interview.explanations.length > 0 && (
+                    <Box sx={{ mb: 3 }}>
+                      <Typography variant="subtitle2" sx={{ 
+                        color: '#1de9b6', 
+                        fontWeight: 600, 
+                        mb: 2 
+                      }}>
+                        AI Explanations:
+                      </Typography>
+                      {interview.explanations.map((explanation, index) => (
+                        <Card key={explanation._id || index} sx={{ 
+                          mb: 2, 
+                          bgcolor: 'rgba(255, 255, 255, 0.02)', 
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderRadius: '8px'
+                        }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Typography variant="body2" sx={{ 
+                              color: '#1de9b6', 
+                              fontWeight: 600, 
+                              mb: 1 
+                            }}>
+                              Question: {explanation.question}
+                            </Typography>
+                            <Typography variant="body2" sx={{ 
+                              color: 'rgba(255, 255, 255, 0.8)',
+                              lineHeight: 1.6
+                            }}>
+                              {explanation.explanation}
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </Box>
+                  )}
+                  
+                  {/* Questions and Answers Section */}
+                  <Typography variant="subtitle2" sx={{ 
+                    color: '#1de9b6', 
+                    fontWeight: 600, 
+                    mb: 2 
+                  }}>
+                    Questions & Answers:
+                  </Typography>
                   <List dense sx={{ maxHeight: '400px', overflowY: 'auto', pr: 2, scrollbarGutter: 'stable' }}>
                     {questions.map((q, index) => (
                       <motion.div
-                        key={q.id}
+                        key={q._id || index}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
@@ -569,7 +675,7 @@ export default memo(function UserDashboard() {
                             </Box>
                           </ListItemIcon>
                           <ListItemText 
-                            primary={q.Question} 
+                            primary={q.question} 
                             primaryTypographyProps={{ 
                               variant: 'body2',
                               sx: { 
@@ -599,7 +705,7 @@ export default memo(function UserDashboard() {
                                   }}>
                                     Your Answer:
                                   </Box>
-                                  {q['Your Answer'] || 'No answer provided'}
+                                  {q.userAnswer || 'No answer provided'}
                                 </Typography>
                                 
                                 <Typography component="div" sx={{ 
@@ -619,18 +725,70 @@ export default memo(function UserDashboard() {
                                   }}>
                                     AI Feedback:
                                   </Box>
-                                  {q.Feedback || 'No feedback available'}
+                                  {q.feedback || 'No feedback available'}
                                 </Typography>
                                 
+                                {/* Technical Breakdown */}
+                                {(q.technicalKnowledge !== undefined || q.problemSolvingSkills !== undefined || q.communicationClarity !== undefined) && (
+                                  <Box sx={{ mb: 2 }}>
+                                    <Typography variant="caption" sx={{ 
+                                      color: '#1de9b6', 
+                                      fontWeight: 600,
+                                      display: 'block',
+                                      mb: 1
+                                    }}>
+                                      Detailed Scores:
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                                      {q.technicalKnowledge !== undefined && (
+                                        <Chip 
+                                          label={`Tech: ${q.technicalKnowledge}/10`} 
+                                          size="small" 
+                                          sx={{ 
+                                            backgroundColor: `${getRatingColor(q.technicalKnowledge)}20`,
+                                            color: getRatingColor(q.technicalKnowledge),
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600
+                                          }} 
+                                        />
+                                      )}
+                                      {q.problemSolvingSkills !== undefined && (
+                                        <Chip 
+                                          label={`Problem Solving: ${q.problemSolvingSkills}/10`} 
+                                          size="small" 
+                                          sx={{ 
+                                            backgroundColor: `${getRatingColor(q.problemSolvingSkills)}20`,
+                                            color: getRatingColor(q.problemSolvingSkills),
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600
+                                          }} 
+                                        />
+                                      )}
+                                      {q.communicationClarity !== undefined && (
+                                        <Chip 
+                                          label={`Communication: ${q.communicationClarity}/10`} 
+                                          size="small" 
+                                          sx={{ 
+                                            backgroundColor: `${getRatingColor(q.communicationClarity)}20`,
+                                            color: getRatingColor(q.communicationClarity),
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600
+                                          }} 
+                                        />
+                                      )}
+                                    </Box>
+                                  </Box>
+                                )}
+                                
                                 <Chip 
-                                  label={`Score: ${q.Rating || 'N/A'}/10`} 
+                                  label={`Overall Score: ${q.rating || 'N/A'}/10`} 
                                   size="small" 
                                   sx={{ 
-                                    backgroundColor: `${getRatingColor(q.Rating)}20`,
-                                    color: getRatingColor(q.Rating),
+                                    backgroundColor: `${getRatingColor(q.rating)}20`,
+                                    color: getRatingColor(q.rating),
                                     fontSize: '0.7rem',
                                     fontWeight: 700,
-                                    border: `1px solid ${getRatingColor(q.Rating)}40`,
+                                    border: `1px solid ${getRatingColor(q.rating)}40`,
                                     borderRadius: '6px'
                                   }} 
                                 />
@@ -786,8 +944,11 @@ export default memo(function UserDashboard() {
                   icon={<TrendingUpIcon fontSize="large" />}
                   title="Success Rate"
                   value={`${userData.stats.successRate}%`}
-                  subtitle="Above 7/10"
-                  color={red[400]}
+                  subtitle={userData.stats.totalInterviews > 0 ? 
+                    `${userData.stats.goodInterviews} of ${userData.stats.totalInterviews} interviews scored ≥7` :
+                    `Interviews scoring ≥7 out of 10`
+                  }
+                  color={userData.stats.successRate >= 70 ? green[400] : userData.stats.successRate >= 50 ? orange[400] : red[400]}
                 />
               </Grid>
             </Grid>
@@ -889,6 +1050,52 @@ export default memo(function UserDashboard() {
                 </EmptyState>
               ) : (
                 <motion.div variants={containerVariants}>
+                  {/* Pagination */}
+                  {pagination.totalPages > 1 && (
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'center', 
+                      alignItems: 'center',
+                      mb: 3,
+                      gap: 2
+                    }}>
+                      <Typography variant="body2" sx={{ 
+                        color: 'rgba(255, 255, 255, 0.6)',
+                        fontSize: '0.85rem'
+                      }}>
+                        Page {pagination.currentPage} of {pagination.totalPages} 
+                        ({pagination.totalItems} total interviews)
+                      </Typography>
+                      <Pagination
+                        count={pagination.totalPages}
+                        page={pagination.currentPage}
+                        onChange={handlePageChange}
+                        color="primary"
+                        size="medium"
+                        showFirstButton
+                        showLastButton
+                        sx={{
+                          '& .MuiPaginationItem-root': {
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            borderColor: 'rgba(255, 255, 255, 0.2)',
+                            '&:hover': {
+                              backgroundColor: 'rgba(29, 233, 182, 0.1)',
+                              borderColor: '#1de9b6',
+                              color: '#1de9b6'
+                            },
+                            '&.Mui-selected': {
+                              backgroundColor: '#1de9b6',
+                              color: '#000000',
+                              fontWeight: 600,
+                              '&:hover': {
+                                backgroundColor: '#1de9b6'
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </Box>
+                  )}
                   <AnimatePresence mode="wait">
                     {filteredInterviews.map(renderInterviewCard)}
                   </AnimatePresence>

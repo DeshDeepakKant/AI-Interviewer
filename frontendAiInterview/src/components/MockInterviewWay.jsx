@@ -284,6 +284,7 @@ const MockInterviewWay = () => {
           position: position,
           experienceLevel: experience,
           numberOfQuestionYouShouldAsk: numQuestions,
+          interviewMode: interviewMode,
         },
         {
           withCredentials: true,
@@ -300,6 +301,7 @@ const MockInterviewWay = () => {
           state: { 
             sessionId: currentSessionId,
             numberOfQuestions: response.data.data.numberOfQuestion,
+            interviewMode: interviewMode,
           },
           replace: true
         });
