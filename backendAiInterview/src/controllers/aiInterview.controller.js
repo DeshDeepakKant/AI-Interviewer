@@ -3,7 +3,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/aysncHandler.js";
 import fileLoading from "../utils/ai/loader.js";
 import client from "../utils/reddisClient.js";
-import aiInterview from "../utils/ai/index.js";
+import aiInterview from "../utils/ai/aiInterview.js";
 import aiAnalysis from "../utils/ai/aiAnalysis.js";
 import { console } from "inspector";
 import { HistorySession } from "../models/userHistory.models.js";
@@ -32,7 +32,6 @@ const aiResumeFile = asyncHandler(async(req, res) => {
             return res.status(400).json(new ApiResponse(400, "Resume file is empty or not valid"));
         }
 
-        // 2. Save the data to Redis FIRST
         await client.hset(
             sessionId, {
                 userId: req.user._id,
@@ -44,10 +43,10 @@ const aiResumeFile = asyncHandler(async(req, res) => {
         return res.status(200).json(new ApiResponse(200, { sessionId: sessionId }, "File uploaded successfully"));
 
     } catch (error) {
-        console.error("Error in aiResumeFile:", error); // Should log full error
+        console.error("Error in aiResumeFile:", error);
         return res.status(500).json({ 
             error: "An error occurred while processing the file.", 
-            details: error.message // Send actual error message to Postman for debugging
+            details: error.message
         });
     } finally {
         if (resumeFile) {
@@ -63,10 +62,10 @@ const aiResumeFile = asyncHandler(async(req, res) => {
 
 const aiInterviewWay = asyncHandler(async(req, res) => {
     try {
-        const {position, experienceLevel, numberOfQuestionYouShouldAsk, sessionId} = req.body;
+        const {position, experienceLevel, numberOfQuestionYouShouldAsk, sessionId, interviewMode} = req.body;
 
         if (!position || !experienceLevel || !numberOfQuestionYouShouldAsk || !sessionId) {
-            throw new ApiError(400, "All fields are required");
+            throw new ApiError(400, "All required fields (position, experienceLevel, numberOfQuestionYouShouldAsk, sessionId) are required");
         }
         
         await client.hset(
@@ -75,8 +74,10 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
                 experienceLevel: experienceLevel,
                 numberOfQuestionYouShouldAsk: numberOfQuestionYouShouldAsk,
                 numberOfQuestionLeft: numberOfQuestionYouShouldAsk,
+                interviewMode: interviewMode || "Guided Mode",
                 count: 0,
                 messages: JSON.stringify([]),
+                aiExplanation: JSON.stringify([])
             }
         )
         return res.status(200).json(new ApiResponse(200, {numberOfQuestion: numberOfQuestionYouShouldAsk}));
@@ -88,7 +89,7 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
 
 const aiInterviewStart = asyncHandler(async(req, res)=>{
     try {
-        const { sessionId, answer } = req.body;
+        const { sessionId, answer,interviewMode } = req.body;
         
         if (!sessionId) {
             return res.status(400).json(new ApiResponse(400, null, 'Session ID is required'));
@@ -99,41 +100,78 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             return res.status(404).json(new ApiResponse(404, null, 'Session not found'));
         }
 
-        let messages = [];
+        let messages;
         try {
             messages = data.messages ? JSON.parse(data.messages) : [];
+            if (!Array.isArray(messages)) {
+                messages = [];
+            }
         } catch (parseError) {
             console.error('Error parsing messages:', parseError);
             messages = [];
         }
 
+        
+        
+        if (!answer.startsWith("//explain".toLowerCase()) &&  !answer.startsWith("//ask".toLowerCase()) && !answer.startsWith("Start the interview".toLowerCase()) &&(!answer.startsWith("//yes".toLowerCase()))){
+            messages.push({ role: "user", content: answer || '' });
+        }
 
-        messages.push(`Question Number:${data.count || 1}`);
-        messages.push(`role: user, content: ${answer || ''}`);
+
+        const multi = client.multi();
 
         const ai = await aiInterview(
+            sessionId,
             data.resume || '',
             data.position || '',
             data.numberOfQuestionLeft || 0,
             data.experienceLevel || 'beginner',
-            data.numberOfQuestionYouShouldAsk || 5,
             messages,
-            answer || ''
+            answer || '',
+            data.interviewMode || 'Guided Mode'
         );
 
-        messages.push(`role: ai, content: ${ai}`);
+        
+        if (answer.startsWith("//explain")){
+            let questionExplain;
+            try {
+            questionExplain = data.aiExplanation ? JSON.parse(data.aiExplanation) : [];
+            } catch (parseError) {
+                console.error('Error parsing messages:', parseError);
+                questionExplain = [];
+            }
+            questionExplain.push({question: ai.question, 
+                explanation: ai.explanation
+            })
 
-        const multi = client.multi();
-        multi.hincrby(sessionId, 'numberOfQuestionLeft', -1);
-        multi.hset(sessionId, 'messages', JSON.stringify(messages));
+            multi.hset(sessionId, 'aiExplanation', JSON.stringify(questionExplain));
+        }else{
+            if (!ai.question.startsWith("Your interview is over")){
+                messages.push({ role: "ai", content: ai.question || '' });
+                multi.hset(sessionId, 'messages', JSON.stringify(messages));
+            }
+        }
+        let questionLeft
+        if (!answer.startsWith("//explain")){
+        questionLeft=data.numberOfQuestionLeft -1
+            if (questionLeft <=0){
+                questionLeft=0
+            }
+        multi.hincrby(sessionId, 'numberOfQuestionLeft', -1)};
         multi.hincrby(sessionId, 'count', 1);
 
         await multi.exec()
 
-
+        let result;
+        if(ai.explanation && ai.question){
+            result=ai.explanation
+        }else{
+            result=ai.question
+        }
         return res.status(200).json(
             new ApiResponse(200, {
-                result: ai
+                result: result,
+                numberOfQuestionLeft: questionLeft
             })
         );
     } catch (error) {
@@ -141,7 +179,6 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
         return res.status(500).json(new ApiResponse(500, error.message));
     }
 })
-
 const aiInterviewAnalysis = asyncHandler(async (req, res) => {
     try {
         const { sessionId } = req.body;
@@ -153,28 +190,51 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
         if (!data || Object.keys(data).length === 0) {
             throw new ApiError(404, "Session not found or is empty.");
         }
+
         const aiResponse = await aiAnalysis(data.resume, data.position, data.experienceLevel, data.messages);
-        // const { overAllRating, ...questionEntries } = ai;
+        
         const qaItemsArray = aiResponse.analysis.map(item => {
             return {
                 question: item.question,
-                // --- FIX 2: Map 'yourAnswer' from Zod to 'userAnswer' in Mongoose ---
-                userAnswer: item.userAnswer, 
-                // --- FIX 3: Ensure correct casing for 'feedback' ---
+                userAnswer: item.userAnswer,
                 feedback: item.feedback,
-                rating: item.rating || 0 // Default to 0 if rating is not provided
+                rating: item.rating || 0,
+                suggestedAnswer: item.suggestedAnswer,
+                technicalKnowledge: item.technicalKnowledge,
+                problemSolvingSkills: item.problemSolvingSkills,
+                communicationClarity: item.communicationClarity
             };
         });
+
+        let parsedExplanations = [];
+        try {
+            if (data.aiExplanation && typeof data.aiExplanation === 'string') {
+                parsedExplanations = JSON.parse(data.aiExplanation);
+            }
+        } catch (parseError) {
+            console.error("Failed to parse aiExplanation JSON string:", parseError);
+            parsedExplanations = [];
+        }
+
+        const validModes = ["Guided Mode", "Hard Mode"];
+        const interviewMode = validModes.includes(data.interviewMode) 
+            ? data.interviewMode 
+            : "Guided Mode"; 
+
         const newHistoryEntry = {
+            interviewName: aiResponse.interviewName,
             userId: data.userId,
-            resumeSummary: data.resume,
+            resumeSummary: aiResponse.resumeSummary, 
             experienceLevel: data.experienceLevel,
             position: data.position,
-            mockType: data.mockType || "Mock Interview", 
+            interviewMode: interviewMode,
+            mockType: data.mockType || "Mock Interview",
             numberOfQuestions: qaItemsArray.length,
             overAllRating: aiResponse.overAllRating || 0,
-            qaItems: qaItemsArray
+            qaItems: qaItemsArray,
+            explanations: parsedExplanations 
         };
+
         const savedSession = await HistorySession.create(newHistoryEntry);
         if (!savedSession) {
             throw new ApiError(500, "Failed to save the interview session to the database.");
@@ -184,25 +244,54 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
 
         return res.status(200).json(new ApiResponse(200, savedSession, "Interview analysis completed successfully"));
     } catch (error) {
-        console.error("Error in aiInterview.controller.js:", error);
-        return res.status(500).json(new ApiResponse(500, error.message));
+        console.error("Error in aiInterviewAnalysis controller:", error);
+        const statusCode = error instanceof ApiError ? error.statusCode : 500;
+        return res.status(statusCode).json(new ApiResponse(statusCode, null, error.message));
     }
 });
 
 const aiHistory = asyncHandler(async(req, res)=>{
     try {
-        const userId = await User.findById(req.user._id);
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10; //
+
+        const skip = (page - 1) * limit;
+
+        const userId = req.user._id; 
         if (!userId) {
-            throw new ApiError(400, "User ID is required");
+            throw new ApiError(401, "User not authenticated");
         }
-        const history = await HistorySession.find({userId: userId}).sort({ createdAt: -1 });
-        if (!history) {
-            return res.status(200).json(new ApiResponse(200, [], "No history found for this user."));
+
+        const [history, totalItems] = await Promise.all([
+            HistorySession.find({ userId: userId })
+                          .sort({ createdAt: -1 })
+                          .skip(skip)
+                          .limit(limit),
+            HistorySession.countDocuments({ userId: userId })
+        ]);
+        
+        const totalPages = Math.ceil(totalItems / limit)
+        const responseData = {
+            data: history,
+            pagination: {
+                currentPage: page,
+                totalPages: totalPages,
+                totalItems: totalItems,
+                itemsPerPage: limit,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1,
+            }
+        };
+
+        if (totalItems === 0) {
+            return res.status(200).json(new ApiResponse(200, responseData, "No history found for this user."));
         }
-        return res.status(200).json(new ApiResponse(200, history));
+
+        return res.status(200).json(new ApiResponse(200, responseData, "History retrieved successfully"));
+
     } catch (error) {
-        console.error("Error in aiInterview.controller.js:", error);
-        return res.status(500).json(new ApiResponse(500, error.message));
+        console.error("Error in aiHistory controller:", error);
+        return res.status(500).json(new ApiResponse(500, null, error.message));
     }
 })
 
