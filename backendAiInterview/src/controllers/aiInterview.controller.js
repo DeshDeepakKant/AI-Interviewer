@@ -5,12 +5,11 @@ import fileLoading from "../utils/ai/loader.js";
 import client from "../utils/reddisClient.js";
 import aiInterview from "../utils/ai/aiInterview.js";
 import aiAnalysis from "../utils/ai/aiAnalysis.js";
-import { console } from "inspector";
 import { HistorySession } from "../models/userHistory.models.js";
-import {User} from "../models/user.models.js";
 import fs from 'fs/promises';
 import dotenv from "dotenv";
-import {v4 as uuidv4} from "uuid"
+import {v4 as uuidv4} from "uuid";
+import { io } from "../app.js";
 
 dotenv.config({ path: '../../.env' });
 
@@ -87,17 +86,15 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
     }
 });
 
-const aiInterviewStart = asyncHandler(async(req, res)=>{
+const aiInterviewStart = async(sessionId, answer)=>{
     try {
-        const { sessionId, answer,interviewMode } = req.body;
-        
         if (!sessionId) {
-            return res.status(400).json(new ApiResponse(400, null, 'Session ID is required'));
+            throw new Error('Session ID is required');
         }
-        
         const data = await client.hgetall(sessionId);
-        if (!data) {
-            return res.status(404).json(new ApiResponse(404, null, 'Session not found'));
+        
+        if (!data || Object.keys(data).length === 0) {
+            throw new Error(`Session not found for sessionId: ${sessionId}. Make sure to create the session first by calling the resume upload and interview setup endpoints.`);
         }
 
         let messages;
@@ -113,13 +110,16 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
 
         
         
-        if (!answer.startsWith("//explain".toLowerCase()) &&  !answer.startsWith("//ask".toLowerCase()) && !answer.startsWith("Start the interview".toLowerCase()) &&(!answer.startsWith("//yes".toLowerCase()))){
+    const lowerCaseAnswer = answer.toLowerCase();
+        if (!lowerCaseAnswer.startsWith("//explain") &&  
+            !lowerCaseAnswer.startsWith("//ask") && 
+            !lowerCaseAnswer.startsWith("start the interview") &&
+            !lowerCaseAnswer.startsWith("//yes")) {
             messages.push({ role: "user", content: answer || '' });
         }
 
 
         const multi = client.multi();
-
         const ai = await aiInterview(
             sessionId,
             data.resume || '',
@@ -131,7 +131,6 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
             data.interviewMode || 'Guided Mode'
         );
 
-        
         if (answer.startsWith("//explain")){
             let questionExplain;
             try {
@@ -160,7 +159,7 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
         multi.hincrby(sessionId, 'numberOfQuestionLeft', -1)};
         multi.hincrby(sessionId, 'count', 1);
 
-        await multi.exec()
+        await multi.exec();
 
         let result;
         if(ai.explanation && ai.question){
@@ -168,17 +167,17 @@ const aiInterviewStart = asyncHandler(async(req, res)=>{
         }else{
             result=ai.question
         }
-        return res.status(200).json(
-            new ApiResponse(200, {
-                result: result,
-                numberOfQuestionLeft: questionLeft
-            })
-        );
+
+        const payload = {
+            result,
+            numberOfQuestionLeft: questionLeft
+        }
+        return payload; 
     } catch (error) {
-        console.error("Error in aiInterview.controller.js:", error);
-        return res.status(500).json(new ApiResponse(500, error.message));
+        throw error;
     }
-})
+}
+
 const aiInterviewAnalysis = asyncHandler(async (req, res) => {
     try {
         const { sessionId } = req.body;
@@ -295,4 +294,33 @@ const aiHistory = asyncHandler(async(req, res)=>{
     }
 })
 
-export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory, aiResumeFile}
+const testCreateSession = asyncHandler(async(req, res) => {
+    try {
+        const sessionId = uuidv4();
+        
+        // Create a test session with dummy data
+        await client.hset(
+            sessionId, {
+                userId: "test-user-id",
+                resume: "Test resume content for debugging",
+                position: "Software Engineer",
+                experienceLevel: "intermediate",
+                numberOfQuestionYouShouldAsk: 5,
+                numberOfQuestionLeft: 5,
+                interviewMode: "Guided Mode",
+                count: 0,
+                messages: JSON.stringify([]),
+                aiExplanation: JSON.stringify([])
+            }
+        );
+        await client.expire(sessionId, 7200);
+
+        return res.status(200).json(new ApiResponse(200, { sessionId: sessionId }, "Test session created successfully"));
+
+    } catch (error) {
+        console.error("Error in testCreateSession:", error);
+        return res.status(500).json(new ApiResponse(500, error.message));
+    }
+});
+
+export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory, aiResumeFile, testCreateSession}
