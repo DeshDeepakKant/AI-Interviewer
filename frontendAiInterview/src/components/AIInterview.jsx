@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { io } from 'socket.io-client'; 
 import { 
   Box, 
   Paper, 
@@ -30,15 +31,24 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { getAccessToken } from '../utils/auth';
+
+const getCookieValue = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+};
 
 const AIInterview = () => {
+  const socketRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Session and API states
   const [sessionId, setSessionId] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [totalQuestions, setTotalQuestions] = useState(10); // Default value, will be updated from API
+  const [totalQuestions, setTotalQuestions] = useState(10);
+  const [socketConnected, setSocketConnected] = useState(false);
   
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
@@ -46,8 +56,9 @@ const AIInterview = () => {
   const [isCameraOn, setIsCameraOn] = useState(false);
   const [isMicOn, setIsMicOn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isStartingInterview, setIsStartingInterview] = useState(false);
+
   
-  // Media stream and speech recognition states
   const [stream, setStream] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -65,27 +76,23 @@ const AIInterview = () => {
   const initialMessageSent = useRef(false);
   const audioToggleRef = useRef(false);
 
-  // Handle tab visibility and window close events for interview security
+
   useEffect(() => {
     let isHandlingVisibilityChange = false;
     
     const handleVisibilityChange = () => {
-      // Prevent multiple rapid calls
       if (isHandlingVisibilityChange) return;
       
       if (document.hidden && isInterviewActive) {
         isHandlingVisibilityChange = true;
-        
-        // Tab switched or minimized during interview
+
         setTabSwitchCount(prevCount => {
           const newCount = prevCount + 1;
           
           if (newCount >= 3) {
-            // Third strike - end interview
             setIsInterviewActive(false);
             stopAllMedia();
             
-            // Start analysis in background without waiting
             axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
               console.error('Error in background analysis:', error);
             });
@@ -97,10 +104,8 @@ const AIInterview = () => {
               draggable: true
             });
             
-            // Redirect to home page
             setTimeout(() => navigate('/'), 1500);
           } else {
-            // First or second warning
             const remainingChances = 3 - newCount;
             toast.warning(`Warning ${newCount}/3: Tab switching detected! You have ${remainingChances} chance${remainingChances > 1 ? 's' : ''} left before the interview ends.`, {
               autoClose: 4000,
@@ -113,7 +118,6 @@ const AIInterview = () => {
           return newCount;
         });
         
-        // Reset the flag after a short delay
         setTimeout(() => {
           isHandlingVisibilityChange = false;
         }, 500);
@@ -122,30 +126,25 @@ const AIInterview = () => {
 
     const handleBeforeUnload = (e) => {
       if (isInterviewActive) {
-        // Tab/window closing during interview
         axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
           console.error('Error in background analysis:', error);
         });
-        
-        // Browser will show confirmation dialog
+
         e.preventDefault();
         e.returnValue = 'Your interview is in progress. Are you sure you want to leave?';
         return 'Your interview is in progress. Are you sure you want to leave?';
       }
     };
 
-    // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // Cleanup event listeners
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [isInterviewActive, sessionId, navigate]);
 
-  // Detect mobile view
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -159,7 +158,6 @@ const AIInterview = () => {
     };
   }, []);
 
-  // Handle outside clicks to close tooltip
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (isTooltipOpen && !event.target.closest('[data-tooltip-trigger]')) {
@@ -178,12 +176,11 @@ const AIInterview = () => {
     };
   }, [isTooltipOpen, isMobileView]);
 
-  // Handle Alt+Tab warning during interview
+
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Check for Alt+Tab (Alt key + Tab key)
       if (event.altKey && event.key === 'Tab' && isInterviewActive) {
-        event.preventDefault(); // Prevent the actual tab switching
+        event.preventDefault(); 
         
         toast.warning('⚠️ Warning: Switching tabs during interview is not allowed!', {
           position: "top-center",
@@ -200,7 +197,6 @@ const AIInterview = () => {
         });
       }
       
-      // Also check for Cmd+Tab on Mac (Meta key + Tab key)
       if (event.metaKey && event.key === 'Tab' && isInterviewActive) {
         event.preventDefault();
         
@@ -220,18 +216,15 @@ const AIInterview = () => {
       }
     };
 
-    // Add event listener when interview is active
     if (isInterviewActive) {
       document.addEventListener('keydown', handleKeyDown);
     }
 
-    // Cleanup event listener
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isInterviewActive]);
 
-  // Initialize session when component mounts
   useEffect(() => {
     const stateData = location.state || {};
     const stateSessionId = stateData.sessionId;
@@ -242,7 +235,6 @@ const AIInterview = () => {
       setSessionId(activeSessionId);
       sessionStorage.setItem('interviewSessionId', activeSessionId);
       
-      // Set interview mode if provided in state or stored in sessionStorage
       if (stateData.interviewMode) {
         setInterviewMode(stateData.interviewMode);
         sessionStorage.setItem('interviewMode', stateData.interviewMode);
@@ -252,8 +244,6 @@ const AIInterview = () => {
           setInterviewMode(storedMode);
         }
       }
-      
-      // Set number of questions if provided in state or stored in sessionStorage
       if (stateData.numberOfQuestions) {
         setTotalQuestions(stateData.numberOfQuestions);
         sessionStorage.setItem('numberOfQuestions', stateData.numberOfQuestions.toString());
@@ -273,12 +263,179 @@ const AIInterview = () => {
     };
   }, [location, navigate]);
 
-  // Auto scroll to bottom when new messages arrive
+  useEffect(() => {
+    const validateAuthAndConnect = async () => {
+      try {
+        const authResponse = await axios.get('/api/v1/user/currentUser', {
+          withCredentials: true,
+          timeout: 10000
+        });
+
+        if (!authResponse.data.success) {
+          throw new Error('Authentication failed');
+        }
+
+        initializeSocket();
+        
+      } catch (error) {
+        console.error('Authentication verification failed:', error);
+        toast.error('Authentication failed. Please login again.');
+        navigate('/login');
+      }
+    };
+
+    const initializeSocket = () => {
+
+      let token = getAccessToken();
+      let tokenSource = 'localStorage';
+      
+      if (!token) {
+        token = getCookieValue('accessToken');
+        tokenSource = 'cookies';
+      }
+
+      if (!token) {
+        token = 'cookie-auth'; 
+        tokenSource = 'cookies (via headers)';
+      }
+
+      if (!sessionId) {
+        return; 
+      }
+
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+
+      const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 
+                        (import.meta.env.DEV ? 'http://localhost:8000' : window.location.origin);
+
+      const socket = io(SOCKET_URL, {
+        auth: {
+          token: token
+        },
+        withCredentials: true,
+        transports: ['websocket', 'polling'],
+        timeout: 20000,
+        forceNew: true
+      });
+
+      socket.on('connect', () => {
+        setSocketConnected(true);
+        
+        socket.emit('joinRoom', { sessionId });
+        
+      });
+
+      socket.on('disconnect', () => {
+        setSocketConnected(false);
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        console.error('Error message:', error.message);
+        console.error('Error description:', error.description);
+        setSocketConnected(false);
+        
+        if (error.message === 'AuthenticationError') {
+          toast.error('Authentication failed. Please login again.');
+          navigate('/login');
+        } else if (error.message.includes('CORS')) {
+          toast.error('Connection blocked by CORS policy. Please check server configuration.');
+        } else if (error.message.includes('Network')) {
+          toast.error('Network error. Please check your internet connection.');
+        } else {
+          toast.error(`Failed to connect to interview server: ${error.message}`);
+        }
+      });
+
+
+      socket.on('aiInterview', (data) => {
+        setIsLoading(false);
+        setIsStartingInterview(false); 
+        
+        if (data && data.result) {
+          const aiResponse = data.result;
+          const numberOfQuestionLeft = data.numberOfQuestionLeft;
+          
+          const aiMessage = {
+            id: Date.now(),
+            sender: 'ai',
+            text: aiResponse,
+            timestamp: new Date()
+          };
+          
+          setMessages(prev => [...prev, aiMessage]);
+          
+          if (aiResponse && !aiResponse.includes("Your interview is over") && numberOfQuestionLeft !== undefined) {
+            const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
+            setCurrentQuestion(Math.max(0, currentQuestionNumber));
+          }
+          
+          if (aiResponse && !aiResponse.includes("Your interview is over") && numberOfQuestionLeft !== undefined) {
+            const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
+            if (currentQuestionNumber === 0 && isInterviewActive) {
+              setCurrentQuestion(1);
+            } else {
+              setCurrentQuestion(Math.max(1, currentQuestionNumber));
+            }
+          }
+          
+          if (data.audioUrl) {
+            playAudio(data.audioUrl);
+          }
+          
+          if (aiResponse.includes("Your interview is over")) {
+            setTimeout(() => toggleInterview(), 6000);
+          }
+        } else {
+          console.error('Invalid AI response data:', data);
+          const errorMessage = {
+            id: Date.now(),
+            sender: 'ai',
+            text: 'Received invalid response from server. Please try again.',
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, errorMessage]);
+        }
+      });
+
+      socket.on('aiError', (error) => {
+        setIsLoading(false);
+        setIsStartingInterview(false);
+        console.error('AI Error:', error);
+        
+        const errorMessage = {
+          id: Date.now(),
+          sender: 'ai',
+          text: error.message || 'Something went wrong. Please try again later.',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+        toast.error(error.message || 'An error occurred during the interview');
+      });
+
+      socketRef.current = socket;
+    };
+
+    if (sessionId) {
+      validateAuthAndConnect();
+    }
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
+  }, [sessionId, navigate, totalQuestions]);
+
+
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Manage video feed
+
   useEffect(() => {
     const videoElement = videoRef.current;
     
@@ -302,7 +459,6 @@ const AIInterview = () => {
     }
   }, [stream]);
 
-  // Function to play audio from URL
   const playAudio = (audioUrl) => {
     if (!audioUrl) return;
     
@@ -324,7 +480,7 @@ const AIInterview = () => {
     });
   };
 
-  // Stop all media streams and recognition
+  
   const stopAllMedia = () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -344,7 +500,6 @@ const AIInterview = () => {
     setIsAudioPlaying(false);
   };
 
-  // Start camera and microphone
   const startMedia = async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -364,7 +519,6 @@ const AIInterview = () => {
     }
   };
 
-  // Start speech recognition
   const startSpeechRecognition = () => {
     if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
       toast.error('Speech recognition not supported in this browser');
@@ -456,7 +610,7 @@ const AIInterview = () => {
     }
   };
 
-  // Stop speech recognition
+
   const stopSpeechRecognition = () => {
     if (recognitionRef.current) {
       try {
@@ -472,7 +626,6 @@ const AIInterview = () => {
     setTranscript('');
   };
 
-  // Handle camera toggle
   const toggleCamera = async () => {
     if (isCameraOn) {
       if (stream) {
@@ -502,7 +655,6 @@ const AIInterview = () => {
     }
   };
 
-  // Handle microphone toggle
   const toggleMic = async () => {
     if (audioToggleRef.current) return;
     
@@ -559,13 +711,17 @@ const AIInterview = () => {
     }
   };
 
-  // Handle sending messages
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
+
+    if (!socketRef.current || !socketConnected) {
+      toast.error('Not connected to interview server. Please wait or refresh the page.');
+      return;
+    }
     
     const userText = inputValue.trim();
     const newMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       sender: 'user',
       text: userText,
       timestamp: new Date()
@@ -578,98 +734,52 @@ const AIInterview = () => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post('/api/v1/ai/aiStart', {
-        answer: userText,
-        sessionId: sessionId
-      });
-      
-      if (!response.data.success) {
-        throw new Error(response.data.data);
-      }
-      
-      const aiResponse = response.data.data.result;
-      const numberOfQuestionLeft = response.data.data.numberOfQuestionLeft;
-      
-      const aiMessage = {
-        id: messages.length + 2,
-        sender: 'ai',
-        text: aiResponse,
-        timestamp: new Date()
+      const messageData = {
+        sessionId: sessionId,
+        answer: userText
       };
       
-      setMessages(prev => [...prev, aiMessage]);
-      
-      // Update question progress using numberOfQuestionLeft from API response
-      if (aiResponse && !aiResponse.includes("Your interview is over") && numberOfQuestionLeft !== undefined) {
-        const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
-        setCurrentQuestion(Math.max(0, currentQuestionNumber));
-      }
-      
-      if (response.data.data.audioUrl) {
-        playAudio(response.data.data.audioUrl);
-      }
-      
-      if (aiResponse.includes("Your interview is over")) {
-        setTimeout(() => toggleInterview(), 6000);
-      }
+      socketRef.current.emit('sendAnswer', messageData);
+
       
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error sending message via socket:', error);
+      setIsLoading(false);
+      
       const errorMessage = {
-        id: messages.length + 2,
+        id: Date.now(),
         sender: 'ai',
-        text: 'Something went wrong. Please try again later.',
+        text: 'Failed to send message. Please try again.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+      toast.error('Failed to send message. Please check your connection.');
     }
   };
 
-  // Handle interview start/stop
   const toggleInterview = async () => {
     if (!isInterviewActive) {
-      // Start interview
       const mediaStarted = await startMedia();
       if (!mediaStarted) return;
 
+      if (!socketRef.current || !socketConnected) {
+        toast.error('Not connected to interview server. Please wait or refresh the page.');
+        return;
+      }
+
       if (!initialMessageSent.current) {
         initialMessageSent.current = true;
-        setIsLoading(true);
+        setIsStartingInterview(true); 
+        setIsLoading(true); 
         
         try {
-          const response = await axios.post('/api/v1/ai/aiStart', {
-            answer: "Let's start the interview",
-            sessionId: sessionId
+          socketRef.current.emit('sendAnswer', {
+            sessionId: sessionId,
+            answer: "Let's start the interview"
           });
           
-          const numberOfQuestionLeft = response.data.data.numberOfQuestionLeft;
-          
-          const aiMessage = {
-            id: messages.length + 1,
-            sender: 'ai',
-            text: response.data.data.result,
-            timestamp: new Date()
-          };
-          
-          setMessages(prev => [...prev, aiMessage]);
-          
-          if (response.data.data.audioUrl) {
-            playAudio(response.data.data.audioUrl);
-          }
-          
           setIsInterviewActive(true);
-          
-          // Set current question based on numberOfQuestionLeft from API
-          if (numberOfQuestionLeft !== undefined) {
-            const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
-            setCurrentQuestion(Math.max(1, currentQuestionNumber));
-          } else {
-            setCurrentQuestion(1); // Fallback to 1 when interview starts
-          }
-          
-          setTabSwitchCount(0); // Reset tab switch count when interview starts
+          setTabSwitchCount(0);
           
           setTimeout(() => {
             startSpeechRecognition();
@@ -679,28 +789,24 @@ const AIInterview = () => {
           
         } catch (error) {
           console.error('Error starting interview:', error);
-          toast.error("Failed to start interview.");
-        } finally {
           setIsLoading(false);
+          setIsStartingInterview(false);
+          toast.error("Failed to start interview.");
         }
       }
     } else {
-      // End interview
       setIsInterviewActive(false);
-      setCurrentQuestion(0); // Reset to 0 when interview ends
+      setCurrentQuestion(0);
       stopAllMedia();
       
-      // Clean up session storage
       sessionStorage.removeItem('interviewSessionId');
       sessionStorage.removeItem('numberOfQuestions');
       sessionStorage.removeItem('interviewMode');
-      
-      // Start analysis in background without waiting
+
       axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
         console.error('Error in background analysis:', error);
       });
-      
-      // Show toast and redirect immediately
+
       toast.success('You can check interview analysis in the dashboard after some time', {
         autoClose: 3000,
         closeButton: true,
@@ -708,7 +814,7 @@ const AIInterview = () => {
         draggable: true
       });
       
-      // Redirect to home page immediately
+
       navigate('/');
     }
   };
@@ -720,7 +826,6 @@ const AIInterview = () => {
     }
   };
 
-  // Prevent copy/paste in input field for interview security
   const handleInputPaste = (event) => {
     event.preventDefault();
     toast.warning('Copy/paste is disabled during the interview for security reasons.');
@@ -794,7 +899,7 @@ const AIInterview = () => {
             borderRadius: 2,
             height: { xs: 'auto', sm: 'auto', md: 'auto' },
             flex: { xs: '1', md: 'none' },
-            minHeight: { xs: '160px', sm: '180px', md: 'auto' }, // Reduced mobile minHeight
+            minHeight: { xs: '160px', sm: '180px', md: 'auto' },
             overflow: 'hidden'
           }}
         >
@@ -833,6 +938,34 @@ const AIInterview = () => {
           >
             Status: {isInterviewActive ? 'Interview in Progress' : 'Ready to Start'}
           </Typography>
+          
+          {/* Connection Status */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, md: 1 } }}>
+            <Box
+              sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: socketConnected ? '#4caf50' : '#f44336',
+                animation: socketConnected ? 'pulse 2s infinite' : 'none',
+                '@keyframes pulse': {
+                  '0%': { opacity: 1 },
+                  '50%': { opacity: 0.5 },
+                  '100%': { opacity: 1 }
+                }
+              }}
+            />
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: socketConnected ? '#4caf50' : '#f44336',
+                fontSize: { xs: '0.6rem', md: '0.75rem' },
+                fontWeight: 600
+              }}
+            >
+              {socketConnected ? 'Connected' : 'Connecting...'}
+            </Typography>
+          </Box>
           
           {/* Progress Bar */}
           <Box sx={{ mb: { xs: 0, md: 2 } }}>
@@ -933,7 +1066,7 @@ const AIInterview = () => {
             overflow: 'hidden',
             position: 'relative',
             height: { xs: 'auto', sm: 'auto', md: 'auto' },
-            minHeight: { xs: '160px', sm: '180px', md: 'auto' } // Reduced to match AI Assistant
+            minHeight: { xs: '160px', sm: '180px', md: 'auto' }
           }}
         >
           <Box sx={{ p: { xs: 0.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)' }}>
@@ -1438,23 +1571,11 @@ const AIInterview = () => {
                   </Box>
                 </Paper>
                 
-                {/* <Typography 
-                  variant="h6" 
-                  sx={{ 
-                    color: 'var(--text-primary)',
-                    fontWeight: 500,
-                    fontSize: { xs: '1.1rem', md: '1.25rem' },
-                    mt: 1
-                  }}
-                >
-                  Are you ready to begin?
-                </Typography> */}
               </Box>
             )}
 
-            {/* Chat Messages - Show only when interview is active */}
             {isInterviewActive && messages.map((message) => {
-              // Special rendering for system messages (mode changes)
+
               if (message.sender === 'system' && message.modeChange) {
                 return (
                   <Box 
@@ -1510,7 +1631,6 @@ const AIInterview = () => {
                 );
               }
 
-              // Regular message rendering
               return (
                 <Box 
                   key={message.id}
@@ -1641,22 +1761,26 @@ const AIInterview = () => {
                 onPaste={handleInputPaste}
                 onCopy={handleInputCopy}
                 onCut={handleInputCut}
-                placeholder="Type your message..."
+                placeholder={isLoading ? "AI is responding..." : "Type your message..."}
                 variant="outlined"
                 size={window.innerWidth < 600 ? 'small' : 'medium'}
+                disabled={isLoading}
                 sx={{
                   '& .MuiOutlinedInput-root': {
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    backgroundColor: isLoading ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)',
                     color: 'var(--text-primary)',
                     fontSize: { xs: '0.85rem', md: '1rem' },
                     '& fieldset': {
-                      borderColor: 'rgba(0, 191, 165, 0.3)',
+                      borderColor: isLoading ? 'rgba(0, 191, 165, 0.1)' : 'rgba(0, 191, 165, 0.3)',
                     },
                     '&:hover fieldset': {
-                      borderColor: 'rgba(0, 191, 165, 0.5)',
+                      borderColor: isLoading ? 'rgba(0, 191, 165, 0.1)' : 'rgba(0, 191, 165, 0.5)',
                     },
                     '&.Mui-focused fieldset': {
-                      borderColor: 'var(--primary-color)',
+                      borderColor: isLoading ? 'rgba(0, 191, 165, 0.2)' : 'var(--primary-color)',
+                    },
+                    '&.Mui-disabled': {
+                      opacity: 0.6,
                     },
                   },
                   '& .MuiInputBase-input::placeholder': {
@@ -1668,7 +1792,7 @@ const AIInterview = () => {
               <Button
                 variant="contained"
                 onClick={handleSendMessage}
-                disabled={!inputValue.trim()}
+                disabled={!inputValue.trim() || isLoading}
                 size={window.innerWidth < 600 ? 'small' : 'medium'}
                 sx={{
                   backgroundColor: 'var(--primary-color)',
@@ -1717,9 +1841,9 @@ const AIInterview = () => {
             variant="contained"
             size={window.innerWidth < 600 ? 'medium' : 'large'}
             onClick={toggleInterview}
-            disabled={isLoading}
+            disabled={isStartingInterview || (!socketConnected && !isInterviewActive)}
             startIcon={
-              isLoading ? (
+              isStartingInterview ? (
                 <CircularProgress size={20} color="inherit" />
               ) : isInterviewActive ? (
                 <StopIcon />
@@ -1728,29 +1852,29 @@ const AIInterview = () => {
               )
             }
             sx={{
-              backgroundColor: isLoading 
-                ? '#ff9800' // Orange color during loading
+              backgroundColor: isStartingInterview 
+                ? '#ff9800' 
                 : isInterviewActive 
-                  ? '#ff6b6b' // Red when interview is active
-                  : 'var(--primary-color)', // Primary color when ready to start
+                  ? '#ff6b6b'
+                  : 'var(--primary-color)',
               color: 'white',
               py: { xs: 1.5, md: 2 },
               px: { xs: 2, md: 3 },
               fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
               fontWeight: 600,
               '&:hover': {
-                backgroundColor: isLoading 
-                  ? '#17171bff' // Darker orange on hover during loading
+                backgroundColor: isStartingInterview 
+                  ? '#17171bff'
                   : isInterviewActive 
-                    ? '#e55a5a' // Darker red when interview is active
-                    : 'var(--primary-dark)', // Darker primary when ready to start
+                    ? '#e55a5a' 
+                    : 'var(--primary-dark)', 
               },
               '&.Mui-disabled': {
-                backgroundColor: isLoading 
-                  ? '#37374A' // Keep orange during loading
+                backgroundColor: isStartingInterview 
+                  ? '#37374A'
                   : 'rgba(255, 255, 255, 0.12)',
                 color: 'white',
-                opacity: isLoading ? 0.9 : 0.3,
+                opacity: isStartingInterview ? 0.9 : 0.3,
               },
               borderRadius: 2,
               textTransform: 'none',
@@ -1758,10 +1882,12 @@ const AIInterview = () => {
               minHeight: { xs: '48px', md: 'auto' }
             }}
           >
-            {isLoading ? (
+            {isStartingInterview ? (
               'Starting Interview...'
             ) : isInterviewActive ? (
               'End Interview'
+            ) : !socketConnected ? (
+              'Connecting to Server...'
             ) : (
               'Start Interview'
             )}
