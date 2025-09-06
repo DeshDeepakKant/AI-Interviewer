@@ -10,6 +10,7 @@ import fs from 'fs/promises';
 import dotenv from "dotenv";
 import {v4 as uuidv4} from "uuid";
 import { io } from "../app.js";
+import {generateWavFile} from "../utils/tts.js"
 
 dotenv.config({ path: '../../.env' });
 
@@ -130,9 +131,10 @@ const aiInterviewStart = async(sessionId, answer)=>{
             answer || '',
             data.interviewMode || 'Guided Mode'
         );
-
+        const fileName = uuidv4()
         if (answer.startsWith("//explain")){
             let questionExplain;
+            await generateWavFile(ai.explanation, fileName)
             try {
             questionExplain = data.aiExplanation ? JSON.parse(data.aiExplanation) : [];
             } catch (parseError) {
@@ -145,6 +147,7 @@ const aiInterviewStart = async(sessionId, answer)=>{
 
             multi.hset(sessionId, 'aiExplanation', JSON.stringify(questionExplain));
         }else{
+            await generateWavFile(ai.question, fileName)
             if (!ai.question.startsWith("Your interview is over")){
                 messages.push({ role: "ai", content: ai.question || '' });
                 multi.hset(sessionId, 'messages', JSON.stringify(messages));
@@ -161,6 +164,12 @@ const aiInterviewStart = async(sessionId, answer)=>{
 
         await multi.exec();
 
+        const filePath = `./uploads/${fileName}.wav`;
+        console.log("________________ filePath___________________")
+        console.log(filePath)
+        const audioBuffer = await fs.readFile(filePath);
+        const audioBase64 = audioBuffer.toString("base64");
+
         let result;
         if(ai.explanation && ai.question){
             result=ai.explanation
@@ -170,7 +179,8 @@ const aiInterviewStart = async(sessionId, answer)=>{
 
         const payload = {
             result,
-            numberOfQuestionLeft: questionLeft
+            numberOfQuestionLeft: questionLeft,
+            audio: audioBase64,
         }
         return payload; 
     } catch (error) {
