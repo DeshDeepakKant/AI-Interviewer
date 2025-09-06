@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv"
 import http from "http"
+import fs from "fs"
 import {Server} from "socket.io"
 import { verifyTokenAndGetUser } from "./middlewares/authSocket.js";
 
@@ -86,7 +87,12 @@ io.on('connection', (socket) => {
         const resultPayload = await aiInterviewStart(sessionId, answer, socket.user._id);
         
         socket.emit('aiInterview', resultPayload);
-      
+        if (resultPayload.fileName) {
+          const filePath = `./uploads/${resultPayload.fileName}.wav`;
+          fs.unlink(filePath, (err) => {
+            if (err) console.error("Error cleaning up audio file:", err);
+        });
+      }
     } catch (error) {
         console.error("Error in sendAnswer:", error);
         socket.emit('aiError', { message: error.message || 'An error occurred.' });

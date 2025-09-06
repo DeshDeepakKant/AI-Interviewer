@@ -383,6 +383,8 @@ const AIInterview = () => {
           
           if (data.audioUrl) {
             playAudio(data.audioUrl);
+          } else if (data.audio) {
+            playAudioFromBase64(data.audio);
           }
           
           if (aiResponse.includes("Your interview is over")) {
@@ -478,6 +480,49 @@ const AIInterview = () => {
       console.error('Error playing audio:', e);
       setIsAudioPlaying(false);
     });
+  };
+
+  const playAudioFromBase64 = (audioBase64) => {
+    if (!audioBase64) return;
+    
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      
+      const binaryString = atob(audioBase64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      
+      const audioBlob = new Blob([bytes], { type: 'audio/wav' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      audioRef.current = new Audio(audioUrl);
+      
+      audioRef.current.onplay = () => setIsAudioPlaying(true);
+      audioRef.current.onended = () => {
+        setIsAudioPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audioRef.current.onpause = () => setIsAudioPlaying(false);
+      audioRef.current.onerror = () => {
+        setIsAudioPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      
+      audioRef.current.play().catch(e => {
+        console.error('Error playing audio:', e);
+        setIsAudioPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      });
+      
+    } catch (error) {
+      console.error('Error processing base64 audio:', error);
+      setIsAudioPlaying(false);
+    }
   };
 
   

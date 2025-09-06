@@ -181,6 +181,7 @@ const aiInterviewStart = async(sessionId, answer)=>{
             result,
             numberOfQuestionLeft: questionLeft,
             audio: audioBase64,
+            fileName: fileName
         }
         return payload; 
     } catch (error) {
