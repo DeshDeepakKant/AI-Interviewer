@@ -3,6 +3,8 @@
 
 ### Node ###
 # Logs
+piper/
+piper
 logs
 *.log
 npm-debug.log*
