@@ -5,6 +5,12 @@
 # Logs
 piper/
 piper
+# Ignore Piper binaries and models
+piper/
+*.onnx
+*.onnx.json
+*.wav
+
 logs
 *.log
 npm-debug.log*
