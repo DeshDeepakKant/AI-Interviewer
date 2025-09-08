@@ -5,7 +5,6 @@ import {
     aiInterviewAnalysis, 
     aiHistory,
     aiResumeFile,
-    testCreateSession
  } from "../controllers/aiInterview.controller.js"
 import verifyJWT from "../middlewares/auth.middleware.js";
 import upload from "../utils/fileUpload.js";

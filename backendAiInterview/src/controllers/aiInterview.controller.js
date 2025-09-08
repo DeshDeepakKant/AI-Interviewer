@@ -305,33 +305,5 @@ const aiHistory = asyncHandler(async(req, res)=>{
     }
 })
 
-const testCreateSession = asyncHandler(async(req, res) => {
-    try {
-        const sessionId = uuidv4();
-        
-        // Create a test session with dummy data
-        await client.hset(
-            sessionId, {
-                userId: "test-user-id",
-                resume: "Test resume content for debugging",
-                position: "Software Engineer",
-                experienceLevel: "intermediate",
-                numberOfQuestionYouShouldAsk: 5,
-                numberOfQuestionLeft: 5,
-                interviewMode: "Guided Mode",
-                count: 0,
-                messages: JSON.stringify([]),
-                aiExplanation: JSON.stringify([])
-            }
-        );
-        await client.expire(sessionId, 7200);
 
-        return res.status(200).json(new ApiResponse(200, { sessionId: sessionId }, "Test session created successfully"));
-
-    } catch (error) {
-        console.error("Error in testCreateSession:", error);
-        return res.status(500).json(new ApiResponse(500, error.message));
-    }
-});
-
-export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory, aiResumeFile, testCreateSession}
+export {aiInterviewWay, aiInterviewStart, aiInterviewAnalysis, aiHistory, aiResumeFile}

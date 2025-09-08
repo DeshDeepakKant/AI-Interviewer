@@ -21,10 +21,6 @@ const generateAccessAndRefreshToken  = async(userId)=>{
 }
 
 const userSignUp = asyncHandler(async(req, res)=>{
-    // take input from the user
-    // verify all the field is present or not
-    // push the data in the db 
-
     const {username, fullName, email, password, role} = req.body
 
     if(
