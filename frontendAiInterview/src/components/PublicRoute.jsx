@@ -5,7 +5,6 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 const PublicRoute = () => {
   const { isAuthenticated, isLoading, isInitialized } = useAuth();
 
-  // Show loading while authentication is being verified
   if (isLoading || !isInitialized) {
     return (
       <Box

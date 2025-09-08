@@ -11,7 +11,6 @@ import {
 import HomePage from "./components/Homepage.jsx";
 import Layout from "./components/Layout.jsx";
 import LoginPage from "./components/LoginPage.jsx";
-import Testing from "./components/testing.jsx";
 import AIInterview from "./components/AIInterview.jsx";
 // import LayoutWithoutFooter from "./components/LayoutWithoutFooter.jsx";
 import Features from "./components/Features.jsx";
@@ -30,7 +29,6 @@ const router = createBrowserRouter(
       {" "}
       <Route path="/" element={<Layout />}>
         <Route path="" element={<HomePage />} />
-        <Route path="testing" element={<Testing />} />
         <Route path="features" element={<Features />} />
         {/* <Route path="comingSoon" element={<ComingSoon />} /> */}
         

@@ -116,10 +116,6 @@ const Header = () => {
     if (unreadCount === 0) return;
     
     try {
-      // In a real app, you would make an API call to mark notifications as read
-      // await axios.patch('/api/notifications/mark-as-read');
-      
-      // Update notifications to mark all as read
       const updatedNotifications = notifications.map(notification => ({
         ...notification,
         read: true
@@ -150,25 +146,19 @@ const Header = () => {
           fetchInitialNotifications();
         }
       } else {
-        // If no saved notifications, fetch them
         fetchInitialNotifications();
       }
     } else {
-      // Clear notifications when user logs out
       setNotifications([]);
       setUnreadCount(0);
     }
   }, [user]);
-
-  // Load notifications when user changes or on mount
   useEffect(() => {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Save notifications to localStorage whenever they change
   useEffect(() => {
     if (notifications.length > 0) {
-      // Convert Date objects to ISO strings for localStorage
       const notificationsForStorage = notifications.map(notification => ({
         ...notification,
         timestamp: notification.timestamp.toISOString()
@@ -177,11 +167,9 @@ const Header = () => {
     }
   }, [notifications]);
 
-  // Mock notifications - in a real app, these would come from an API
   const fetchInitialNotifications = async () => {
     setLoadingNotifications(true);
     try {
-      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 800));
       
       const mockNotifications = [
@@ -191,7 +179,7 @@ const Header = () => {
           message: 'Your mock interview for Senior Frontend Engineer is scheduled for tomorrow at 2:00 PM',
           type: 'interview',
           read: false,
-          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+          timestamp: new Date(Date.now() - 1000 * 60 * 30),
         },
         {
           id: 2,
@@ -199,7 +187,7 @@ const Header = () => {
           message: 'Your interview feedback is now available for review',
           type: 'feedback',
           read: false,
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2),
         },
         {
           id: 3,
@@ -207,7 +195,7 @@ const Header = () => {
           message: 'Check out our new practice questions for system design interviews',
           type: 'announcement',
           read: true,
-          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+          timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24),
         },
       ];
       
@@ -230,7 +218,6 @@ const Header = () => {
     } catch (err) {
       console.error("Logout failed:", err);
       toast.error("Logout failed. Please try again.");
-      // Force navigation to login even if logout API fails
       navigate("/login");
     }
   };
@@ -712,7 +699,6 @@ const Header = () => {
             ) : (
               <>
               {isLoading ? (
-                // Show loading skeleton or nothing while checking auth state
                 <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
                   <Box sx={{ width: 80, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <Box sx={{ width: 100, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />

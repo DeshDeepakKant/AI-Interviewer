@@ -13,7 +13,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { NavLink } from "react-router";
 
-// Animation variants - moved outside component for optimization
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -49,7 +48,6 @@ const letterVariants = {
   }
 };
 
-// Optimized bouncing animation for letters - same as homepage
 const bouncingAnimation = {
   y: [0, -8, 0],
   scale: [1, 1.05, 1],
@@ -118,7 +116,6 @@ const featureItem = {
   },
 };
 
-// Memoized pricing data
 const pricingPlans = [
   {
     name: "Starter",
@@ -170,14 +167,13 @@ const pricingPlans = [
   },
 ];
 
-// Memoized feature component for better performance
 const FeatureItem = memo(({ feature, index, theme }) => (
   <Box
     component="li"
     sx={{
       display: "flex",
       alignItems: "center",
-      mb: { xs: 1.5, sm: 2 }, // Responsive margin
+      mb: { xs: 1.5, sm: 2 },
       color: "#e2e8f0",
     }}
   >
@@ -192,8 +188,8 @@ const FeatureItem = memo(({ feature, index, theme }) => (
       <CheckCircleIcon
         sx={{
           color: theme.palette.primary.main,
-          fontSize: { xs: "1rem", sm: "1.2rem" }, // Responsive icon size
-          mr: { xs: 1, sm: 1.5 }, // Responsive margin
+          fontSize: { xs: "1rem", sm: "1.2rem" },
+          mr: { xs: 1, sm: 1.5 },
           flexShrink: 0,
           filter: 'drop-shadow(0 0 5px rgba(0, 191, 165, 0.7))',
           transition: 'all 0.3s ease',
@@ -203,7 +199,7 @@ const FeatureItem = memo(({ feature, index, theme }) => (
     <Typography 
       variant="body2"
       sx={{ 
-        fontSize: { xs: '0.8rem', sm: '0.875rem' } // Responsive font size
+        fontSize: { xs: '0.8rem', sm: '0.875rem' }
       }}
     >
       {feature}
@@ -211,12 +207,10 @@ const FeatureItem = memo(({ feature, index, theme }) => (
   </Box>
 ));
 
-// Memoized pricing card component
 const PricingCard = memo(({ plan, index, theme }) => {
-  // Memoized paper styles
   const paperStyles = useMemo(() => ({
     height: "100%",
-    borderRadius: { xs: 3, sm: 4 }, // Responsive border radius
+    borderRadius: { xs: 3, sm: 4 },
     overflow: "hidden",
     border: plan.highlight
       ? `2px solid ${theme.palette.primary.main}`
@@ -231,13 +225,12 @@ const PricingCard = memo(({ plan, index, theme }) => {
     },
   }), [plan.highlight, theme]);
 
-  // Memoized button styles
   const buttonStyles = useMemo(() => ({
-    py: { xs: 1.2, sm: 1.5 }, // Responsive padding
+    py: { xs: 1.2, sm: 1.5 },
     borderRadius: 2,
     fontWeight: 600,
-    mb: { xs: 2, sm: 3 }, // Responsive margin
-    fontSize: { xs: '0.875rem', sm: '1rem' }, // Responsive font size
+    mb: { xs: 2, sm: 3 },
+    fontSize: { xs: '0.875rem', sm: '1rem' }, 
     background: plan.highlight
       ? `linear-gradient(45deg, ${theme.palette.primary.main}, #00b0ff)`
       : "rgba(255, 255, 255, 0.05)",
@@ -270,14 +263,14 @@ const PricingCard = memo(({ plan, index, theme }) => {
             sx={{
               position: "absolute",
               top: 0,
-              right: { xs: 15, sm: 20 }, // Responsive positioning
+              right: { xs: 15, sm: 20 }, 
               bgcolor: theme.palette.primary.main,
               color: "#fff",
-              px: { xs: 1.5, sm: 2 }, // Responsive padding
+              px: { xs: 1.5, sm: 2 },
               py: 0.5,
               borderBottomLeftRadius: 8,
               borderBottomRightRadius: 8,
-              fontSize: { xs: "0.65rem", sm: "0.75rem" }, // Responsive font size
+              fontSize: { xs: "0.65rem", sm: "0.75rem" },
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.5px",
@@ -287,7 +280,7 @@ const PricingCard = memo(({ plan, index, theme }) => {
           </Box>
         )}
         <Box 
-          p={{ xs: 3, sm: 4 }} // Responsive padding
+          p={{ xs: 3, sm: 4 }} 
           sx={{
             position: 'relative',
             overflow: 'hidden',
@@ -314,7 +307,7 @@ const PricingCard = memo(({ plan, index, theme }) => {
               color: "white", 
               mb: 1, 
               fontWeight: 700,
-              fontSize: { xs: '1.25rem', sm: '1.5rem' } // Responsive font size
+              fontSize: { xs: '1.25rem', sm: '1.5rem' } 
             }}
           >
             {plan.name}
@@ -324,9 +317,9 @@ const PricingCard = memo(({ plan, index, theme }) => {
             color="text.secondary"
             sx={{ 
               color: "#94a3b8", 
-              mb: { xs: 2, sm: 3 }, // Responsive margin
-              minHeight: { xs: 35, sm: 40 }, // Responsive min height
-              fontSize: { xs: '0.8rem', sm: '0.875rem' } // Responsive font size
+              mb: { xs: 2, sm: 3 },
+              minHeight: { xs: 35, sm: 40 },
+              fontSize: { xs: '0.8rem', sm: '0.875rem' }
             }}
           >
             {plan.description}
@@ -336,7 +329,7 @@ const PricingCard = memo(({ plan, index, theme }) => {
             sx={{ 
               display: "flex", 
               alignItems: "baseline", 
-              mb: { xs: 2, sm: 3 } // Responsive margin
+              mb: { xs: 2, sm: 3 } 
             }}
           >
             <Typography
@@ -344,7 +337,7 @@ const PricingCard = memo(({ plan, index, theme }) => {
               sx={{ 
                 color: "white", 
                 fontWeight: 800,
-                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' } // Responsive font size
+                fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
               }}
             >
               {plan.price}
@@ -355,7 +348,7 @@ const PricingCard = memo(({ plan, index, theme }) => {
               sx={{ 
                 ml: 1, 
                 color: "#94a3b8",
-                fontSize: { xs: '0.875rem', sm: '1rem' } // Responsive font size
+                fontSize: { xs: '0.875rem', sm: '1rem' }
               }}
             >
               {plan.period}
@@ -405,12 +398,10 @@ const PricingCard = memo(({ plan, index, theme }) => {
 const Pricing = memo(() => {
   const theme = useTheme();
 
-  // Add smooth scroll to top on component mount
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Memoize title letters to prevent recreation on every render - same as homepage
   const titleLetters = useMemo(() => 
     "AFFORDABLE PRICING".split("").map((char, index) => ({
       char: char === " " ? "\u00A0" : char,
@@ -419,11 +410,10 @@ const Pricing = memo(() => {
     })), []
   );
 
-  // Memoized main container styles
   const mainContainerStyles = useMemo(() => ({
     minHeight: "100vh",
-    pt: { xs: 12, sm: 14, md: 16 }, // Added top padding to avoid menu bar overlap
-    pb: { xs: 6, sm: 8, md: 10 }, // Bottom padding remains the same
+    pt: { xs: 12, sm: 14, md: 16 },
+    pb: { xs: 6, sm: 8, md: 10 }, 
     background: "linear-gradient(180deg, #0a1929 0%, #0a0f1e 100%)",
     position: "relative",
     overflowX: "hidden",
@@ -441,35 +431,33 @@ const Pricing = memo(() => {
     },
   }), []);
 
-  // Memoized title styles - same style as homepage
+
   const titleStyles = useMemo(() => ({
     color: "white",
     display: "flex",
     justifyContent: "center",
-    flexWrap: "nowrap", // Prevent wrapping to keep text on one line
-    gap: { xs: 0.1, sm: 0.2, md: 0.3 }, // Smaller gap on mobile
+    flexWrap: "nowrap",
+    gap: { xs: 0.1, sm: 0.2, md: 0.3 },
     fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
     fontWeight: 700,
-    letterSpacing: { xs: "0.01em", sm: "0.03em", md: "0.08em" }, // Reduced letter spacing on mobile
+    letterSpacing: { xs: "0.01em", sm: "0.03em", md: "0.08em" }, 
     textTransform: "uppercase",
     textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
     mb: 3,
-    fontSize: { xs: '1.4rem', sm: '2rem', md: '2.8rem', lg: '3.5rem' }, // Smaller mobile size to fit
+    fontSize: { xs: '1.4rem', sm: '2rem', md: '2.8rem', lg: '3.5rem' }, 
     lineHeight: { xs: 1.1, sm: 1.1 },
     width: "100%",
     overflow: "visible",
-    minHeight: { xs: '60px', sm: '80px', md: 'auto' }, // Adjusted for smaller text
-    padding: { xs: '10px 5px', sm: '15px 10px', md: '20px 15px' }, // Reduced padding
-    whiteSpace: "nowrap", // Force single line
+    minHeight: { xs: '60px', sm: '80px', md: 'auto' }, 
+    padding: { xs: '10px 5px', sm: '15px 10px', md: '20px 15px' },
+    whiteSpace: "nowrap",
   }), []);
 
-  // Memoized subtitle styles
   const subtitleStyles = useMemo(() => ({
     color: "#94a3b8",
-    maxWidth: { xs: '90%', sm: 700 }, // Responsive max width
-    mx: "auto",
-    fontSize: { xs: '1rem', sm: '1.25rem' }, // Responsive font size
-    px: { xs: 2, sm: 0 }, // Responsive padding
+    maxWidth: { xs: '90%', sm: 700 },
+    fontSize: { xs: '1rem', sm: '1.25rem' },
+    px: { xs: 2, sm: 0 },
   }), []);
 
   return (
@@ -489,7 +477,7 @@ const Pricing = memo(() => {
           minHeight: "100%",
           display: "flex",
           flexDirection: "column",
-          px: { xs: 2, sm: 3 }, // Responsive padding
+          px: { xs: 2, sm: 3 },
         }}
       >
         <motion.div
@@ -500,7 +488,7 @@ const Pricing = memo(() => {
           style={{ 
             textAlign: "center", 
             marginBottom: '3rem',
-            padding: '0 10px', // Reduced padding for mobile
+            padding: '0 10px', 
             overflow: 'visible',
             width: '100%'
           }}
@@ -512,7 +500,7 @@ const Pricing = memo(() => {
               justifyContent: 'center',
               alignItems: 'center',
               overflow: 'visible',
-              minHeight: { xs: '60px', sm: '80px' } // Ensure space for animation
+              minHeight: { xs: '60px', sm: '80px' }
             }}
           >
             <Typography
@@ -535,20 +523,19 @@ const Pricing = memo(() => {
                     ...bouncingAnimation,
                     transition: {
                       ...bouncingAnimation.transition,
-                      delay: index * 0.1, // Staggered delay for wave effect
+                      delay: index * 0.1,
                     }
                   }}
                   style={{
                     display: "inline-block",
                     color: index % 2 === 0 ? "#ffffff" : "#00e5c9",
-                    minWidth: isSpace ? "0.3em" : "auto", // Reduced space width for mobile
+                    minWidth: isSpace ? "0.3em" : "auto",
                     textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-                    // Use transform instead of animating position properties for better performance
                     willChange: "transform",
-                    fontSize: "inherit", // Inherit responsive font size
+                    fontSize: "inherit", 
                   }}
                   whileHover={{ 
-                    scale: 1.1, // Reduced hover scale for mobile
+                    scale: 1.1, 
                     transition: { duration: 0.2 }
                   }}
                 >
@@ -582,7 +569,7 @@ const Pricing = memo(() => {
         >
           <Grid
             container
-            spacing={{ xs: 3, sm: 4 }} // Responsive spacing
+            spacing={{ xs: 3, sm: 4 }}
             justifyContent="center"
             alignItems="stretch"
           >
@@ -614,8 +601,8 @@ const Pricing = memo(() => {
             color="text.secondary"
             sx={{ 
               color: "#94a3b8",
-              fontSize: { xs: '0.8rem', sm: '0.875rem' }, // Responsive font size
-              px: { xs: 2, sm: 0 } // Responsive padding
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              px: { xs: 2, sm: 0 } 
             }}
           >
             Need a custom plan? Contact us at surajpatel9390@gmail.com

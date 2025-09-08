@@ -35,7 +35,6 @@ import SchoolIcon from '@mui/icons-material/School';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
 import { styled, keyframes } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-// Animation keyframes
 const gradient = keyframes`
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -135,7 +134,6 @@ const MockInterviewWay = () => {
   const handlePositionChange = (event) => setPosition(event.target.value);
   const handleInterviewModeChange = (event) => setInterviewMode(event.target.value);
   const handleFileUpload = async (event) => {
-    // Check if we have a file from the event
     const file = event?.target?.files?.[0] || event;
     
     if (!file) {
@@ -143,20 +141,18 @@ const MockInterviewWay = () => {
       return;
     }
     
-    // Validate file object
     if (!(file instanceof File || file instanceof Blob)) {
       console.error('Invalid file object:', file);
       return;
     }
 
-    // Validate file type
     if (file.type !== 'application/pdf') {
       alert('Please select a PDF file only.');
       return;
     }
 
     // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
       alert('File size must be less than 5MB.');
       return;
@@ -167,11 +163,9 @@ const MockInterviewWay = () => {
       setIsUploading(true);
       setIsFileUploaded(false);
       
-      // Create FormData for file upload
       const formData = new FormData();
       formData.append('resumePdf', file);
       
-      // Upload file to backend
       const response = await axios.post(
         '/api/v1/ai/aiUploadResume',
         formData,
@@ -188,7 +182,6 @@ const MockInterviewWay = () => {
       );
 
       if (response.data.success) {
-        // Create object URL for preview
         let fileUrl;
         try {
           fileUrl = URL.createObjectURL(file);
@@ -197,7 +190,6 @@ const MockInterviewWay = () => {
           fileUrl = null;
         }
         
-        // Update state with successful upload
         setUploadProgress(100);
         setIsFileUploaded(true);
         setSessionId(response.data.data.sessionId);
@@ -231,7 +223,6 @@ const MockInterviewWay = () => {
     }
   };
   const handleRemoveFile = () => {
-    // Clean up object URL if it exists
     if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
       URL.revokeObjectURL(resumeFile.url);
     }
@@ -247,12 +238,10 @@ const MockInterviewWay = () => {
   };
 
   const handleSubmit = async (e) => {
-    // First, prevent default form submission
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
     
-    // Simple validation
     if (!position) {
       const errorMsg = 'Please select a position';
       console.error('Validation Error:', errorMsg);
@@ -270,13 +259,10 @@ const MockInterviewWay = () => {
     setIsLoading(true);
     
     try {
-      // Use the sessionId from the file upload
       const currentSessionId = sessionId;
       
-      // Store session ID in sessionStorage
       sessionStorage.setItem('interviewSessionId', currentSessionId);
-      
-      // Call the backend API to start the interview
+
       const response = await axios.post(
         '/api/v1/ai/ai',
         {
@@ -296,7 +282,6 @@ const MockInterviewWay = () => {
       );
 
       if (response.data.success) {
-        // Navigate to interview page
         navigate('/interview', { 
           state: { 
             sessionId: currentSessionId,
@@ -339,13 +324,11 @@ const MockInterviewWay = () => {
   useEffect(() => {
     setIsMounted(true);
     
-    // Cleanup function to revoke object URLs on unmount
     return () => {
       setIsMounted(false);
     };
   }, []);
 
-  // Separate effect for cleanup when resumeFile changes
   useEffect(() => {
     return () => {
       if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {

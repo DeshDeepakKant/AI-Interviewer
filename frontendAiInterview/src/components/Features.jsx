@@ -17,7 +17,6 @@ import {
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 
-// Optimized animation variants with reduced complexity
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -55,12 +54,10 @@ const fadeInUp = {
   },
 };
 
-// Optimized Feature Card Component
 const FeatureCard = React.memo(({ icon: IconComponent, title, description, index, color, isReversed }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
-  // Memoized styles to prevent recreation on each render
   const cardStyles = useMemo(() => ({
     flex: 1,
     p: { xs: 2, sm: 3 },
@@ -167,7 +164,6 @@ const Features = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Memoized features data to prevent recreation
   const features = useMemo(() => [
     {
       icon: SchoolIcon,
@@ -220,10 +216,8 @@ const Features = () => {
     },
   ], []);
 
-  // Optimized title animation with reduced complexity
   const titleChars = useMemo(() => "Key Features".split(""), []);
 
-  // Memoized container styles
   const containerStyles = useMemo(() => ({
     position: "relative",
     py: { xs: 6, sm: 8, md: 10 },

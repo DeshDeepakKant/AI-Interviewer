@@ -47,7 +47,6 @@ const letterVariants = {
   }
 };
 
-// Optimized bouncing animation for letters - reduced movement for cleaner look
 const bouncingAnimation = {
   y: [0, -8, 0],
   scale: [1, 1.05, 1],
@@ -84,7 +83,6 @@ const buttonVariants = {
 };
 
 const HeroSection = memo(() => {
-  // Memoize title letters to prevent recreation on every render
   const titleLetters = useMemo(() => 
     "AI INTERVIEW".split("").map((char, index) => ({
       char: char === " " ? "\u00A0" : char,
@@ -104,7 +102,7 @@ const HeroSection = memo(() => {
     textTransform: "uppercase",
     textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
     mb: 3,
-    fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' }, // Responsive sizing, much smaller
+    fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
   }), []);
 
   return (
@@ -114,8 +112,8 @@ const HeroSection = memo(() => {
         display: "flex",
         flexDirection: "column",
         justifyContent: "center",
-        px: { xs: 2, sm: 3 }, // Responsive horizontal padding
-        minHeight: { xs: '80vh', md: '90vh' } // Adjust height for mobile
+        px: { xs: 2, sm: 3 },
+        minHeight: { xs: '80vh', md: '90vh' }
       }}
       component="section"
       aria-label="Hero section"
@@ -141,7 +139,7 @@ const HeroSection = memo(() => {
                 ...bouncingAnimation,
                 transition: {
                   ...bouncingAnimation.transition,
-                  delay: index * 0.1, // Staggered delay for wave effect
+                  delay: index * 0.1,
                 }
               }}
               style={{
@@ -149,7 +147,6 @@ const HeroSection = memo(() => {
                 color: index % 2 === 0 ? "#ffffff" : "#00e5c9",
                 minWidth: isSpace ? "0.5em" : "auto",
                 textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-                // Use transform instead of animating position properties for better performance
                 willChange: "transform"
               }}
               whileHover={{ 
@@ -171,21 +168,21 @@ const HeroSection = memo(() => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.6 }}
           sx={{
-            mb: { xs: 3, sm: 4 }, // Responsive margin
-            maxWidth: { xs: "90%", sm: "80%", md: "600px" }, // Responsive width
+            mb: { xs: 3, sm: 4 },
+            maxWidth: { xs: "90%", sm: "80%", md: "600px" },
             mx: "auto",
             color: "rgba(255, 255, 255, 0.85)",
-            fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' }, // Better responsive sizing
+            fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
             fontWeight: 400,
-            lineHeight: { xs: 1.4, sm: 1.5 }, // Better line height for mobile
+            lineHeight: { xs: 1.4, sm: 1.5 },
           }}
         >
 Upload your resume, select a field, take an AI interview, and get one step closer to the job
         </Typography>
         
         <Stack 
-          direction={{ xs: "column", sm: "row" }} // Stack vertically on mobile
-          spacing={{ xs: 2, sm: 3 }} // Adjust spacing based on screen size
+          direction={{ xs: "column", sm: "row" }} 
+          spacing={{ xs: 2, sm: 3 }}
           justifyContent="center"
           alignItems="center"
           component={motion.div}
@@ -194,7 +191,7 @@ Upload your resume, select a field, take an AI interview, and get one step close
           animate="visible"
           sx={{ 
             mt: { xs: 2, sm: 3 },
-            px: { xs: 2, sm: 0 } // Padding for mobile
+            px: { xs: 2, sm: 0 } 
           }}
         >
           {/* <motion.div
@@ -235,7 +232,6 @@ Upload your resume, select a field, take an AI interview, and get one step close
   );
 });
 
-// Optimized features data - moved outside component and memoized
 const FEATURES_DATA = [
   {
     title: "Select Position",
@@ -282,7 +278,6 @@ const FEATURES_DATA = [
   },
 ];
 
-// Optimized animation variants for features section
 const featuresContainerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -648,7 +643,6 @@ const FeaturesSection = memo(() => {
   );
 });
 
-// Add display names for debugging
 HeroSection.displayName = 'HeroSection';
 FeaturesSection.displayName = 'FeaturesSection';
 FeatureCard.displayName = 'FeatureCard';

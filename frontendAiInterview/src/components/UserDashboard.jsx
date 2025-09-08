@@ -180,7 +180,6 @@ const InterviewCard = styled(Card)(({ theme, isExpanded }) => ({
   },
 }));
 
-// Animation variants - simplified to reduce flickering
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -233,12 +232,10 @@ export default memo(function UserDashboard() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Show all interviews (no filtering needed since we only have mock interviews)
   const filteredInterviews = useMemo(() => {
     return interviewHistory;
   }, [interviewHistory]);
 
-  // Optimized user stats calculation
   const userStats = useMemo(() => {
     if (!interviewHistory.length) {
       return {
@@ -279,7 +276,7 @@ export default memo(function UserDashboard() {
       goodInterviews,
       totalInterviews
     };
-  }, [interviewHistory, pagination.totalItems]);  // Optimized user data initialization
+  }, [interviewHistory, pagination.totalItems]);
   useEffect(() => {
     if (!authLoading && user) {
       setUserData(prev => ({
@@ -297,7 +294,6 @@ export default memo(function UserDashboard() {
     }
   }, [user, authLoading, userStats]);
 
-  // Optimized interview history fetching with error handling and AbortController
   const fetchInterviewHistory = useCallback(async (page = 1, limit = 10) => {
     const controller = new AbortController();
     
@@ -307,7 +303,7 @@ export default memo(function UserDashboard() {
       
       const response = await axios.get(`/api/v1/ai/aiHistory?page=${page}&limit=${limit}`, {
         signal: controller.signal,
-        timeout: 10000 // 10 second timeout
+        timeout: 10000
       });
       
       if (response.data.success && response.data.data?.data) {
@@ -320,7 +316,6 @@ export default memo(function UserDashboard() {
           
         setInterviewHistory(historyArray);
         
-        // Update pagination info
         if (response.data.data.pagination) {
           setPagination(response.data.data.pagination);
         }
@@ -336,7 +331,6 @@ export default memo(function UserDashboard() {
       }
     }
     
-    // Cleanup function
     return () => controller.abort();
   }, []);
 
@@ -344,13 +338,11 @@ export default memo(function UserDashboard() {
     fetchInterviewHistory(1, 10);
   }, [fetchInterviewHistory]);
 
-  // Handle pagination change
   const handlePageChange = useCallback((event, newPage) => {
     fetchInterviewHistory(newPage, pagination.itemsPerPage);
-    setExpandedInterview(null); // Close any expanded interview when changing pages
+    setExpandedInterview(null);
   }, [fetchInterviewHistory, pagination.itemsPerPage]);
 
-  // Optimized event handlers
   const handleExpandInterview = useCallback((interviewId) => {
     setExpandedInterview(prev => prev === interviewId ? null : interviewId);
   }, []);
@@ -362,7 +354,6 @@ export default memo(function UserDashboard() {
     return red[500];
   }, []);
 
-  // Optimized components
   const StatsCardComponent = memo(({ icon, title, value, subtitle, color = teal[300] }) => (
     <StatsCard>
       <CardContent sx={{ textAlign: 'center', py: 1.5, px: 2 }}>

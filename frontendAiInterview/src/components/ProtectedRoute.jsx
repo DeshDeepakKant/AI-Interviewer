@@ -5,7 +5,6 @@ import { useAuth } from "../contexts/AuthContext";
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading, isInitialized } = useAuth();
 
-  // Show loading while authentication is being verified
   if (isLoading || !isInitialized) {
     return (
       <Box
