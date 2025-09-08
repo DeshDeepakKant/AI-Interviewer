@@ -286,7 +286,7 @@ function SignupForm({ onShowPassword, showPassword }) {
     const signupPromise = new Promise(async (resolve, reject) => {
       try {
         const payload = { ...signupInfo };
-        const api = "https://backend-ai-interview.vercel.app/api/v1/user/signUp";
+        const api = "/api/v1/user/signUp";
         const response = await axios.post(api, payload, {
           withCredentials: true,
         });
