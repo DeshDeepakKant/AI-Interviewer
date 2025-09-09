@@ -22,7 +22,7 @@ jobs:
                 context: ./frontendAiInterview
                 file: ./frontendAiInterview/Dockerfile
                 push: true
-                tags: |
+                tags:
                   - ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:${{ github.sha }}
                   - ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:latest
 
@@ -32,6 +32,6 @@ jobs:
                 context: ./backendAiInterview
                 file: ./backendAiInterview/Dockerfile
                 push: true
-                tags: |
+                tags:
                     - ${{secrets.DOCKERHUB_USERNAME}}/ai-interview-backend:${{github.sha}}
                     - ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:latest
