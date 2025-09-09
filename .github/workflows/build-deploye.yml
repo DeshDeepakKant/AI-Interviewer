@@ -23,8 +23,8 @@ jobs:
                 file: ./frontendAiInterview/Dockerfile
                 push: true
                 tags: |
-                  - ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:${{ github.sha }}
-                  - ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:latest
+                  ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:${{ github.sha }}
+                  ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:latest
 
             - name: Build and push backend image
               uses: docker/build-push-action@v5
@@ -33,5 +33,5 @@ jobs:
                 file: ./backendAiInterview/Dockerfile
                 push: true
                 tags: |
-                    - ${{secrets.DOCKERHUB_USERNAME}}/ai-interview-backend:${{github.sha}}
-                    - ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:latest
+                    ${{secrets.DOCKERHUB_USERNAME}}/ai-interview-backend:${{github.sha}}
+                    ${{ secrets.DOCKERHUB_USERNAME }}/ai-interview-backend:latest
