@@ -1,0 +1,23 @@
+version: "3.9"
+services:
+  backend:
+    build:
+      context: ./backendAiInterview
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    secrets:
+      - backend_secret
+
+  frontend:
+    build:
+      context: ./frontendAiInterview
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+secrets:
+  backend_secret:
+    file: ./backendAiInterview/.env
