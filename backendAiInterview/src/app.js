@@ -82,10 +82,9 @@ io.on('connection', (socket) => {
         const resultPayload = await aiInterviewStart(sessionId, answer, socket.user._id);
         
         socket.emit('aiInterview', resultPayload);
-        if (resultPayload.fileName) {
-          const filePath = `./uploads/${resultPayload.fileName}.wav`;
-          fs.unlink(filePath, (err) => {
-            if (err) console.error("Error cleaning up audio file:", err);
+      if (resultPayload.filePath) {
+        fs.unlink(resultPayload.filePath, (err) => {
+          if (err) console.error("Error cleaning up audio file:", err);
         });
       }
     } catch (error) {

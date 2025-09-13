@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import {v4 as uuidv4} from "uuid";
 import { io } from "../app.js";
 import {generateWavFile} from "../utils/tts.js"
+import {generateAudioFile} from "../utils/ai/googleTts.js"
 
 dotenv.config({ path: '../../.env' });
 
@@ -119,7 +120,7 @@ const aiInterviewStart = async(sessionId, answer)=>{
             messages.push({ role: "user", content: answer || '' });
         }
 
-
+        let filePath;
         const multi = client.multi();
         const ai = await aiInterview(
             sessionId,
@@ -134,7 +135,7 @@ const aiInterviewStart = async(sessionId, answer)=>{
         const fileName = uuidv4()
         if (answer.startsWith("//explain")){
             let questionExplain;
-            await generateWavFile(ai.explanation, fileName)
+            filePath = await generateAudioFile(ai.explanation, fileName)
             try {
             questionExplain = data.aiExplanation ? JSON.parse(data.aiExplanation) : [];
             } catch (parseError) {
@@ -147,7 +148,7 @@ const aiInterviewStart = async(sessionId, answer)=>{
 
             multi.hset(sessionId, 'aiExplanation', JSON.stringify(questionExplain));
         }else{
-            await generateWavFile(ai.question, fileName)
+            filePath = await generateAudioFile(ai.question, fileName)
             if (!ai.question.startsWith("Your interview is over")){
                 messages.push({ role: "ai", content: ai.question || '' });
                 multi.hset(sessionId, 'messages', JSON.stringify(messages));
@@ -164,11 +165,11 @@ const aiInterviewStart = async(sessionId, answer)=>{
 
         await multi.exec();
 
-        const filePath = `./uploads/${fileName}.wav`;
+        // const filePath = `./uploads/${fileName}.wav`;
         console.log("________________ filePath___________________")
         console.log(filePath)
         const audioBuffer = await fs.readFile(filePath);
-        const audioBase64 = audioBuffer.toString("base64");
+        // const audioBase64 = audioBuffer.toString("base64");
 
         let result;
         if(ai.explanation && ai.question){
@@ -180,8 +181,8 @@ const aiInterviewStart = async(sessionId, answer)=>{
         const payload = {
             result,
             numberOfQuestionLeft: questionLeft,
-            audio: audioBase64,
-            fileName: fileName
+            audio: audioBuffer,
+            filePath: filePath
         }
         return payload; 
     } catch (error) {

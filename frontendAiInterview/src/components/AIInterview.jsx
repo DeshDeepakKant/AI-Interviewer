@@ -384,7 +384,7 @@ const AIInterview = () => {
           if (data.audioUrl) {
             playAudio(data.audioUrl);
           } else if (data.audio) {
-            playAudioFromBase64(data.audio);
+            playAudioFromBuffer(data.audio);
           }
           
           if (aiResponse.includes("Your interview is over")) {
@@ -521,6 +521,48 @@ const AIInterview = () => {
       
     } catch (error) {
       console.error('Error processing base64 audio:', error);
+      setIsAudioPlaying(false);
+    }
+  };
+
+  const playAudioFromBuffer = (audioBuffer) => {
+    if (!audioBuffer) return;
+    
+    try {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      
+      // Create Uint8Array from the raw buffer data
+      const bytes = new Uint8Array(audioBuffer);
+      
+      // Create blob with appropriate MIME type (MP3 since backend generates MP3)
+      const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      audioRef.current = new Audio(audioUrl);
+      
+      audioRef.current.onplay = () => setIsAudioPlaying(true);
+      audioRef.current.onended = () => {
+        setIsAudioPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+      audioRef.current.onpause = () => setIsAudioPlaying(false);
+      audioRef.current.onerror = () => {
+        setIsAudioPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+        console.error('Error playing audio from buffer');
+      };
+      
+      audioRef.current.play().catch(e => {
+        console.error('Error playing audio from buffer:', e);
+        setIsAudioPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      });
+      
+    } catch (error) {
+      console.error('Error processing audio buffer:', error);
       setIsAudioPlaying(false);
     }
   };
