@@ -16,6 +16,8 @@ const server = http.createServer(app);
 
 const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : [];
 
+console.log("Allowed CORS Origins:", allowedOrigins);
+
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
