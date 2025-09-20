@@ -8,9 +8,9 @@ export default defineConfig(({ mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: 'http://backend:8000/',
+          target: 'https://apiaiinterview.surajpatel.dev',
           changeOrigin: true,
-          secure: true,
+          secure: false,
         },
       },
     },
