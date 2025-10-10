@@ -1,2 +1,13 @@
+# Git
+.git
+.gitignore
+
+# node js 
 node_modules
+
+# Environment
 .env
+
+# Docker-related
+Dockerfile
+.dockerignore

@@ -1,2 +1,14 @@
-node_modules
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules/
+
+# Docker-related
+Dockerfile
+.dockerignore
+
+# Env
 .env
+.env.template
