@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://ai-interview-ej7v.onrender.com/api/:path*"
+      "destination": "https://ai-interviewer-odld.onrender.com/api/:path*"
     },
     {
       "source": "/(.*)",
