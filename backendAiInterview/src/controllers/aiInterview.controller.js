@@ -33,13 +33,19 @@ const aiResumeFile = asyncHandler(async(req, res) => {
             return res.status(400).json(new ApiResponse(400, "Resume file is empty or not valid"));
         }
 
-        await client.hset(
-            sessionId, {
-                userId: req.user._id,
-                resume: docResume,
-            }
-        );
-        await client.expire(sessionId, 7200);
+        try {
+            await client.hset(
+                sessionId, {
+                    userId: req.user._id,
+                    resume: docResume,
+                }
+            );
+            await client.expire(sessionId, 7200);
+        } catch (redisError) {
+            console.error("Redis error in aiResumeFile:", redisError.message);
+            // Continue even if Redis fails - session will be lost but app won't crash
+            throw new ApiError(500, "Failed to store session data. Please try again.");
+        }
 
         return res.status(200).json(new ApiResponse(200, { sessionId: sessionId }, "File uploaded successfully"));
 
@@ -69,18 +75,23 @@ const aiInterviewWay = asyncHandler(async(req, res) => {
             throw new ApiError(400, "All required fields (position, experienceLevel, numberOfQuestionYouShouldAsk, sessionId) are required");
         }
         
-        await client.hset(
-            sessionId,{
-                position: position,
-                experienceLevel: experienceLevel,
-                numberOfQuestionYouShouldAsk: numberOfQuestionYouShouldAsk,
-                numberOfQuestionLeft: numberOfQuestionYouShouldAsk,
-                interviewMode: interviewMode || "Guided Mode",
-                count: 0,
-                messages: JSON.stringify([]),
-                aiExplanation: JSON.stringify([])
-            }
-        )
+        try {
+            await client.hset(
+                sessionId,{
+                    position: position,
+                    experienceLevel: experienceLevel,
+                    numberOfQuestionYouShouldAsk: numberOfQuestionYouShouldAsk,
+                    numberOfQuestionLeft: numberOfQuestionYouShouldAsk,
+                    interviewMode: interviewMode || "Guided Mode",
+                    count: 0,
+                    messages: JSON.stringify([]),
+                    aiExplanation: JSON.stringify([])
+                }
+            );
+        } catch (redisError) {
+            console.error("Redis error in aiInterviewWay:", redisError.message);
+            throw new ApiError(500, "Failed to initialize interview session. Please try again.");
+        }
         return res.status(200).json(new ApiResponse(200, {numberOfQuestion: numberOfQuestionYouShouldAsk}));
     } catch (error) {
         console.error("Error in aiInterview.controller.js:", error);
@@ -93,7 +104,13 @@ const aiInterviewStart = async(sessionId, answer)=>{
         if (!sessionId) {
             throw new Error('Session ID is required');
         }
-        const data = await client.hgetall(sessionId);
+        let data;
+        try {
+            data = await client.hgetall(sessionId);
+        } catch (redisError) {
+            console.error("Redis error in aiInterviewStart:", redisError.message);
+            throw new Error(`Failed to retrieve session data. Please try again.`);
+        }
         
         if (!data || Object.keys(data).length === 0) {
             throw new Error(`Session not found for sessionId: ${sessionId}. Make sure to create the session first by calling the resume upload and interview setup endpoints.`);
@@ -163,7 +180,12 @@ const aiInterviewStart = async(sessionId, answer)=>{
         multi.hincrby(sessionId, 'numberOfQuestionLeft', -1)};
         multi.hincrby(sessionId, 'count', 1);
 
-        await multi.exec();
+        try {
+            await multi.exec();
+        } catch (redisError) {
+            console.error("Redis error in multi.exec:", redisError.message);
+            // Continue even if Redis fails - interview can proceed
+        }
 
         // const filePath = `./uploads/${fileName}.wav`;
         console.log("________________ filePath___________________")
@@ -197,7 +219,14 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
             throw new ApiError(400, "Session ID is required");
         }
 
-        const data = await client.hgetall(sessionId);
+        let data;
+        try {
+            data = await client.hgetall(sessionId);
+        } catch (redisError) {
+            console.error("Redis error in aiInterviewAnalysis:", redisError.message);
+            throw new ApiError(500, "Failed to retrieve session data. Please try again.");
+        }
+        
         if (!data || Object.keys(data).length === 0) {
             throw new ApiError(404, "Session not found or is empty.");
         }
@@ -251,7 +280,12 @@ const aiInterviewAnalysis = asyncHandler(async (req, res) => {
             throw new ApiError(500, "Failed to save the interview session to the database.");
         }
 
-        await client.del(sessionId);
+        try {
+            await client.del(sessionId);
+        } catch (redisError) {
+            console.error("Redis error deleting session:", redisError.message);
+            // Continue even if delete fails - session is already saved to DB
+        }
 
         return res.status(200).json(new ApiResponse(200, savedSession, "Interview analysis completed successfully"));
     } catch (error) {
