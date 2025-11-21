@@ -125,6 +125,11 @@ import aiInterviewRouter from "./routes/aiInterview.route.js"
 app.use("/api/v1/user", userRouter);
 app.use("/api/v1/ai", aiInterviewRouter);
 
+// Health check endpoint for keep-alive (Render free tier)
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", timestamp: Date.now() });
+});
+
 // Global error handling middleware
 app.use((error, req, res, next) => {
   const statusCode = error.statusCode || 500;
