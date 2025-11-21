@@ -34,45 +34,63 @@ const client = new Redis(process.env.REDIS_URL, {
 
 let isConnected = false;
 let connectionAttempts = 0;
+let errorCount = 0;
+let lastErrorLog = 0;
+const ERROR_LOG_INTERVAL = 50; // Log every 50th error to reduce spam
+
+// Suppress common network errors that are expected with free tier Redis
+const SUPPRESSED_ERRORS = ['ECONNRESET', 'EPIPE', 'ETIMEDOUT', 'ECONNREFUSED'];
 
 client.on('connect', () => {
   isConnected = true;
   connectionAttempts = 0;
-  console.log('Redis connected');
+  errorCount = 0;
+  // Only log first connection
+  if (connectionAttempts === 0) {
+    console.log('Redis connected');
+  }
 });
 
 client.on('ready', () => {
   isConnected = true;
-  console.log('Redis ready');
+  // Only log first ready state
+  if (connectionAttempts === 0) {
+    console.log('Redis ready');
+  }
 });
 
 client.on('error', err => {
-  // Only log errors, don't spam
-  if (!err.message.includes('ECONNRESET') || connectionAttempts % 10 === 0) {
-    console.error('Redis error:', err.message);
+  errorCount++;
+  const errorMsg = err.message || err.code || 'Unknown error';
+  const isSuppressed = SUPPRESSED_ERRORS.some(code => errorMsg.includes(code));
+  
+  // Only log non-suppressed errors or log suppressed errors every N times
+  if (!isSuppressed) {
+    console.error('Redis error:', errorMsg);
+  } else if (errorCount % ERROR_LOG_INTERVAL === 0) {
+    const now = Date.now();
+    // Log at most once per 30 seconds
+    if (now - lastErrorLog > 30000) {
+      console.warn(`Redis connection issues (${errorCount} errors suppressed): ${errorMsg}`);
+      lastErrorLog = now;
+    }
   }
   connectionAttempts++;
 });
 
 client.on('close', () => {
   isConnected = false;
-  // Only log occasionally to reduce spam
-  if (connectionAttempts % 20 === 0) {
-    console.log('Redis connection closed');
-  }
+  // Suppress close logs - they're too frequent
 });
 
 client.on('reconnecting', (delay) => {
-  // Only log occasionally
-  if (connectionAttempts % 10 === 0) {
-    console.log(`Redis reconnecting... (attempt ${connectionAttempts}, delay: ${delay}ms)`);
-  }
+  // Suppress reconnecting logs - they're too frequent
 });
 
 // Handle connection end
 client.on('end', () => {
   isConnected = false;
-  console.log('Redis connection ended');
+  // Suppress end logs
 });
 
 // Graceful shutdown
