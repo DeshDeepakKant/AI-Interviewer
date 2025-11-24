@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App.jsx";
+// Initialize axios interceptor for automatic token refresh
+import "./utils/axiosInterceptor.js";
 import {
   RouterProvider,
   createBrowserRouter,

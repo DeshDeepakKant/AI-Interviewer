@@ -147,7 +147,7 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
             throw new ApiError(401, "Refresh Token is expred or used");
         }
 
-        const {newRefreshToken, newAccessToken} = await generateAccessAndRefreshToken(user._id);
+        const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
 
         const options = {
             httpOnly: true, 
@@ -156,10 +156,10 @@ const refreshAccessToken = asyncHandler(async(req, res)=>{
         }
 
         return res.status(200)
-        .cookie("accessToken", newAccessToken)
-        .cookie("refreshToken", newRefreshToken)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(
-            new ApiResponse(200, {accessToken: newAccessToken, refreshToken: newRefreshToken}, "Access Token Refreshed")
+            new ApiResponse(200, {accessToken: accessToken, refreshToken: refreshToken}, "Access Token Refreshed")
         )
 
     } catch (error) {
@@ -200,5 +200,6 @@ export {
     getCurrentUser,
     test,
     verifyToken,
+    refreshAccessToken,
     getCurentUserWithUserHistory
 }

@@ -138,7 +138,18 @@ function LoginForm({ onShowPassword, showPassword }) {
           });
           
           if (response.data.success) {
-            login(response.data.data.user);
+            const { user, accessToken, refreshToken } = response.data.data;
+            
+            // Store tokens
+            if (accessToken) {
+              localStorage.setItem('accessToken', accessToken);
+            }
+            if (refreshToken) {
+              localStorage.setItem('refreshToken', refreshToken);
+            }
+            
+            // Store user data
+            login(user || response.data.data);
             resolve(response.data);
             navigate("/dashboard");
           } else {

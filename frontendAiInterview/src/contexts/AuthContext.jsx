@@ -30,8 +30,24 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 200 && response.data.success) {
         const userData = response.data.data;
-        setUserData(userData);
-        setUser(userData);
+        const { user, accessToken, refreshToken } = userData;
+        
+        // Store tokens if provided
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken);
+        }
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken);
+        }
+        
+        // Store user data
+        if (user) {
+          setUserData(user);
+          setUser(user);
+        } else {
+          setUserData(userData);
+          setUser(userData);
+        }
         return true;
       } else {
         clearAllUserData();

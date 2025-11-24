@@ -77,3 +77,11 @@ export const setAccessToken = (token) => {
     localStorage.removeItem('accessToken');
   }
 };
+
+/**
+ * Get refresh token from localStorage
+ * @returns {string|null} - refresh token or null if not found
+ */
+export const getRefreshToken = () => {
+  return localStorage.getItem('refreshToken');
+};
