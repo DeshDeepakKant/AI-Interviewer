@@ -10,9 +10,9 @@ const llmFalse = new ChatGoogleGenerativeAI({
 });
 
 const llmPro = new ChatGoogleGenerativeAI({
-    model: "gemini-2.5-pro",
+    model: "gemini-2.5-flash",
     maxRetries: 2,
     temperature: 0
 })
 
-export {llmPro, llmFalse};
+export { llmPro, llmFalse };
