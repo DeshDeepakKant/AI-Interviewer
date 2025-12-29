@@ -102,7 +102,7 @@ const UploadArea = styled(Paper)(({ theme, isDragActive }) => ({
 }));
 
 const positions = [
-   'Auto - AI will ask questions based on your resume',
+  'Auto - AI will ask questions based on your resume',
   'Frontend Developer',
   'Backend Developer',
   'Fullstack Developer',
@@ -135,12 +135,12 @@ const MockInterviewWay = () => {
   const handleInterviewModeChange = (event) => setInterviewMode(event.target.value);
   const handleFileUpload = async (event) => {
     const file = event?.target?.files?.[0] || event;
-    
+
     if (!file) {
       console.error('No file selected');
       return;
     }
-    
+
     if (!(file instanceof File || file instanceof Blob)) {
       console.error('Invalid file object:', file);
       return;
@@ -157,21 +157,21 @@ const MockInterviewWay = () => {
       alert('File size must be less than 5MB.');
       return;
     }
-  
+
     try {
       setUploadProgress(0);
       setIsUploading(true);
       setIsFileUploaded(false);
-      
+
       const formData = new FormData();
       formData.append('resumePdf', file);
-      
+
       const response = await axios.post(
-        '/api/v1/ai/aiUploadResume',
+        import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/aiUploadResume',
         formData,
         {
           withCredentials: true,
-          headers: { 
+          headers: {
             'Content-Type': 'multipart/form-data',
           },
           onUploadProgress: (progressEvent) => {
@@ -189,11 +189,11 @@ const MockInterviewWay = () => {
           console.warn('Could not create object URL');
           fileUrl = null;
         }
-        
+
         setUploadProgress(100);
         setIsFileUploaded(true);
         setSessionId(response.data.data.sessionId);
-        
+
         setResumeFile({
           file: file,
           url: fileUrl,
@@ -201,22 +201,22 @@ const MockInterviewWay = () => {
           size: file.size,
           sessionId: response.data.data.sessionId
         });
-        
+
         console.log('File uploaded successfully, sessionId:', response.data.data.sessionId);
       } else {
         throw new Error(response.data.message || 'Upload failed');
       }
-  
+
     } catch (error) {
       console.error('Upload error:', error);
       let errorMessage = 'Failed to upload file. Please try again.';
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       alert(errorMessage);
     } finally {
       setIsUploading(false);
@@ -226,12 +226,12 @@ const MockInterviewWay = () => {
     if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
       URL.revokeObjectURL(resumeFile.url);
     }
-    
+
     setResumeFile(null);
     setUploadProgress(0);
     setIsFileUploaded(false);
     setSessionId('');
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -241,30 +241,30 @@ const MockInterviewWay = () => {
     if (e && typeof e.preventDefault === 'function') {
       e.preventDefault();
     }
-    
+
     if (!position) {
       const errorMsg = 'Please select a position';
       console.error('Validation Error:', errorMsg);
       alert(errorMsg);
       return;
     }
-    
+
     if (!sessionId || !resumeFile) {
       const errorMsg = 'Please upload a resume first';
       console.error('Validation Error:', errorMsg);
       alert(errorMsg);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       const currentSessionId = sessionId;
-      
+
       sessionStorage.setItem('interviewSessionId', currentSessionId);
 
       const response = await axios.post(
-        '/api/v1/ai/ai',
+        import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/ai',
         {
           sessionId: currentSessionId,
           position: position,
@@ -274,7 +274,7 @@ const MockInterviewWay = () => {
         },
         {
           withCredentials: true,
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json'
           },
@@ -282,8 +282,8 @@ const MockInterviewWay = () => {
       );
 
       if (response.data.success) {
-        navigate('/interview', { 
-          state: { 
+        navigate('/interview', {
+          state: {
             sessionId: currentSessionId,
             numberOfQuestions: response.data.data.numberOfQuestion,
             interviewMode: interviewMode,
@@ -293,7 +293,7 @@ const MockInterviewWay = () => {
       } else {
         throw new Error(response.data.message || 'Failed to start interview');
       }
-      
+
     } catch (error) {
       console.error('Submit Error:', {
         name: error.name,
@@ -301,14 +301,14 @@ const MockInterviewWay = () => {
         response: error.response?.data,
         status: error.response?.status,
       });
-      
+
       let errorMessage = 'Failed to start interview. Please try again.';
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       alert(errorMessage);
     } finally {
       setIsLoading(false);
@@ -323,7 +323,7 @@ const MockInterviewWay = () => {
 
   useEffect(() => {
     setIsMounted(true);
-    
+
     return () => {
       setIsMounted(false);
     };
@@ -418,12 +418,12 @@ const MockInterviewWay = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ 
+        transition={{
           duration: 0.3,
           ease: 'easeOut'
         }}
-        style={{ 
-          width: '100%', 
+        style={{
+          width: '100%',
           maxWidth: '640px',
           margin: '0 auto',
           position: 'relative',
@@ -461,10 +461,10 @@ const MockInterviewWay = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <Typography 
-                variant="h4" 
+              <Typography
+                variant="h4"
                 fontWeight="bold"
-                sx={{ 
+                sx={{
                   fontSize: { xs: '1.75rem', sm: '2.125rem' },
                   mb: 1,
                   textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
@@ -472,10 +472,10 @@ const MockInterviewWay = () => {
               >
                 AI-Powered Mock Interview
               </Typography>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  opacity: 0.9, 
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  opacity: 0.9,
                   fontWeight: 300,
                   fontSize: { xs: '0.9rem', sm: '1rem' },
                   maxWidth: '90%',
@@ -545,8 +545,8 @@ const MockInterviewWay = () => {
                       }}
                     >
                       {positions.map((pos) => (
-                        <MenuItem 
-                          key={pos} 
+                        <MenuItem
+                          key={pos}
                           value={pos}
                           sx={{
                             color: '#ffffff',
@@ -624,8 +624,8 @@ const MockInterviewWay = () => {
                       }}
                     >
                       {['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'].map((exp) => (
-                        <MenuItem 
-                          key={exp} 
+                        <MenuItem
+                          key={exp}
                           value={exp}
                           sx={{
                             color: '#ffffff',
@@ -710,8 +710,8 @@ const MockInterviewWay = () => {
                       }}
                     >
                       {interviewModes.map((mode) => (
-                        <MenuItem 
-                          key={mode} 
+                        <MenuItem
+                          key={mode}
                           value={mode}
                           sx={{
                             color: '#ffffff',
@@ -801,8 +801,8 @@ const MockInterviewWay = () => {
                       }}
                     >
                       {['5', '10', '15', '20', '25+'].map((n) => (
-                        <MenuItem 
-                          key={n} 
+                        <MenuItem
+                          key={n}
                           value={n}
                           sx={{
                             color: '#ffffff',
@@ -830,10 +830,10 @@ const MockInterviewWay = () => {
                   transition={{ delay: 0.5 }}
                 >
                   <Box>
-                    <Typography 
-                      variant="subtitle2" 
-                      gutterBottom 
-                      sx={{ 
+                    <Typography
+                      variant="subtitle2"
+                      gutterBottom
+                      sx={{
                         mb: 2,
                         display: 'flex',
                         alignItems: 'center',
@@ -845,7 +845,7 @@ const MockInterviewWay = () => {
                       Upload Your Resume
                     </Typography>
                     {!resumeFile && !isUploading ? (
-                      <UploadArea 
+                      <UploadArea
                         elevation={0}
                         isDragActive={isDragActive}
                         onDragOver={handleDragOver}
@@ -861,8 +861,8 @@ const MockInterviewWay = () => {
                           style={{ display: 'none' }}
                         />
                         <Box sx={{ py: 2 }}>
-                          <CloudUploadIcon sx={{ 
-                            fontSize: 48, 
+                          <CloudUploadIcon sx={{
+                            fontSize: 48,
                             color: 'rgba(255, 255, 255, 0.9)',
                             mb: 1,
                             transition: 'all 0.3s ease',
@@ -886,7 +886,7 @@ const MockInterviewWay = () => {
                           </Typography>
                         </Box>
                         <Box sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
-                          <Box 
+                          <Box
                             sx={{
                               height: 8,
                               width: `${uploadProgress}%`,
@@ -920,9 +920,9 @@ const MockInterviewWay = () => {
                           }}
                         >
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar 
-                              sx={{ 
-                                bgcolor: 'rgba(0, 191, 165, 0.15)', 
+                            <Avatar
+                              sx={{
+                                bgcolor: 'rgba(0, 191, 165, 0.15)',
                                 color: '#00bfa5',
                                 width: 44,
                                 height: 44,
@@ -932,18 +932,18 @@ const MockInterviewWay = () => {
                             </Avatar>
                             <Box>
                               <Typography variant="body2" fontWeight={900}>
-                                {resumeFile.name.length > 20 
-                                  ? `${resumeFile.name.substring(0, 17)}...${resumeFile.name.split('.').pop()}` 
+                                {resumeFile.name.length > 20
+                                  ? `${resumeFile.name.substring(0, 17)}...${resumeFile.name.split('.').pop()}`
                                   : resumeFile.name}
                               </Typography>
-                              <Typography variant="caption" fontWeight={900} sx={{color: '#A0A0A0'}}>
+                              <Typography variant="caption" fontWeight={900} sx={{ color: '#A0A0A0' }}>
                                 {(resumeFile.size / 1024).toFixed(1)} KB • {resumeFile.name.split('.').pop().toUpperCase()}
                               </Typography>
                             </Box>
                           </Box>
-                          <Button 
+                          <Button
                             size="small"
-                            
+
                             onClick={handleRemoveFile}
                             variant="outlined"
                             color="error"
@@ -967,7 +967,7 @@ const MockInterviewWay = () => {
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ 
+                  transition={{
                     duration: 0.2,
                     delay: 0.4
                   }}

@@ -132,14 +132,14 @@ function LoginForm({ onShowPassword, showPassword }) {
             email: loginInfo.emailOrUsername,
             password: loginInfo.password,
           };
-          const api = "/api/v1/user/login";
+          const api = import.meta.env.VITE_BACKEND_URL + "/api/v1/user/login";
           const response = await axios.post(api, payload, {
             withCredentials: true,
           });
-          
+
           if (response.data.success) {
             const { user, accessToken, refreshToken } = response.data.data;
-            
+
             // Store tokens
             if (accessToken) {
               localStorage.setItem('accessToken', accessToken);
@@ -147,7 +147,7 @@ function LoginForm({ onShowPassword, showPassword }) {
             if (refreshToken) {
               localStorage.setItem('refreshToken', refreshToken);
             }
-            
+
             // Store user data
             login(user || response.data.data);
             resolve(response.data);
@@ -281,7 +281,7 @@ function SignupForm({ onShowPassword, showPassword }) {
       const timer = setTimeout(() => {
         window.location.pathname = loginPath;
       }, 100);
-      
+
       return () => clearTimeout(timer);
     }
   }, [shouldNavigate, navigate]);
@@ -297,13 +297,13 @@ function SignupForm({ onShowPassword, showPassword }) {
     const signupPromise = new Promise(async (resolve, reject) => {
       try {
         const payload = { ...signupInfo };
-        const api = "/api/v1/user/signUp";
+        const api = import.meta.env.VITE_BACKEND_URL + "/api/v1/user/signUp";
         const response = await axios.post(api, payload, {
           withCredentials: true,
         });
-  
+
         if (response.data.success) {
-          resolve(response.data); 
+          resolve(response.data);
         } else {
           reject(new Error(response.data.message || "Signup failed"));
         }
@@ -311,7 +311,7 @@ function SignupForm({ onShowPassword, showPassword }) {
         reject(error.response?.data?.message || "Something went wrong.");
       }
     });
-  
+
     toast.promise(signupPromise, {
       pending: 'Signing up...',
       success: {
@@ -329,121 +329,121 @@ function SignupForm({ onShowPassword, showPassword }) {
       },
     });
   };
-  
+
   return (
     <Box
-    component="form"
-    onSubmit={(e) => {
-      e.preventDefault();
-      handleSubmit();
-    }}
-  >
-    <Fade in timeout={400}>
-      <Box
-        component={motion.div}
-        variants={tabVariants}
-        initial="initial"
-        animate="animate"
-        sx={{ mt: 1 }}
-      >
-        <TextField
-          label="Full Name"
-          variant="outlined"
-          fullWidth
-          name="fullName"
-          required
-          margin="dense"
-          onChange={handleChange}
-          autoComplete="name"
-          sx={fieldStyle}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Person />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <TextField
-
-          label="User Name"
-          name="username"
-          variant="outlined"
-          required
-          fullWidth
-          onChange={handleChange}
-          margin="dense"
-          autoComplete="username"
-          sx={fieldStyle}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Badge />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <TextField
-          label="Email Address"
-          required
-          variant="outlined"
-          fullWidth
-          margin="dense"
-          name="email"
-          onChange={handleChange}
-          autoComplete="email"
-          sx={fieldStyle}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Email />
-              </InputAdornment>
-            ),
-          }}
-        />
-        <TextField
-          label="Password"
-          variant="outlined"
-          required
-          fullWidth
-          margin="dense"
-          name="password"
-          type={showPassword ? "text" : "password"}
-          autoComplete="new-password"
-          sx={fieldStyle}
-          onChange={handleChange}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Lock />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton onClick={onShowPassword}>
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
-        <Button
-          fullWidth
-          variant="contained"
-          type="submit"
-          color="secondary"
-          size="large"
-          sx={{
-            mt: 3,
-            borderRadius: 16,
-            boxShadow: "0 0 20px rgba(0,191,165,0.5)",
-          }}
-          endIcon={<PersonAdd />}
+      component="form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+    >
+      <Fade in timeout={400}>
+        <Box
+          component={motion.div}
+          variants={tabVariants}
+          initial="initial"
+          animate="animate"
+          sx={{ mt: 1 }}
         >
-          Create Account
-        </Button>
-      </Box>
-    </Fade>
+          <TextField
+            label="Full Name"
+            variant="outlined"
+            fullWidth
+            name="fullName"
+            required
+            margin="dense"
+            onChange={handleChange}
+            autoComplete="name"
+            sx={fieldStyle}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Person />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+
+            label="User Name"
+            name="username"
+            variant="outlined"
+            required
+            fullWidth
+            onChange={handleChange}
+            margin="dense"
+            autoComplete="username"
+            sx={fieldStyle}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Badge />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Email Address"
+            required
+            variant="outlined"
+            fullWidth
+            margin="dense"
+            name="email"
+            onChange={handleChange}
+            autoComplete="email"
+            sx={fieldStyle}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Email />
+                </InputAdornment>
+              ),
+            }}
+          />
+          <TextField
+            label="Password"
+            variant="outlined"
+            required
+            fullWidth
+            margin="dense"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            sx={fieldStyle}
+            onChange={handleChange}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={onShowPassword}>
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+          <Button
+            fullWidth
+            variant="contained"
+            type="submit"
+            color="secondary"
+            size="large"
+            sx={{
+              mt: 3,
+              borderRadius: 16,
+              boxShadow: "0 0 20px rgba(0,191,165,0.5)",
+            }}
+            endIcon={<PersonAdd />}
+          >
+            Create Account
+          </Button>
+        </Box>
+      </Fade>
     </Box>
   );
 }
@@ -472,7 +472,7 @@ export default function LoginPage() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      
+
       <Box
         sx={{
           position: "relative",

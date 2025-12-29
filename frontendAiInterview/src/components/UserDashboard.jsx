@@ -34,7 +34,7 @@ import HistoryIcon from '@mui/icons-material/History';
 import StarIcon from '@mui/icons-material/Star';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AssessmentIcon from '@mui/icons-material/Assessment';
-import { teal, amber, green, red, orange } from '@mui/material/colors'; 
+import { teal, amber, green, red, orange } from '@mui/material/colors';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Link as RouterLink } from "react-router";
@@ -160,11 +160,11 @@ const EmptyState = styled(Box)(({ theme }) => ({
 
 const InterviewCard = styled(Card)(({ theme, isExpanded }) => ({
   marginBottom: theme.spacing(1.5),
-  background: isExpanded 
-    ? 'rgba(29, 233, 182, 0.12)' 
+  background: isExpanded
+    ? 'rgba(29, 233, 182, 0.12)'
     : 'rgba(26, 31, 46, 0.9)',
-  border: isExpanded 
-    ? '1px solid rgba(29, 233, 182, 0.5)' 
+  border: isExpanded
+    ? '1px solid rgba(29, 233, 182, 0.5)'
     : '1px solid rgba(29, 233, 182, 0.2)',
   borderRadius: '12px',
   overflow: 'hidden',
@@ -174,8 +174,8 @@ const InterviewCard = styled(Card)(({ theme, isExpanded }) => ({
     transform: 'translateY(-2px)',
     boxShadow: '0 4px 16px rgba(29, 233, 182, 0.2)',
     borderColor: 'rgba(29, 233, 182, 0.4)',
-    background: isExpanded 
-      ? 'rgba(29, 233, 182, 0.15)' 
+    background: isExpanded
+      ? 'rgba(29, 233, 182, 0.15)'
       : 'rgba(29, 233, 182, 0.08)',
   },
 }));
@@ -255,15 +255,15 @@ export default memo(function UserDashboard() {
     const totalQuestions = interviewHistory.reduce((sum, interview) => {
       return sum + (interview.numberOfQuestions || 0);
     }, 0);
-    
+
     const successThreshold = 7;
     const totalInterviews = interviewHistory.length;
     const goodInterviews = interviewHistory.filter(interview => {
       const rating = interview.overAllRating || 0;
       return rating >= successThreshold;
     }).length;
-    
-    const successRate = totalInterviews > 0 ? 
+
+    const successRate = totalInterviews > 0 ?
       Math.round((goodInterviews / totalInterviews) * 100) : 0;
 
     return {
@@ -296,16 +296,16 @@ export default memo(function UserDashboard() {
 
   const fetchInterviewHistory = useCallback(async (page = 1, limit = 10) => {
     const controller = new AbortController();
-    
+
     try {
       setLoadingHistory(true);
       setHistoryError(null);
-      
-      const response = await axios.get(`/api/v1/ai/aiHistory?page=${page}&limit=${limit}`, {
+
+      const response = await axios.get(import.meta.env.VITE_BACKEND_URL + `/api/v1/ai/aiHistory?page=${page}&limit=${limit}`, {
         signal: controller.signal,
         timeout: 10000
       });
-      
+
       if (response.data.success && response.data.data?.data) {
         const historyArray = response.data.data.data.map((interview) => ({
           id: interview._id,
@@ -313,9 +313,9 @@ export default memo(function UserDashboard() {
           createdAt: new Date(interview.createdAt),
           overAllRating: parseFloat(interview.overAllRating) || 0
         }));
-          
+
         setInterviewHistory(historyArray);
-        
+
         if (response.data.data.pagination) {
           setPagination(response.data.data.pagination);
         }
@@ -330,7 +330,7 @@ export default memo(function UserDashboard() {
         setLoadingHistory(false);
       }
     }
-    
+
     return () => controller.abort();
   }, []);
 
@@ -360,10 +360,10 @@ export default memo(function UserDashboard() {
         <Box sx={{ color, mb: 1.5 }}>
           {icon}
         </Box>
-  <Typography variant="h5" sx={{ color: '#fff', fontWeight: 'bold', mb: 0.25 }}>
+        <Typography variant="h5" sx={{ color: '#fff', fontWeight: 'bold', mb: 0.25 }}>
           {value}
         </Typography>
-  <Typography variant="body2" sx={{ color: '#fff', mb: 0.25 }}>
+        <Typography variant="body2" sx={{ color: '#fff', mb: 0.25 }}>
           {title}
         </Typography>
         {subtitle && (
@@ -377,25 +377,25 @@ export default memo(function UserDashboard() {
 
   const LoadingSkeleton = memo(() => (
     <Box>
-      <Skeleton 
-        variant="rectangular" 
-        height={200} 
-        sx={{ 
-          bgcolor: 'rgba(29, 233, 182, 0.1)', 
+      <Skeleton
+        variant="rectangular"
+        height={200}
+        sx={{
+          bgcolor: 'rgba(29, 233, 182, 0.1)',
           borderRadius: '16px',
-          mb: 3 
-        }} 
+          mb: 3
+        }}
       />
       {[...Array(3)].map((_, index) => (
-        <Skeleton 
+        <Skeleton
           key={index}
-          variant="rectangular" 
-          height={120} 
-          sx={{ 
-            bgcolor: 'rgba(29, 233, 182, 0.05)', 
+          variant="rectangular"
+          height={120}
+          sx={{
+            bgcolor: 'rgba(29, 233, 182, 0.05)',
             borderRadius: '12px',
-            mb: 2 
-          }} 
+            mb: 2
+          }}
         />
       ))}
     </Box>
@@ -403,9 +403,9 @@ export default memo(function UserDashboard() {
 
   const renderQuestionItem = useCallback((questionData) => {
     return (
-      <Card key={questionData.Question} sx={{ 
-        mb: 2, 
-        bgcolor: 'rgba(29, 233, 182, 0.08)', 
+      <Card key={questionData.Question} sx={{
+        mb: 2,
+        bgcolor: 'rgba(29, 233, 182, 0.08)',
         borderLeft: `4px solid ${getRatingColor(questionData.Rating)}`,
         borderRadius: '12px',
         transition: 'all 0.3s ease',
@@ -418,29 +418,29 @@ export default memo(function UserDashboard() {
           <Typography variant="subtitle2" color="primary" gutterBottom sx={{ fontWeight: 600 }}>
             {questionData.Question}
           </Typography>
-          <Typography variant="body2" color="text.secondary" paragraph sx={{ 
+          <Typography variant="body2" color="text.secondary" paragraph sx={{
             color: 'rgba(255, 255, 255, 0.9)',
-            lineHeight: 1.6 
+            lineHeight: 1.6
           }}>
             <strong style={{ color: '#1de9b6' }}>Your Answer:</strong> {questionData['Your Answer']}
           </Typography>
           <Box display="flex" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
-            <Typography variant="caption" sx={{ 
+            <Typography variant="caption" sx={{
               color: 'rgba(255, 255, 255, 0.8)',
               flex: 1,
               minWidth: '200px'
             }}>
               <strong style={{ color: '#1de9b6' }}>Feedback:</strong> {questionData.Feedback}
             </Typography>
-            <Chip 
-              label={`${questionData.Rating}/10`} 
-              size="small" 
-              sx={{ 
+            <Chip
+              label={`${questionData.Rating}/10`}
+              size="small"
+              sx={{
                 backgroundColor: `${getRatingColor(questionData.Rating)}20`,
                 color: getRatingColor(questionData.Rating),
                 fontWeight: 'bold',
                 border: `1px solid ${getRatingColor(questionData.Rating)}40`
-              }} 
+              }}
             />
           </Box>
         </CardContent>
@@ -458,7 +458,7 @@ export default memo(function UserDashboard() {
         layout
         variants={itemVariants}
         onClick={() => handleExpandInterview(interview.id)}
-        style={{ 
+        style={{
           cursor: 'pointer',
           marginBottom: '16px',
           width: '100%'
@@ -468,7 +468,7 @@ export default memo(function UserDashboard() {
           <CardHeader
             title={
               <Box display="flex" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6" sx={{ 
+                <Typography variant="h6" sx={{
                   color: '#ffffff',
                   fontWeight: 600,
                   fontSize: '1.1rem'
@@ -476,37 +476,37 @@ export default memo(function UserDashboard() {
                   {interview.interviewName || 'NA'}
                 </Typography>
                 <Box display="flex" alignItems="center" gap={1}>
-                  <Chip 
-                    label={interview.interviewMode || 'Guided Mode'} 
-                    size="small" 
-                    sx={{ 
+                  <Chip
+                    label={interview.interviewMode || 'Guided Mode'}
+                    size="small"
+                    sx={{
                       backgroundColor: 'rgba(29, 233, 182, 0.2)',
                       color: '#1de9b6',
                       fontWeight: 'bold',
                       border: '1px solid rgba(29, 233, 182, 0.3)',
                       fontSize: '0.7rem',
                       mr: 1
-                    }} 
+                    }}
                   />
-                  <Chip 
-                    label={`${interview.overAllRating}/10`} 
-                    size="small" 
-                    sx={{ 
+                  <Chip
+                    label={`${interview.overAllRating}/10`}
+                    size="small"
+                    sx={{
                       backgroundColor: `${getRatingColor(interview.overAllRating)}25`,
                       color: getRatingColor(interview.overAllRating),
                       fontWeight: 'bold',
                       border: `1px solid ${getRatingColor(interview.overAllRating)}50`,
                       fontSize: '0.75rem'
-                    }} 
+                    }}
                   />
                   <motion.div
-                    animate={{ 
+                    animate={{
                       rotate: isExpanded ? 180 : 0,
                       scale: isExpanded ? 1.2 : 1
                     }}
                     transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                   >
-                    <ExpandMoreIcon sx={{ 
+                    <ExpandMoreIcon sx={{
                       color: 'rgba(255, 255, 255, 0.7)',
                       fontSize: '1.5rem'
                     }} />
@@ -516,7 +516,7 @@ export default memo(function UserDashboard() {
             }
             subheader={
               <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mt: 1 }}>
-                <Typography variant="body2" sx={{ 
+                <Typography variant="body2" sx={{
                   color: 'rgba(255, 255, 255, 0.7)',
                   fontSize: '0.85rem'
                 }}>
@@ -528,7 +528,7 @@ export default memo(function UserDashboard() {
                     minute: '2-digit'
                   })}
                 </Typography>
-                <Typography variant="caption" sx={{ 
+                <Typography variant="caption" sx={{
                   color: 'rgba(255, 255, 255, 0.6)',
                   display: 'flex',
                   alignItems: 'center',
@@ -539,7 +539,7 @@ export default memo(function UserDashboard() {
                 </Typography>
               </Box>
             }
-            sx={{ 
+            sx={{
               pb: 1,
               '& .MuiCardHeader-content': {
                 overflow: 'hidden'
@@ -552,7 +552,7 @@ export default memo(function UserDashboard() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ 
+                transition={{
                   duration: 0.4,
                   ease: [0.4, 0, 0.2, 1]
                 }}
@@ -562,14 +562,14 @@ export default memo(function UserDashboard() {
                   {/* Resume Summary Section */}
                   {interview.resumeSummary && (
                     <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        color: '#1de9b6', 
-                        fontWeight: 600, 
-                        mb: 1 
+                      <Typography variant="subtitle2" sx={{
+                        color: '#1de9b6',
+                        fontWeight: 600,
+                        mb: 1
                       }}>
                         Resume Summary:
                       </Typography>
-                      <Typography variant="body2" sx={{ 
+                      <Typography variant="body2" sx={{
                         color: 'rgba(255, 255, 255, 0.8)',
                         p: 2,
                         bgcolor: 'rgba(29, 233, 182, 0.05)',
@@ -581,33 +581,33 @@ export default memo(function UserDashboard() {
                       </Typography>
                     </Box>
                   )}
-                  
+
                   {/* Explanations Section */}
                   {interview.explanations && interview.explanations.length > 0 && (
                     <Box sx={{ mb: 3 }}>
-                      <Typography variant="subtitle2" sx={{ 
-                        color: '#1de9b6', 
-                        fontWeight: 600, 
-                        mb: 2 
+                      <Typography variant="subtitle2" sx={{
+                        color: '#1de9b6',
+                        fontWeight: 600,
+                        mb: 2
                       }}>
                         AI Explanations:
                       </Typography>
                       {interview.explanations.map((explanation, index) => (
-                        <Card key={explanation._id || index} sx={{ 
-                          mb: 2, 
-                          bgcolor: 'rgba(255, 255, 255, 0.02)', 
+                        <Card key={explanation._id || index} sx={{
+                          mb: 2,
+                          bgcolor: 'rgba(255, 255, 255, 0.02)',
                           border: '1px solid rgba(255, 255, 255, 0.1)',
                           borderRadius: '8px'
                         }}>
                           <CardContent sx={{ p: 2 }}>
-                            <Typography variant="body2" sx={{ 
-                              color: '#1de9b6', 
-                              fontWeight: 600, 
-                              mb: 1 
+                            <Typography variant="body2" sx={{
+                              color: '#1de9b6',
+                              fontWeight: 600,
+                              mb: 1
                             }}>
                               Question: {explanation.question}
                             </Typography>
-                            <Typography variant="body2" sx={{ 
+                            <Typography variant="body2" sx={{
                               color: 'rgba(255, 255, 255, 0.8)',
                               lineHeight: 1.6
                             }}>
@@ -618,12 +618,12 @@ export default memo(function UserDashboard() {
                       ))}
                     </Box>
                   )}
-                  
+
                   {/* Questions and Answers Section */}
-                  <Typography variant="subtitle2" sx={{ 
-                    color: '#1de9b6', 
-                    fontWeight: 600, 
-                    mb: 2 
+                  <Typography variant="subtitle2" sx={{
+                    color: '#1de9b6',
+                    fontWeight: 600,
+                    mb: 2
                   }}>
                     Questions & Answers:
                   </Typography>
@@ -635,8 +635,8 @@ export default memo(function UserDashboard() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: index * 0.1 }}
                       >
-                        <ListItem sx={{ 
-                          px: 0, 
+                        <ListItem sx={{
+                          px: 0,
                           py: 2,
                           alignItems: 'flex-start',
                           borderBottom: index < questions.length - 1 ? '1px solid rgba(255, 255, 255, 0.06)' : 'none',
@@ -646,7 +646,7 @@ export default memo(function UserDashboard() {
                             bgcolor: 'rgba(29, 233, 182, 0.05)'
                           }
                         }}>
-                          <ListItemIcon sx={{ 
+                          <ListItemIcon sx={{
                             minWidth: 40,
                             mt: 0.5
                           }}>
@@ -665,11 +665,11 @@ export default memo(function UserDashboard() {
                               {index + 1}
                             </Box>
                           </ListItemIcon>
-                          <ListItemText 
-                            primary={q.question} 
-                            primaryTypographyProps={{ 
+                          <ListItemText
+                            primary={q.question}
+                            primaryTypographyProps={{
                               variant: 'body2',
-                              sx: { 
+                              sx: {
                                 color: '#ffffff',
                                 fontWeight: 600,
                                 lineHeight: 1.6,
@@ -678,7 +678,7 @@ export default memo(function UserDashboard() {
                             }}
                             secondary={
                               <Box sx={{ mt: 1 }}>
-                                <Typography component="div" sx={{ 
+                                <Typography component="div" sx={{
                                   color: 'rgba(255, 255, 255, 0.9)',
                                   fontSize: '0.9rem',
                                   lineHeight: 1.7,
@@ -688,8 +688,8 @@ export default memo(function UserDashboard() {
                                   borderRadius: '8px',
                                   borderLeft: '3px solid rgba(29, 233, 182, 0.3)'
                                 }}>
-                                  <Box component="span" sx={{ 
-                                    color: '#1de9b6', 
+                                  <Box component="span" sx={{
+                                    color: '#1de9b6',
                                     fontWeight: 600,
                                     display: 'block',
                                     mb: 1
@@ -698,9 +698,9 @@ export default memo(function UserDashboard() {
                                   </Box>
                                   {q.userAnswer || 'No answer provided'}
                                 </Typography>
-                                
-                                <Typography component="div" sx={{ 
-                                  color: 'rgba(255, 255, 255, 0.85)', 
+
+                                <Typography component="div" sx={{
+                                  color: 'rgba(255, 255, 255, 0.85)',
                                   fontSize: '0.85rem',
                                   lineHeight: 1.6,
                                   p: 2,
@@ -708,8 +708,8 @@ export default memo(function UserDashboard() {
                                   borderRadius: '8px',
                                   mb: 2
                                 }}>
-                                  <Box component="span" sx={{ 
-                                    color: '#1de9b6', 
+                                  <Box component="span" sx={{
+                                    color: '#1de9b6',
                                     fontWeight: 600,
                                     display: 'block',
                                     mb: 1
@@ -718,12 +718,12 @@ export default memo(function UserDashboard() {
                                   </Box>
                                   {q.feedback || 'No feedback available'}
                                 </Typography>
-                                
+
                                 {/* Technical Breakdown */}
                                 {(q.technicalKnowledge !== undefined || q.problemSolvingSkills !== undefined || q.communicationClarity !== undefined) && (
                                   <Box sx={{ mb: 2 }}>
-                                    <Typography variant="caption" sx={{ 
-                                      color: '#1de9b6', 
+                                    <Typography variant="caption" sx={{
+                                      color: '#1de9b6',
                                       fontWeight: 600,
                                       display: 'block',
                                       mb: 1
@@ -732,56 +732,56 @@ export default memo(function UserDashboard() {
                                     </Typography>
                                     <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                                       {q.technicalKnowledge !== undefined && (
-                                        <Chip 
-                                          label={`Tech: ${q.technicalKnowledge}/10`} 
-                                          size="small" 
-                                          sx={{ 
+                                        <Chip
+                                          label={`Tech: ${q.technicalKnowledge}/10`}
+                                          size="small"
+                                          sx={{
                                             backgroundColor: `${getRatingColor(q.technicalKnowledge)}20`,
                                             color: getRatingColor(q.technicalKnowledge),
                                             fontSize: '0.65rem',
                                             fontWeight: 600
-                                          }} 
+                                          }}
                                         />
                                       )}
                                       {q.problemSolvingSkills !== undefined && (
-                                        <Chip 
-                                          label={`Problem Solving: ${q.problemSolvingSkills}/10`} 
-                                          size="small" 
-                                          sx={{ 
+                                        <Chip
+                                          label={`Problem Solving: ${q.problemSolvingSkills}/10`}
+                                          size="small"
+                                          sx={{
                                             backgroundColor: `${getRatingColor(q.problemSolvingSkills)}20`,
                                             color: getRatingColor(q.problemSolvingSkills),
                                             fontSize: '0.65rem',
                                             fontWeight: 600
-                                          }} 
+                                          }}
                                         />
                                       )}
                                       {q.communicationClarity !== undefined && (
-                                        <Chip 
-                                          label={`Communication: ${q.communicationClarity}/10`} 
-                                          size="small" 
-                                          sx={{ 
+                                        <Chip
+                                          label={`Communication: ${q.communicationClarity}/10`}
+                                          size="small"
+                                          sx={{
                                             backgroundColor: `${getRatingColor(q.communicationClarity)}20`,
                                             color: getRatingColor(q.communicationClarity),
                                             fontSize: '0.65rem',
                                             fontWeight: 600
-                                          }} 
+                                          }}
                                         />
                                       )}
                                     </Box>
                                   </Box>
                                 )}
-                                
-                                <Chip 
-                                  label={`Overall Score: ${q.rating || 'N/A'}/10`} 
-                                  size="small" 
-                                  sx={{ 
+
+                                <Chip
+                                  label={`Overall Score: ${q.rating || 'N/A'}/10`}
+                                  size="small"
+                                  sx={{
                                     backgroundColor: `${getRatingColor(q.rating)}20`,
                                     color: getRatingColor(q.rating),
                                     fontSize: '0.7rem',
                                     fontWeight: 700,
                                     border: `1px solid ${getRatingColor(q.rating)}40`,
                                     borderRadius: '6px'
-                                  }} 
+                                  }}
                                 />
                               </Box>
                             }
@@ -801,17 +801,17 @@ export default memo(function UserDashboard() {
   }, [expandedInterview, handleExpandInterview, getRatingColor]);
 
   return (
-    <Box 
-      className="page-background" 
-      sx={{ 
-        minHeight: '100vh', 
-        pt: 10, 
-        pb: 2, 
-        background: 'linear-gradient(-45deg, #0a0f1a, #1a1a2e, #16213e, #0d1b2a)', 
+    <Box
+      className="page-background"
+      sx={{
+        minHeight: '100vh',
+        pt: 10,
+        pb: 2,
+        background: 'linear-gradient(-45deg, #0a0f1a, #1a1a2e, #16213e, #0d1b2a)',
         backgroundSize: '400% 400%'
       }}
     >
-  <Container maxWidth="xl">
+      <Container maxWidth="xl">
         <motion.div
           variants={containerVariants}
           initial="hidden"
@@ -828,18 +828,18 @@ export default memo(function UserDashboard() {
                 </Grid>
                 <Grid item xs>
                   <Box display="flex" alignItems="center" mb={1.5}>
-                    <Typography variant="h4" sx={{ 
-                      fontWeight: 'bold', 
-                      mr: 2, 
+                    <Typography variant="h4" sx={{
+                      fontWeight: 'bold',
+                      mr: 2,
                       color: '#fff'
                     }}>
                       {loading ? 'Loading...' : userData.name || 'User'}
                     </Typography>
-                    <IconButton 
-                      size="small" 
-                      sx={{ 
+                    <IconButton
+                      size="small"
+                      sx={{
                         color: 'rgba(255, 255, 255, 0.7)',
-                        '&:hover': { 
+                        '&:hover': {
                           color: '#1de9b6'
                         }
                       }}
@@ -847,28 +847,28 @@ export default memo(function UserDashboard() {
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Box>
-                  
-                  <Typography variant="body1" sx={{ 
-                    mb: 1, 
+
+                  <Typography variant="body1" sx={{
+                    mb: 1,
                     color: 'rgba(255, 255, 255, 0.9)'
                   }}>
                     {userData.email}
                   </Typography>
-                  
+
                   {userData.username && (
-                    <Typography variant="body2" sx={{ 
-                      mb: 1.5, 
+                    <Typography variant="body2" sx={{
+                      mb: 1.5,
                       color: 'rgba(255, 255, 255, 0.7)'
                     }}>
                       @{userData.username}
                     </Typography>
                   )}
-                  
+
                   {userData.role && (
                     <Chip
                       label={userData.role}
                       size="small"
-                      sx={{ 
+                      sx={{
                         color: '#1de9b6',
                         bgcolor: 'rgba(29, 233, 182, 0.15)',
                         border: '1px solid rgba(29, 233, 182, 0.3)',
@@ -878,7 +878,7 @@ export default memo(function UserDashboard() {
                     />
                   )}
                 </Grid>
-                
+
                 <Grid item>
                   <Box display="flex" gap={1}>
                     <SocialIcon href="https://linkedin.com" target="_blank">
@@ -935,7 +935,7 @@ export default memo(function UserDashboard() {
                   icon={<TrendingUpIcon fontSize="large" />}
                   title="Success Rate"
                   value={`${userData.stats.successRate}%`}
-                  subtitle={userData.stats.totalInterviews > 0 ? 
+                  subtitle={userData.stats.totalInterviews > 0 ?
                     `${userData.stats.goodInterviews} of ${userData.stats.totalInterviews} interviews scored ≥7` :
                     `Interviews scoring ≥7 out of 10`
                   }
@@ -949,7 +949,7 @@ export default memo(function UserDashboard() {
           <motion.div variants={itemVariants}>
             <HistoryPaper elevation={0} sx={{ mt: 1 }}>
               <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h5" sx={{ 
+                <Typography variant="h5" sx={{
                   fontWeight: 'bold',
                   display: 'flex',
                   alignItems: 'center',
@@ -958,31 +958,31 @@ export default memo(function UserDashboard() {
                   <HistoryIcon sx={{ color: teal[300] }} />
                   Mock Interview History
                 </Typography>
-                <Typography variant="body2" sx={{ 
+                <Typography variant="body2" sx={{
                   color: 'rgba(255, 255, 255, 0.7)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: 1
                 }}>
-                  <Box component="span" sx={{ 
-                    width: 8, 
-                    height: 8, 
-                    borderRadius: '50%', 
+                  <Box component="span" sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
                     bgcolor: '#1de9b6',
                     display: 'inline-block'
                   }} />
                   Last updated: {new Date().toLocaleDateString()}
                 </Typography>
               </Box>
-              
+
               <Divider sx={{ bgcolor: 'rgba(255, 255, 255, 0.15)', mb: 4 }} />
-              
+
               {loadingHistory ? (
                 <LoadingSkeleton />
               ) : historyError ? (
-                <Alert 
-                  severity="error" 
-                  sx={{ 
+                <Alert
+                  severity="error"
+                  sx={{
                     mb: 2,
                     bgcolor: 'rgba(244, 67, 54, 0.1)',
                     border: '1px solid rgba(244, 67, 54, 0.3)',
@@ -992,8 +992,8 @@ export default memo(function UserDashboard() {
                   }}
                 >
                   {historyError}
-                  <Button 
-                    size="small" 
+                  <Button
+                    size="small"
                     onClick={fetchInterviewHistory}
                     sx={{ ml: 2, color: '#1de9b6' }}
                   >
@@ -1006,20 +1006,20 @@ export default memo(function UserDashboard() {
                   <Typography variant="h5" gutterBottom sx={{ fontWeight: 600 }}>
                     No mock interviews yet
                   </Typography>
-                  <Typography variant="body1" sx={{ 
-                    maxWidth: '500px', 
-                    mb: 3, 
+                  <Typography variant="body1" sx={{
+                    maxWidth: '500px',
+                    mb: 3,
                     color: 'rgba(255, 255, 255, 0.8)',
                     lineHeight: 1.6
                   }}>
                     Ready to ace your next interview? Start practicing with our AI-powered mock interview system and get instant feedback.
                   </Typography>
-                  <Button 
+                  <Button
                     variant="contained"
                     size="large"
                     component={RouterLink}
                     to="/mockInterviewWay"
-                    sx={{ 
+                    sx={{
                       background: 'linear-gradient(135deg, #1de9b6, #0ea5e9)',
                       color: '#fff',
                       fontWeight: 600,
@@ -1043,18 +1043,18 @@ export default memo(function UserDashboard() {
                 <motion.div variants={containerVariants}>
                   {/* Pagination */}
                   {pagination.totalPages > 1 && (
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'center', 
+                    <Box sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
                       alignItems: 'center',
                       mb: 3,
                       gap: 2
                     }}>
-                      <Typography variant="body2" sx={{ 
+                      <Typography variant="body2" sx={{
                         color: 'rgba(255, 255, 255, 0.6)',
                         fontSize: '0.85rem'
                       }}>
-                        Page {pagination.currentPage} of {pagination.totalPages} 
+                        Page {pagination.currentPage} of {pagination.totalPages}
                         ({pagination.totalItems} total interviews)
                       </Typography>
                       <Pagination

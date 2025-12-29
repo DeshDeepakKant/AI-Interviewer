@@ -21,8 +21,8 @@ export const AuthProvider = ({ children }) => {
   const verifyAuthentication = useCallback(async () => {
     try {
       setIsLoading(true);
-      
-      const response = await axios.get("/api/v1/user/currentUser", {
+
+      const response = await axios.get(import.meta.env.VITE_BACKEND_URL + "/api/v1/user/currentUser", {
         withCredentials: true,
         headers: { "Content-Type": "application/json" },
         timeout: 10000,
@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }) => {
       if (response.status === 200 && response.data.success) {
         const userData = response.data.data;
         const { user, accessToken, refreshToken } = userData;
-        
+
         // Store tokens if provided
         if (accessToken) {
           localStorage.setItem('accessToken', accessToken);
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
         if (refreshToken) {
           localStorage.setItem('refreshToken', refreshToken);
         }
-        
+
         // Store user data
         if (user) {
           setUserData(user);
@@ -69,7 +69,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       await axios.post(
-        "/api/v1/user/logout",
+        import.meta.env.VITE_BACKEND_URL + "/api/v1/user/logout",
         {},
         {
           withCredentials: true,
@@ -100,11 +100,11 @@ export const AuthProvider = ({ children }) => {
         setUser(savedUser);
         setIsInitialized(true);
         setIsLoading(false);
-        
+
         const lastVerified = localStorage.getItem('lastVerified');
         const now = Date.now();
         const VERIFICATION_INTERVAL = 30 * 60 * 1000; // 30 minutes
-        
+
         if (!lastVerified || (now - parseInt(lastVerified)) > VERIFICATION_INTERVAL) {
           verifyAuthentication().then(() => {
             localStorage.setItem('lastVerified', now.toString());

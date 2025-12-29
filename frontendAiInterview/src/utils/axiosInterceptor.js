@@ -15,7 +15,7 @@ const processQueue = (error, token = null) => {
       prom.resolve(token);
     }
   });
-  
+
   failedQueue = [];
 };
 
@@ -71,10 +71,10 @@ axios.interceptors.response.use(
 
       try {
         const refreshToken = getRefreshToken();
-        
+
         // Try to refresh the token
         const refreshResponse = await axios.post(
-          '/api/v1/user/refresh-token',
+          import.meta.env.VITE_BACKEND_URL + '/api/v1/user/refresh-token',
           { refreshToken },
           {
             withCredentials: true,
@@ -86,7 +86,7 @@ axios.interceptors.response.use(
 
         if (refreshResponse.data.success) {
           const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
-          
+
           // Update tokens
           if (accessToken) {
             setAccessToken(accessToken);
@@ -110,12 +110,12 @@ axios.interceptors.response.use(
         // Refresh failed - clear auth and redirect to login
         processQueue(refreshError, null);
         clearAllUserData();
-        
+
         // Only redirect if we're not already on login page
         if (window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

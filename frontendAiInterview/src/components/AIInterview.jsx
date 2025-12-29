@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { io } from 'socket.io-client'; 
-import { 
-  Box, 
-  Paper, 
-  Typography, 
-  TextField, 
-  Button, 
+import { io } from 'socket.io-client';
+import {
+  Box,
+  Paper,
+  Typography,
+  TextField,
+  Button,
   IconButton,
   Avatar,
   Divider,
@@ -13,9 +13,9 @@ import {
   LinearProgress,
   Tooltip
 } from '@mui/material';
-import { 
-  Send as SendIcon, 
-  Mic as MicIcon, 
+import {
+  Send as SendIcon,
+  Mic as MicIcon,
   MicOff as MicOffIcon,
   Videocam as VideocamIcon,
   VideocamOff as VideocamOffIcon,
@@ -44,12 +44,12 @@ const AIInterview = () => {
   const socketRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   const [sessionId, setSessionId] = useState('');
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(10);
   const [socketConnected, setSocketConnected] = useState(false);
-  
+
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isInterviewActive, setIsInterviewActive] = useState(false);
@@ -58,7 +58,7 @@ const AIInterview = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isStartingInterview, setIsStartingInterview] = useState(false);
 
-  
+
   const [stream, setStream] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
@@ -68,7 +68,7 @@ const AIInterview = () => {
   const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [interviewMode, setInterviewMode] = useState('Guided Mode');
   const [isMobileView, setIsMobileView] = useState(false);
-  
+
   const videoRef = useRef(null);
   const chatEndRef = useRef(null);
   const audioRef = useRef(null);
@@ -79,31 +79,31 @@ const AIInterview = () => {
 
   useEffect(() => {
     let isHandlingVisibilityChange = false;
-    
+
     const handleVisibilityChange = () => {
       if (isHandlingVisibilityChange) return;
-      
+
       if (document.hidden && isInterviewActive) {
         isHandlingVisibilityChange = true;
 
         setTabSwitchCount(prevCount => {
           const newCount = prevCount + 1;
-          
+
           if (newCount >= 3) {
             setIsInterviewActive(false);
             stopAllMedia();
-            
-            axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
+
+            axios.post(import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
               console.error('Error in background analysis:', error);
             });
-            
+
             toast.error('Interview ended! You switched tabs 3 times. You can check interview analysis in the dashboard after some time', {
               autoClose: 5000,
               closeButton: true,
               closeOnClick: true,
               draggable: true
             });
-            
+
             setTimeout(() => navigate('/'), 1500);
           } else {
             const remainingChances = 3 - newCount;
@@ -114,10 +114,10 @@ const AIInterview = () => {
               draggable: true
             });
           }
-          
+
           return newCount;
         });
-        
+
         setTimeout(() => {
           isHandlingVisibilityChange = false;
         }, 500);
@@ -126,7 +126,7 @@ const AIInterview = () => {
 
     const handleBeforeUnload = (e) => {
       if (isInterviewActive) {
-        axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
+        axios.post(import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
           console.error('Error in background analysis:', error);
         });
 
@@ -149,10 +149,10 @@ const AIInterview = () => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
     };
-    
+
     checkMobileView();
     window.addEventListener('resize', checkMobileView);
-    
+
     return () => {
       window.removeEventListener('resize', checkMobileView);
     };
@@ -180,8 +180,8 @@ const AIInterview = () => {
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.altKey && event.key === 'Tab' && isInterviewActive) {
-        event.preventDefault(); 
-        
+        event.preventDefault();
+
         toast.warning('⚠️ Warning: Switching tabs during interview is not allowed!', {
           position: "top-center",
           autoClose: 4000,
@@ -196,10 +196,10 @@ const AIInterview = () => {
           }
         });
       }
-      
+
       if (event.metaKey && event.key === 'Tab' && isInterviewActive) {
         event.preventDefault();
-        
+
         toast.warning('⚠️ Warning: Switching applications during interview is not allowed!', {
           position: "top-center",
           autoClose: 4000,
@@ -230,11 +230,11 @@ const AIInterview = () => {
     const stateSessionId = stateData.sessionId;
     const storedSessionId = sessionStorage.getItem('interviewSessionId');
     const activeSessionId = stateSessionId || storedSessionId;
-    
+
     if (activeSessionId) {
       setSessionId(activeSessionId);
       sessionStorage.setItem('interviewSessionId', activeSessionId);
-      
+
       if (stateData.interviewMode) {
         setInterviewMode(stateData.interviewMode);
         sessionStorage.setItem('interviewMode', stateData.interviewMode);
@@ -257,7 +257,7 @@ const AIInterview = () => {
       toast.error('No active interview session found');
       navigate('/');
     }
-    
+
     return () => {
       stopAllMedia();
     };
@@ -266,7 +266,7 @@ const AIInterview = () => {
   useEffect(() => {
     const validateAuthAndConnect = async () => {
       try {
-        const authResponse = await axios.get('/api/v1/user/currentUser', {
+        const authResponse = await axios.get(import.meta.env.VITE_BACKEND_URL + '/api/v1/user/currentUser', {
           withCredentials: true,
           timeout: 10000
         });
@@ -276,7 +276,7 @@ const AIInterview = () => {
         }
 
         initializeSocket();
-        
+
       } catch (error) {
         console.error('Authentication verification failed:', error);
         toast.error('Authentication failed. Please login again.');
@@ -288,27 +288,27 @@ const AIInterview = () => {
 
       let token = getAccessToken();
       let tokenSource = 'localStorage';
-      
+
       if (!token) {
         token = getCookieValue('accessToken');
         tokenSource = 'cookies';
       }
 
       if (!token) {
-        token = 'cookie-auth'; 
+        token = 'cookie-auth';
         tokenSource = 'cookies (via headers)';
       }
 
       if (!sessionId) {
-        return; 
+        return;
       }
 
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
 
-      const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 
-                        (import.meta.env.DEV ? 'http://localhost:8000' : window.location.origin);
+      const SOCKET_URL = import.meta.env.VITE_BACKEND_URL ||
+        (import.meta.env.DEV ? 'http://localhost:8000' : window.location.origin);
 
       const socket = io(SOCKET_URL, {
         auth: {
@@ -322,9 +322,9 @@ const AIInterview = () => {
 
       socket.on('connect', () => {
         setSocketConnected(true);
-        
+
         socket.emit('joinRoom', { sessionId });
-        
+
       });
 
       socket.on('disconnect', () => {
@@ -336,7 +336,7 @@ const AIInterview = () => {
         console.error('Error message:', error.message);
         console.error('Error description:', error.description);
         setSocketConnected(false);
-        
+
         if (error.message === 'AuthenticationError') {
           toast.error('Authentication failed. Please login again.');
           navigate('/login');
@@ -352,26 +352,26 @@ const AIInterview = () => {
 
       socket.on('aiInterview', (data) => {
         setIsLoading(false);
-        setIsStartingInterview(false); 
-        
+        setIsStartingInterview(false);
+
         if (data && data.result) {
           const aiResponse = data.result;
           const numberOfQuestionLeft = data.numberOfQuestionLeft;
-          
+
           const aiMessage = {
             id: Date.now(),
             sender: 'ai',
             text: aiResponse,
             timestamp: new Date()
           };
-          
+
           setMessages(prev => [...prev, aiMessage]);
-          
+
           if (aiResponse && !aiResponse.includes("Your interview is over") && numberOfQuestionLeft !== undefined) {
             const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
             setCurrentQuestion(Math.max(0, currentQuestionNumber));
           }
-          
+
           if (aiResponse && !aiResponse.includes("Your interview is over") && numberOfQuestionLeft !== undefined) {
             const currentQuestionNumber = totalQuestions - numberOfQuestionLeft;
             if (currentQuestionNumber === 0 && isInterviewActive) {
@@ -380,13 +380,13 @@ const AIInterview = () => {
               setCurrentQuestion(Math.max(1, currentQuestionNumber));
             }
           }
-          
+
           if (data.audioUrl) {
             playAudio(data.audioUrl);
           } else if (data.audio) {
             playAudioFromBuffer(data.audio);
           }
-          
+
           if (aiResponse.includes("Your interview is over")) {
             setTimeout(() => toggleInterview(), 6000);
           }
@@ -406,14 +406,14 @@ const AIInterview = () => {
         setIsLoading(false);
         setIsStartingInterview(false);
         console.error('AI Error:', error);
-        
+
         const errorMessage = {
           id: Date.now(),
           sender: 'ai',
           text: error.message || 'Something went wrong. Please try again later.',
           timestamp: new Date()
         };
-        
+
         setMessages(prev => [...prev, errorMessage]);
         toast.error(error.message || 'An error occurred during the interview');
       });
@@ -440,19 +440,19 @@ const AIInterview = () => {
 
   useEffect(() => {
     const videoElement = videoRef.current;
-    
+
     if (videoElement && stream) {
       videoElement.srcObject = stream;
-      
+
       const handleCanPlay = () => {
         videoElement.play().catch(e => {
           console.error("Video play failed:", e);
           toast.error("Could not play video. Please check browser permissions.");
         });
       };
-      
+
       videoElement.addEventListener('canplay', handleCanPlay);
-      
+
       return () => {
         videoElement.removeEventListener('canplay', handleCanPlay);
       };
@@ -463,19 +463,19 @@ const AIInterview = () => {
 
   const playAudio = (audioUrl) => {
     if (!audioUrl) return;
-    
+
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-    
+
     audioRef.current = new Audio(audioUrl);
-    
+
     audioRef.current.onplay = () => setIsAudioPlaying(true);
     audioRef.current.onended = () => setIsAudioPlaying(false);
     audioRef.current.onpause = () => setIsAudioPlaying(false);
     audioRef.current.onerror = () => setIsAudioPlaying(false);
-    
+
     audioRef.current.play().catch(e => {
       console.error('Error playing audio:', e);
       setIsAudioPlaying(false);
@@ -484,24 +484,24 @@ const AIInterview = () => {
 
   const playAudioFromBase64 = (audioBase64) => {
     if (!audioBase64) return;
-    
+
     try {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
-      
+
       const binaryString = atob(audioBase64);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      
+
       const audioBlob = new Blob([bytes], { type: 'audio/wav' });
       const audioUrl = URL.createObjectURL(audioBlob);
-      
+
       audioRef.current = new Audio(audioUrl);
-      
+
       audioRef.current.onplay = () => setIsAudioPlaying(true);
       audioRef.current.onended = () => {
         setIsAudioPlaying(false);
@@ -512,13 +512,13 @@ const AIInterview = () => {
         setIsAudioPlaying(false);
         URL.revokeObjectURL(audioUrl);
       };
-      
+
       audioRef.current.play().catch(e => {
         console.error('Error playing audio:', e);
         setIsAudioPlaying(false);
         URL.revokeObjectURL(audioUrl);
       });
-      
+
     } catch (error) {
       console.error('Error processing base64 audio:', error);
       setIsAudioPlaying(false);
@@ -527,22 +527,22 @@ const AIInterview = () => {
 
   const playAudioFromBuffer = (audioBuffer) => {
     if (!audioBuffer) return;
-    
+
     try {
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
       }
-      
+
       // Create Uint8Array from the raw buffer data
       const bytes = new Uint8Array(audioBuffer);
-      
+
       // Create blob with appropriate MIME type (MP3 since backend generates MP3)
       const audioBlob = new Blob([bytes], { type: 'audio/mp3' });
       const audioUrl = URL.createObjectURL(audioBlob);
-      
+
       audioRef.current = new Audio(audioUrl);
-      
+
       audioRef.current.onplay = () => setIsAudioPlaying(true);
       audioRef.current.onended = () => {
         setIsAudioPlaying(false);
@@ -554,20 +554,20 @@ const AIInterview = () => {
         URL.revokeObjectURL(audioUrl);
         console.error('Error playing audio from buffer');
       };
-      
+
       audioRef.current.play().catch(e => {
         console.error('Error playing audio from buffer:', e);
         setIsAudioPlaying(false);
         URL.revokeObjectURL(audioUrl);
       });
-      
+
     } catch (error) {
       console.error('Error processing audio buffer:', error);
       setIsAudioPlaying(false);
     }
   };
 
-  
+
   const stopAllMedia = () => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -593,11 +593,11 @@ const AIInterview = () => {
         video: true,
         audio: true
       });
-      
+
       setStream(mediaStream);
       setIsCameraOn(true);
       setIsMicOn(true);
-      
+
       return true;
     } catch (error) {
       console.error('Error accessing media devices:', error);
@@ -623,59 +623,59 @@ const AIInterview = () => {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognition();
-    
+
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
-    
+
     recognition.onstart = () => {
       setIsListening(true);
     };
-    
+
     recognition.onresult = (event) => {
       let interimTranscript = '';
       let finalText = '';
-      
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         const transcript = result[0].transcript;
-        
+
         if (result.isFinal) {
           finalText += transcript;
         } else {
           interimTranscript += transcript;
         }
       }
-      
+
       setTranscript(interimTranscript);
-      
+
       if (finalText.trim()) {
         setFinalTranscript(prev => {
           const newFinal = prev + ' ' + finalText.trim();
           return newFinal.trim();
         });
-        
+
         setInputValue(prev => {
           const newMessage = (prev + ' ' + finalText.trim()).trim();
           return newMessage;
         });
-        
+
         setTranscript('');
       }
     };
-    
+
     recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       setIsListening(false);
-      
+
       if (event.error === 'no-speech' || event.error === 'audio-capture') {
         toast.error('Microphone not detecting speech. Please check your microphone.');
       }
     };
-    
+
     recognition.onend = () => {
       setIsListening(false);
-      
+
       if (isInterviewActive) {
         setTimeout(() => {
           try {
@@ -686,9 +686,9 @@ const AIInterview = () => {
         }, 500);
       }
     };
-    
+
     recognitionRef.current = recognition;
-    
+
     try {
       recognition.start();
     } catch (error) {
@@ -708,7 +708,7 @@ const AIInterview = () => {
         recognitionRef.current = null;
       }
     }
-    
+
     setIsListening(false);
     setTranscript('');
   };
@@ -728,11 +728,11 @@ const AIInterview = () => {
           video: true,
           audio: isMicOn
         });
-        
+
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
         }
-        
+
         setStream(mediaStream);
         setIsCameraOn(true);
       } catch (error) {
@@ -744,47 +744,47 @@ const AIInterview = () => {
 
   const toggleMic = async () => {
     if (audioToggleRef.current) return;
-    
+
     audioToggleRef.current = true;
-    
+
     try {
       if (isMicOn) {
         stopSpeechRecognition();
-        
+
         if (stream) {
           stream.getAudioTracks().forEach(track => {
             track.stop();
           });
         }
-        
+
         setIsMicOn(false);
-        
+
         if (stream && stream.getVideoTracks().length === 0) {
           setStream(null);
         }
-        
+
       } else {
         try {
           const mediaStream = await navigator.mediaDevices.getUserMedia({
             audio: true,
             video: isCameraOn
           });
-          
+
           if (stream) {
             stream.getTracks().forEach(track => {
               track.stop();
             });
           }
-          
+
           setStream(mediaStream);
           setIsMicOn(true);
-          
+
           if (isInterviewActive) {
             setTimeout(() => {
               startSpeechRecognition();
             }, 500);
           }
-          
+
         } catch (error) {
           console.error('Error accessing microphone:', error);
           toast.error('Could not access microphone. Please check your permissions.');
@@ -805,7 +805,7 @@ const AIInterview = () => {
       toast.error('Not connected to interview server. Please wait or refresh the page.');
       return;
     }
-    
+
     const userText = inputValue.trim();
     const newMessage = {
       id: Date.now(),
@@ -813,26 +813,26 @@ const AIInterview = () => {
       text: userText,
       timestamp: new Date()
     };
-    
+
     setMessages(prev => [...prev, newMessage]);
     setInputValue('');
     setFinalTranscript('');
     setTranscript('');
     setIsLoading(true);
-    
+
     try {
       const messageData = {
         sessionId: sessionId,
         answer: userText
       };
-      
+
       socketRef.current.emit('sendAnswer', messageData);
 
-      
+
     } catch (error) {
       console.error('Error sending message via socket:', error);
       setIsLoading(false);
-      
+
       const errorMessage = {
         id: Date.now(),
         sender: 'ai',
@@ -856,24 +856,24 @@ const AIInterview = () => {
 
       if (!initialMessageSent.current) {
         initialMessageSent.current = true;
-        setIsStartingInterview(true); 
-        setIsLoading(true); 
-        
+        setIsStartingInterview(true);
+        setIsLoading(true);
+
         try {
           socketRef.current.emit('sendAnswer', {
             sessionId: sessionId,
             answer: "Let's start the interview"
           });
-          
+
           setIsInterviewActive(true);
           setTabSwitchCount(0);
-          
+
           setTimeout(() => {
             startSpeechRecognition();
           }, 1000);
-          
+
           toast.success("Interview started! You can now speak or type your responses.");
-          
+
         } catch (error) {
           console.error('Error starting interview:', error);
           setIsLoading(false);
@@ -885,12 +885,12 @@ const AIInterview = () => {
       setIsInterviewActive(false);
       setCurrentQuestion(0);
       stopAllMedia();
-      
+
       sessionStorage.removeItem('interviewSessionId');
       sessionStorage.removeItem('numberOfQuestions');
       sessionStorage.removeItem('interviewMode');
 
-      axios.post('/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
+      axios.post(import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/aiAnalysis', { sessionId }).catch(error => {
         console.error('Error in background analysis:', error);
       });
 
@@ -900,7 +900,7 @@ const AIInterview = () => {
         closeOnClick: true,
         draggable: true
       });
-      
+
 
       navigate('/');
     }
@@ -930,8 +930,8 @@ const AIInterview = () => {
 
   return (
     <>
-      <Box 
-        sx={{ 
+      <Box
+        sx={{
           height: '100vh',
           display: 'flex',
           flexDirection: { xs: 'column', md: 'row' },
@@ -949,1039 +949,1039 @@ const AIInterview = () => {
           transition: 'filter 0.3s ease-in-out'
         }}
       >
-      
-      {/* Backdrop Blur Overlay */}
-      {isTooltipOpen && (
-        <Box
-          sx={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 9998,
-            pointerEvents: 'none'
-          }}
-        />
-      )}
-      {/* Left Side */}
-      <Box sx={{ 
-        flex: { xs: 'none', md: '0 0 40%' }, 
-        width: { xs: '100%', md: 'auto' },
-        height: { xs: 'auto', md: '100%' },
-        display: 'flex', 
-        flexDirection: { xs: 'row', md: 'column' }, 
-        gap: { xs: 1, sm: 1.5, md: 2 },
-        flexShrink: 0
-      }}>
-        
-        {/* AI Assistant Box */}
-        <Paper 
-          elevation={3}
-          sx={{ 
-            p: { xs: 1, sm: 2, md: 3 },
-            backgroundColor: 'var(--darker-bg)',
-            border: '1px solid rgba(0, 191, 165, 0.2)',
-            borderRadius: 2,
-            height: { xs: 'auto', sm: 'auto', md: 'auto' },
-            flex: { xs: '1', md: 'none' },
-            minHeight: { xs: '160px', sm: '180px', md: 'auto' },
-            overflow: 'hidden'
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 0.5, md: 2 } }}>
-            <Avatar 
-              sx={{ 
-                bgcolor: 'var(--primary-color)', 
-                mr: { xs: 0.5, md: 2 },
-                width: { xs: 24, sm: 36, md: 40 },
-                height: { xs: 24, sm: 36, md: 40 },
-                fontSize: { xs: '0.8rem', md: '1rem' }
-              }}
-            >
-              <MockInterviewIcon sx={{ fontSize: { xs: '0.9rem', md: '1.2rem' } }} />
-            </Avatar>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'var(--text-primary)',
-                fontWeight: 600,
-                fontSize: { xs: '0.8rem', sm: '1.1rem', md: '1.25rem' }
-              }}
-            >
-              Mock Interview
-            </Typography>
-          </Box>
-          
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: 'var(--text-secondary)',
-              mb: { xs: 0.5, md: 2 },
-              lineHeight: 1.4,
-              fontSize: { xs: '0.65rem', md: '0.875rem' }
+
+        {/* Backdrop Blur Overlay */}
+        {isTooltipOpen && (
+          <Box
+            sx={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              zIndex: 9998,
+              pointerEvents: 'none'
+            }}
+          />
+        )}
+        {/* Left Side */}
+        <Box sx={{
+          flex: { xs: 'none', md: '0 0 40%' },
+          width: { xs: '100%', md: 'auto' },
+          height: { xs: 'auto', md: '100%' },
+          display: 'flex',
+          flexDirection: { xs: 'row', md: 'column' },
+          gap: { xs: 1, sm: 1.5, md: 2 },
+          flexShrink: 0
+        }}>
+
+          {/* AI Assistant Box */}
+          <Paper
+            elevation={3}
+            sx={{
+              p: { xs: 1, sm: 2, md: 3 },
+              backgroundColor: 'var(--darker-bg)',
+              border: '1px solid rgba(0, 191, 165, 0.2)',
+              borderRadius: 2,
+              height: { xs: 'auto', sm: 'auto', md: 'auto' },
+              flex: { xs: '1', md: 'none' },
+              minHeight: { xs: '160px', sm: '180px', md: 'auto' },
+              overflow: 'hidden'
             }}
           >
-            Status: {isInterviewActive ? 'Interview in Progress' : 'Ready to Start'}
-          </Typography>
-          
-          {/* Connection Status */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, md: 1 } }}>
-            <Box
-              sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                backgroundColor: socketConnected ? '#4caf50' : '#f44336',
-                animation: socketConnected ? 'pulse 2s infinite' : 'none',
-                '@keyframes pulse': {
-                  '0%': { opacity: 1 },
-                  '50%': { opacity: 0.5 },
-                  '100%': { opacity: 1 }
-                }
-              }}
-            />
-            <Typography 
-              variant="caption" 
-              sx={{ 
-                color: socketConnected ? '#4caf50' : '#f44336',
-                fontSize: { xs: '0.6rem', md: '0.75rem' },
-                fontWeight: 600
-              }}
-            >
-              {socketConnected ? 'Connected' : 'Connecting...'}
-            </Typography>
-          </Box>
-          
-          {/* Progress Bar */}
-          <Box sx={{ mb: { xs: 0, md: 2 } }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
-              <Typography 
-                variant="caption" 
-                sx={{ 
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: { xs: 0.5, md: 2 } }}>
+              <Avatar
+                sx={{
+                  bgcolor: 'var(--primary-color)',
+                  mr: { xs: 0.5, md: 2 },
+                  width: { xs: 24, sm: 36, md: 40 },
+                  height: { xs: 24, sm: 36, md: 40 },
+                  fontSize: { xs: '0.8rem', md: '1rem' }
+                }}
+              >
+                <MockInterviewIcon sx={{ fontSize: { xs: '0.9rem', md: '1.2rem' } }} />
+              </Avatar>
+              <Typography
+                variant="h6"
+                sx={{
                   color: 'var(--text-primary)',
-                  fontSize: { xs: '0.6rem', md: '0.75rem' },
-                  fontWeight: 600
+                  fontWeight: 600,
+                  fontSize: { xs: '0.8rem', sm: '1.1rem', md: '1.25rem' }
                 }}
               >
-                Progress
-              </Typography>
-              <Typography 
-                variant="caption" 
-                sx={{ 
-                  color: 'var(--primary-color)',
-                  fontSize: { xs: '0.6rem', md: '0.75rem' },
-                  fontWeight: 600
-                }}
-              >
-                {currentQuestion}/{totalQuestions}
+                Mock Interview
               </Typography>
             </Box>
-            <LinearProgress
-              variant="determinate"
-              value={(currentQuestion / totalQuestions) * 100}
+
+            <Typography
+              variant="body2"
               sx={{
-                height: { xs: 3, md: 8 },
-                borderRadius: 3,
-                backgroundColor: 'rgba(0, 191, 165, 0.1)',
-                '& .MuiLinearProgress-bar': {
-                  backgroundColor: 'var(--primary-color)',
-                  borderRadius: 3,
-                }
-              }}
-            />
-          </Box>
-          
-          {/* Mode Display */}
-          <Box sx={{ mt: { xs: 1, md: 2 } }}>
-            <Paper
-              sx={{
-                p: 2,
-                backgroundColor: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(0, 191, 165, 0.2)',
-                borderRadius: 2,
+                color: 'var(--text-secondary)',
+                mb: { xs: 0.5, md: 2 },
+                lineHeight: 1.4,
+                fontSize: { xs: '0.65rem', md: '0.875rem' }
               }}
             >
-              <Box sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
-                justifyContent: 'center'
-              }}>
+              Status: {isInterviewActive ? 'Interview in Progress' : 'Ready to Start'}
+            </Typography>
+
+            {/* Connection Status */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: { xs: 0.5, md: 1 } }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  backgroundColor: socketConnected ? '#4caf50' : '#f44336',
+                  animation: socketConnected ? 'pulse 2s infinite' : 'none',
+                  '@keyframes pulse': {
+                    '0%': { opacity: 1 },
+                    '50%': { opacity: 0.5 },
+                    '100%': { opacity: 1 }
+                  }
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  color: socketConnected ? '#4caf50' : '#f44336',
+                  fontSize: { xs: '0.6rem', md: '0.75rem' },
+                  fontWeight: 600
+                }}
+              >
+                {socketConnected ? 'Connected' : 'Connecting...'}
+              </Typography>
+            </Box>
+
+            {/* Progress Bar */}
+            <Box sx={{ mb: { xs: 0, md: 2 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.25 }}>
                 <Typography
-                  variant="body2"
+                  variant="caption"
                   sx={{
-                    color: 'var(--text-secondary)',
-                    fontSize: { xs: '0.8rem', md: '0.875rem' },
-                    fontWeight: 500,
+                    color: 'var(--text-primary)',
+                    fontSize: { xs: '0.6rem', md: '0.75rem' },
+                    fontWeight: 600
                   }}
                 >
-                  Mode:
+                  Progress
                 </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {interviewMode === 'Guided Mode' ? (
-                    <SchoolIcon sx={{ fontSize: 18, color: '#00bfa5' }} />
-                  ) : (
-                    <WhatshotIcon sx={{ fontSize: 18, color: '#ff6b35' }} />
-                  )}
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: 'var(--primary-color)',
+                    fontSize: { xs: '0.6rem', md: '0.75rem' },
+                    fontWeight: 600
+                  }}
+                >
+                  {currentQuestion}/{totalQuestions}
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={(currentQuestion / totalQuestions) * 100}
+                sx={{
+                  height: { xs: 3, md: 8 },
+                  borderRadius: 3,
+                  backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: 'var(--primary-color)',
+                    borderRadius: 3,
+                  }
+                }}
+              />
+            </Box>
+
+            {/* Mode Display */}
+            <Box sx={{ mt: { xs: 1, md: 2 } }}>
+              <Paper
+                sx={{
+                  p: 2,
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid rgba(0, 191, 165, 0.2)',
+                  borderRadius: 2,
+                }}
+              >
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  justifyContent: 'center'
+                }}>
                   <Typography
                     variant="body2"
                     sx={{
-                      color: 'var(--text-primary)',
+                      color: 'var(--text-secondary)',
                       fontSize: { xs: '0.8rem', md: '0.875rem' },
-                      fontWeight: 600,
+                      fontWeight: 500,
                     }}
                   >
-                    {interviewMode}
+                    Mode:
                   </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {interviewMode === 'Guided Mode' ? (
+                      <SchoolIcon sx={{ fontSize: 18, color: '#00bfa5' }} />
+                    ) : (
+                      <WhatshotIcon sx={{ fontSize: 18, color: '#ff6b35' }} />
+                    )}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'var(--text-primary)',
+                        fontSize: { xs: '0.8rem', md: '0.875rem' },
+                        fontWeight: 600,
+                      }}
+                    >
+                      {interviewMode}
+                    </Typography>
+                  </Box>
                 </Box>
-              </Box>
-            </Paper>
-          </Box>
-          
-        </Paper>
+              </Paper>
+            </Box>
 
-        {/* Camera View Box */}
-        <Paper 
-          elevation={3}
-          sx={{ 
-            flex: { xs: '1', md: '1' },
-            backgroundColor: 'var(--darker-bg)',
-            border: '1px solid rgba(0, 191, 165, 0.2)',
-            borderRadius: 2,
-            overflow: 'hidden',
-            position: 'relative',
-            height: { xs: 'auto', sm: 'auto', md: 'auto' },
-            minHeight: { xs: '160px', sm: '180px', md: 'auto' }
-          }}
-        >
-          <Box sx={{ p: { xs: 0.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)' }}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: 'var(--text-primary)',
-                fontWeight: 600,
-                fontSize: { xs: '0.8rem', md: '1.25rem' }
-              }}
-            >
-              Camera View
-            </Typography>
-          </Box>
-          
-          <Box sx={{ 
-            position: 'relative', 
-            height: { xs: 'calc(100% - 30px)', md: 'calc(100% - 60px)' },
-            backgroundColor: '#000',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {isCameraOn ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
-                }}
-              />
-            ) : (
-              <Box sx={{ 
-                textAlign: 'center',
-                color: 'var(--text-secondary)'
-              }}>
-                <VideocamOffIcon sx={{ fontSize: { xs: 16, md: 48 }, mb: { xs: 0, md: 1 } }} />
-                <Typography variant="body2" sx={{ fontSize: { xs: '0.6rem', md: '0.875rem' } }}>
-                  Camera is off
-                </Typography>
-              </Box>
-            )}
-            
-            <IconButton
-              onClick={toggleCamera}
-              size="small"
-              sx={{
-                position: 'absolute',
-                bottom: { xs: 2, md: 10 },
-                right: { xs: 2, md: 10 },
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                color: isCameraOn ? 'var(--primary-color)' : 'var(--text-secondary)',
-                border: `1px solid ${isCameraOn ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'}`,
-                backdropFilter: 'blur(10px)',
-                width: { xs: 20, md: 'auto' },
-                height: { xs: 20, md: 'auto' },
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  transform: 'scale(1.05)'
-                },
-                transition: 'all 0.3s ease'
-              }}
-            >
-              {isCameraOn ? <VideocamIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} /> : <VideocamOffIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} />}
-            </IconButton>
+          </Paper>
 
-            <IconButton
-              onClick={toggleMic}
-              size="small"
-              sx={{
-                position: 'absolute',
-                bottom: { xs: 2, md: 10 },
-                right: { xs: 24, md: 70 },
-                backgroundColor: 'rgba(0, 0, 0, 0.7)',
-                color: isMicOn ? 'var(--primary-color)' : 'var(--text-secondary)',
-                border: `1px solid ${isListening ? 'var(--primary-color)' : isMicOn ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'}`,
-                backdropFilter: 'blur(10px)',
-                animation: isListening ? 'micPulse 1.5s ease-in-out infinite' : 'none',
-                width: { xs: 20, md: 'auto' },
-                height: { xs: 20, md: 'auto' },
-                '&:hover': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  transform: 'scale(1.05)'
-                },
-                transition: 'all 0.3s ease',
-                '@keyframes micPulse': {
-                  '0%, 100%': { 
-                    boxShadow: '0 0 0 0 rgba(0, 191, 165, 0.4)',
-                    transform: 'scale(1)'
-                  },
-                  '50%': { 
-                    boxShadow: '0 0 0 8px rgba(0, 191, 165, 0)',
-                    transform: 'scale(1.1)'
-                  }
-                }
-              }}
-            >
-              {isMicOn ? <MicIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} /> : <MicOffIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} />}
-            </IconButton>
-          </Box>
-        </Paper>
-      </Box>
-
-      {/* Right Side - Chat Area */}
-      <Box sx={{ 
-        flex: { xs: '1', md: 1 }, 
-        width: { xs: '100%', md: 'auto' },
-        height: { xs: 'auto', md: '100%' },
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: { xs: 1, sm: 1, md: 2 },
-        minHeight: { xs: '0', md: 'auto' },
-        overflow: 'hidden'
-      }}>
-        
-        {/* Chat Box */}
-        <Paper 
-          elevation={3}
-          sx={{ 
-            backgroundColor: 'var(--darker-bg)',
-            border: '1px solid rgba(0, 191, 165, 0.2)',
-            borderRadius: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            flex: 1,
-            height: { 
-              xs: 'calc(100vh - 320px)',
-              sm: 'calc(100vh - 400px)',
-              md: 'calc(100vh - 150px)' 
-            },
-            minHeight: { xs: '150px', md: 'auto' }
-          }}
-        >
-          {/* Chat Header */}
-          <Box sx={{ p: { xs: 1.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
-              <Typography 
-                variant="h6" 
-                sx={{ 
+          {/* Camera View Box */}
+          <Paper
+            elevation={3}
+            sx={{
+              flex: { xs: '1', md: '1' },
+              backgroundColor: 'var(--darker-bg)',
+              border: '1px solid rgba(0, 191, 165, 0.2)',
+              borderRadius: 2,
+              overflow: 'hidden',
+              position: 'relative',
+              height: { xs: 'auto', sm: 'auto', md: 'auto' },
+              minHeight: { xs: '160px', sm: '180px', md: 'auto' }
+            }}
+          >
+            <Box sx={{ p: { xs: 0.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)' }}>
+              <Typography
+                variant="h6"
+                sx={{
                   color: 'var(--text-primary)',
                   fontWeight: 600,
-                  fontSize: { xs: '1rem', md: '1.25rem' }
+                  fontSize: { xs: '0.8rem', md: '1.25rem' }
                 }}
               >
-                AI Chat
+                Camera View
               </Typography>
-              
-              <Tooltip 
-                open={isTooltipOpen}
-                onClose={() => setIsTooltipOpen(false)}
-                onOpen={() => setIsTooltipOpen(true)}
-                disableFocusListener={isMobileView}
-                disableHoverListener={isMobileView}
-                disableTouchListener={!isMobileView}
-                title={
-                  <Box sx={{ p: 0.5 }}>
-                    <Typography variant="subtitle2" sx={{ 
-                      fontWeight: 700, 
-                      mb: 1.5, 
-                      color: '#00e5ff',
-                      textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
-                      fontSize: { xs: '0.9rem', md: '1rem' }
-                    }}>
-                      📋 Important Instructions:
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      mb: 1, 
-                      color: '#ffffff',
-                      fontWeight: 500,
-                      lineHeight: 1.6,
-                      fontSize: { xs: '0.8rem', md: '0.9rem' }
-                    }}>
-                      • Tab switching is monitored - after 3 tab switches, your interview will end automatically
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      mb: 1, 
-                      color: '#ffffff',
-                      fontWeight: 500,
-                      lineHeight: 1.6,
-                      fontSize: { xs: '0.8rem', md: '0.9rem' }
-                    }}>
-                      • Your interview analysis will be available in the dashboard after completion
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      mb: 1, 
-                      color: '#ffffff',
-                      fontWeight: 500,
-                      lineHeight: 1.6,
-                      fontSize: { xs: '0.8rem', md: '0.9rem' }
-                    }}>
-                      • To submit your answer: Click the submit button or press Enter
-                    </Typography>
-                    <Typography variant="body2" sx={{ 
-                      color: '#ffffff',
-                      fontWeight: 500,
-                      lineHeight: 1.6,
-                      fontSize: { xs: '0.8rem', md: '0.9rem' }
-                    }}>
-                      • For new line in your response: Press Shift + Enter
-                    </Typography>
-                  {interviewMode === 'Guided Mode' && (
-                      <>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: 'var(--primary-color)',
-                            mb: 1,
-                            fontSize: { xs: '0.9rem', md: '1rem' },
-                            mt: 1
-                          }}
-                        >
-                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span> For question explanation type <code>//explanation</code>
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: 'var(--primary-color)',
-                            mb: 1,
-                            fontSize: { xs: '0.9rem', md: '1rem' }
-                          }}
-                        >
-                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span> After explanation, to get next question type <code>//yes</code>
-                        </Typography>
-                      </>
-                    )}
-                  </Box>
-                }
-                placement="bottom-start"
-                arrow
+            </Box>
+
+            <Box sx={{
+              position: 'relative',
+              height: { xs: 'calc(100% - 30px)', md: 'calc(100% - 60px)' },
+              backgroundColor: '#000',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {isCameraOn ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+              ) : (
+                <Box sx={{
+                  textAlign: 'center',
+                  color: 'var(--text-secondary)'
+                }}>
+                  <VideocamOffIcon sx={{ fontSize: { xs: 16, md: 48 }, mb: { xs: 0, md: 1 } }} />
+                  <Typography variant="body2" sx={{ fontSize: { xs: '0.6rem', md: '0.875rem' } }}>
+                    Camera is off
+                  </Typography>
+                </Box>
+              )}
+
+              <IconButton
+                onClick={toggleCamera}
+                size="small"
                 sx={{
-                  '& .MuiTooltip-tooltip': {
-                    background: '#05131C',
-                    border: '1px solid rgba(0, 191, 165, 0.4)',
-                    borderRadius: '16px',
-                    boxShadow: '0 12px 40px rgba(0, 191, 165, 0.25), 0 4px 16px rgba(0, 0, 0, 0.3)',
-                    maxWidth: { xs: '400px', md: '600px' },
-                    zIndex: 10000,
-                    color: '#ffffff',
-                    padding: { xs: '12px 16px', md: '16px 20px' },
-                    fontSize: { xs: '0.8rem', md: '0.9rem' },
-                    filter: 'none !important',
-                    isolation: 'isolate'
+                  position: 'absolute',
+                  bottom: { xs: 2, md: 10 },
+                  right: { xs: 2, md: 10 },
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: isCameraOn ? 'var(--primary-color)' : 'var(--text-secondary)',
+                  border: `1px solid ${isCameraOn ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'}`,
+                  backdropFilter: 'blur(10px)',
+                  width: { xs: 20, md: 'auto' },
+                  height: { xs: 20, md: 'auto' },
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    transform: 'scale(1.05)'
                   },
-                  '& .MuiTooltip-arrow': {
-                    color: '#05131C',
-                    zIndex: 10000,
-                    filter: 'none !important',
-                    '&::before': {
-                      border: '1px solid rgba(0, 191, 165, 0.4)',
-                      background: '#05131C'
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {isCameraOn ? <VideocamIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} /> : <VideocamOffIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} />}
+              </IconButton>
+
+              <IconButton
+                onClick={toggleMic}
+                size="small"
+                sx={{
+                  position: 'absolute',
+                  bottom: { xs: 2, md: 10 },
+                  right: { xs: 24, md: 70 },
+                  backgroundColor: 'rgba(0, 0, 0, 0.7)',
+                  color: isMicOn ? 'var(--primary-color)' : 'var(--text-secondary)',
+                  border: `1px solid ${isListening ? 'var(--primary-color)' : isMicOn ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.2)'}`,
+                  backdropFilter: 'blur(10px)',
+                  animation: isListening ? 'micPulse 1.5s ease-in-out infinite' : 'none',
+                  width: { xs: 20, md: 'auto' },
+                  height: { xs: 20, md: 'auto' },
+                  '&:hover': {
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    transform: 'scale(1.05)'
+                  },
+                  transition: 'all 0.3s ease',
+                  '@keyframes micPulse': {
+                    '0%, 100%': {
+                      boxShadow: '0 0 0 0 rgba(0, 191, 165, 0.4)',
+                      transform: 'scale(1)'
+                    },
+                    '50%': {
+                      boxShadow: '0 0 0 8px rgba(0, 191, 165, 0)',
+                      transform: 'scale(1.1)'
                     }
-                  },
-                  '& .MuiTooltip-popper': {
-                    zIndex: 10000,
-                    filter: 'none !important',
-                    isolation: 'isolate'
                   }
                 }}
               >
-                <IconButton 
-                  size="small"
-                  data-tooltip-trigger
-                  onClick={isMobileView ? () => setIsTooltipOpen(!isTooltipOpen) : undefined}
-                  onMouseEnter={!isMobileView ? () => setIsTooltipOpen(true) : undefined}
-                  onMouseLeave={!isMobileView ? () => setIsTooltipOpen(false) : undefined}
-                  sx={{ 
-                    color: 'rgba(0, 191, 165, 0.7)',
-                    '&:hover': { 
-                      color: 'var(--primary-color)',
-                      backgroundColor: 'rgba(0, 191, 165, 0.1)',
-                      transform: 'scale(1.1)'
-                    },
-                    transition: 'all 0.2s ease-in-out'
+                {isMicOn ? <MicIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} /> : <MicOffIcon sx={{ fontSize: { xs: '0.8rem', md: '1.5rem' } }} />}
+              </IconButton>
+            </Box>
+          </Paper>
+        </Box>
+
+        {/* Right Side - Chat Area */}
+        <Box sx={{
+          flex: { xs: '1', md: 1 },
+          width: { xs: '100%', md: 'auto' },
+          height: { xs: 'auto', md: '100%' },
+          display: 'flex',
+          flexDirection: 'column',
+          gap: { xs: 1, sm: 1, md: 2 },
+          minHeight: { xs: '0', md: 'auto' },
+          overflow: 'hidden'
+        }}>
+
+          {/* Chat Box */}
+          <Paper
+            elevation={3}
+            sx={{
+              backgroundColor: 'var(--darker-bg)',
+              border: '1px solid rgba(0, 191, 165, 0.2)',
+              borderRadius: 2,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+              flex: 1,
+              height: {
+                xs: 'calc(100vh - 320px)',
+                sm: 'calc(100vh - 400px)',
+                md: 'calc(100vh - 150px)'
+              },
+              minHeight: { xs: '150px', md: 'auto' }
+            }}
+          >
+            {/* Chat Header */}
+            <Box sx={{ p: { xs: 1.5, md: 2 }, borderBottom: '1px solid rgba(0, 191, 165, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: { xs: '1rem', md: '1.25rem' }
                   }}
                 >
-                  <InfoIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-            
-            {/* Voice Animation */}
-            {isListening && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Box sx={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 0.3,
-                  padding: '8px 12px',
-                  backgroundColor: 'rgba(0, 191, 165, 0.1)',
-                  borderRadius: '20px',
-                  border: '1px solid rgba(0, 191, 165, 0.3)'
-                }}>
-                  {[0, 1, 2, 3, 4].map((bar) => (
-                    <Box
-                      key={bar}
-                      sx={{
-                        width: { xs: 3, md: 4 },
-                        backgroundColor: 'var(--primary-color)',
-                        borderRadius: '2px',
-                        transformOrigin: 'bottom',
-                        animation: `voiceWave 1.2s ease-in-out infinite`,
-                        animationDelay: `${bar * 0.1}s`,
-                        height: { xs: '16px', md: '20px' },
-                        '@keyframes voiceWave': {
-                          '0%, 100%': { 
-                            transform: 'scaleY(0.3)',
-                            opacity: 0.4
-                          },
-                          '50%': { 
-                            transform: 'scaleY(1)',
-                            opacity: 1
+                  AI Chat
+                </Typography>
+
+                <Tooltip
+                  open={isTooltipOpen}
+                  onClose={() => setIsTooltipOpen(false)}
+                  onOpen={() => setIsTooltipOpen(true)}
+                  disableFocusListener={isMobileView}
+                  disableHoverListener={isMobileView}
+                  disableTouchListener={!isMobileView}
+                  title={
+                    <Box sx={{ p: 0.5 }}>
+                      <Typography variant="subtitle2" sx={{
+                        fontWeight: 700,
+                        mb: 1.5,
+                        color: '#00e5ff',
+                        textShadow: '0 0 10px rgba(0, 229, 255, 0.3)',
+                        fontSize: { xs: '0.9rem', md: '1rem' }
+                      }}>
+                        📋 Important Instructions:
+                      </Typography>
+                      <Typography variant="body2" sx={{
+                        mb: 1,
+                        color: '#ffffff',
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                        fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      }}>
+                        • Tab switching is monitored - after 3 tab switches, your interview will end automatically
+                      </Typography>
+                      <Typography variant="body2" sx={{
+                        mb: 1,
+                        color: '#ffffff',
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                        fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      }}>
+                        • Your interview analysis will be available in the dashboard after completion
+                      </Typography>
+                      <Typography variant="body2" sx={{
+                        mb: 1,
+                        color: '#ffffff',
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                        fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      }}>
+                        • To submit your answer: Click the submit button or press Enter
+                      </Typography>
+                      <Typography variant="body2" sx={{
+                        color: '#ffffff',
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                        fontSize: { xs: '0.8rem', md: '0.9rem' }
+                      }}>
+                        • For new line in your response: Press Shift + Enter
+                      </Typography>
+                      {interviewMode === 'Guided Mode' && (
+                        <>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'var(--primary-color)',
+                              mb: 1,
+                              fontSize: { xs: '0.9rem', md: '1rem' },
+                              mt: 1
+                            }}
+                          >
+                            <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span> For question explanation type <code>//explanation</code>
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'var(--primary-color)',
+                              mb: 1,
+                              fontSize: { xs: '0.9rem', md: '1rem' }
+                            }}
+                          >
+                            <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span> After explanation, to get next question type <code>//yes</code>
+                          </Typography>
+                        </>
+                      )}
+                    </Box>
+                  }
+                  placement="bottom-start"
+                  arrow
+                  sx={{
+                    '& .MuiTooltip-tooltip': {
+                      background: '#05131C',
+                      border: '1px solid rgba(0, 191, 165, 0.4)',
+                      borderRadius: '16px',
+                      boxShadow: '0 12px 40px rgba(0, 191, 165, 0.25), 0 4px 16px rgba(0, 0, 0, 0.3)',
+                      maxWidth: { xs: '400px', md: '600px' },
+                      zIndex: 10000,
+                      color: '#ffffff',
+                      padding: { xs: '12px 16px', md: '16px 20px' },
+                      fontSize: { xs: '0.8rem', md: '0.9rem' },
+                      filter: 'none !important',
+                      isolation: 'isolate'
+                    },
+                    '& .MuiTooltip-arrow': {
+                      color: '#05131C',
+                      zIndex: 10000,
+                      filter: 'none !important',
+                      '&::before': {
+                        border: '1px solid rgba(0, 191, 165, 0.4)',
+                        background: '#05131C'
+                      }
+                    },
+                    '& .MuiTooltip-popper': {
+                      zIndex: 10000,
+                      filter: 'none !important',
+                      isolation: 'isolate'
+                    }
+                  }}
+                >
+                  <IconButton
+                    size="small"
+                    data-tooltip-trigger
+                    onClick={isMobileView ? () => setIsTooltipOpen(!isTooltipOpen) : undefined}
+                    onMouseEnter={!isMobileView ? () => setIsTooltipOpen(true) : undefined}
+                    onMouseLeave={!isMobileView ? () => setIsTooltipOpen(false) : undefined}
+                    sx={{
+                      color: 'rgba(0, 191, 165, 0.7)',
+                      '&:hover': {
+                        color: 'var(--primary-color)',
+                        backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                        transform: 'scale(1.1)'
+                      },
+                      transition: 'all 0.2s ease-in-out'
+                    }}
+                  >
+                    <InfoIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+
+              {/* Voice Animation */}
+              {isListening && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.3,
+                    padding: '8px 12px',
+                    backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(0, 191, 165, 0.3)'
+                  }}>
+                    {[0, 1, 2, 3, 4].map((bar) => (
+                      <Box
+                        key={bar}
+                        sx={{
+                          width: { xs: 3, md: 4 },
+                          backgroundColor: 'var(--primary-color)',
+                          borderRadius: '2px',
+                          transformOrigin: 'bottom',
+                          animation: `voiceWave 1.2s ease-in-out infinite`,
+                          animationDelay: `${bar * 0.1}s`,
+                          height: { xs: '16px', md: '20px' },
+                          '@keyframes voiceWave': {
+                            '0%, 100%': {
+                              transform: 'scaleY(0.3)',
+                              opacity: 0.4
+                            },
+                            '50%': {
+                              transform: 'scaleY(1)',
+                              opacity: 1
+                            }
                           }
+                        }}
+                      />
+                    ))}
+                    <MicIcon
+                      sx={{
+                        fontSize: { xs: '1rem', md: '1.2rem' },
+                        color: 'var(--primary-color)',
+                        ml: 0.5,
+                        animation: 'pulse 2s ease-in-out infinite',
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 0.6 },
+                          '50%': { opacity: 1 }
                         }
                       }}
                     />
-                  ))}
-                  <MicIcon 
-                    sx={{ 
-                      fontSize: { xs: '1rem', md: '1.2rem' },
-                      color: 'var(--primary-color)',
-                      ml: 0.5,
-                      animation: 'pulse 2s ease-in-out infinite',
-                      '@keyframes pulse': {
-                        '0%, 100%': { opacity: 0.6 },
-                        '50%': { opacity: 1 }
-                      }
-                    }} 
-                  />
-                </Box>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    color: 'var(--primary-color)',
-                    fontSize: { xs: '0.7rem', md: '0.75rem' },
-                    fontWeight: 600,
-                    textShadow: '0 0 8px rgba(0, 191, 165, 0.3)'
-                  }}
-                >
-                  Listening...
-                </Typography>
-              </Box>
-            )}
-          </Box>
-
-          {/* Messages Area */}
-          <Box 
-            sx={{ 
-              flex: 1,
-              p: { xs: 1, md: 2 },
-              overflowY: 'auto',
-              height: '100%',
-              minHeight: 0,
-              '&::-webkit-scrollbar': {
-                width: '6px',
-              },
-              '&::-webkit-scrollbar-track': {
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '3px',
-              },
-              '&::-webkit-scrollbar-thumb': {
-                background: 'var(--primary-color)',
-                borderRadius: '3px',
-              },
-              '&::-webkit-scrollbar-thumb:hover': {
-                background: 'var(--primary-dark)',
-              },
-            }}
-          >
-            {!isInterviewActive && (
-              <Box 
-                sx={{ 
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  height: '100%',
-                  textAlign: 'center',
-                  gap: 3
-                }}
-              >
-                
-                <Paper
-                  sx={{
-                    p: { xs: 2, md: 3 },
-                    backgroundColor: 'rgba(0, 191, 165, 0.05)',
-                    border: '1px solid rgba(0, 191, 165, 0.2)',
-                    borderRadius: 2,
-                    maxWidth: '500px',
-                    width: '100%'
-                  }}
-                >
-                  <Typography 
-                    variant="h6" 
-                    sx={{ 
-                      color: 'var(--text-primary)',
-                      fontWeight: 600,
-                      mb: 2,
-                      fontSize: { xs: '1.1rem', md: '1.25rem' }
-                    }}
-                  >
-                    📋 Important Instructions
-                  </Typography>
-                  
-                  <Box sx={{ textAlign: 'left' }}>
-
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: 'var(--text-secondary)',
-                        mb: 1,
-                        fontSize: { xs: '0.9rem', md: '1rem' },
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1
-                      }}
-                    >
-                      <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
-                      Tab switching is monitored - after 3 tab switches, your interview will end automatically
-                    </Typography>
-                    
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: 'var(--text-secondary)',
-                        mb: 1,
-                        fontSize: { xs: '0.9rem', md: '1rem' },
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1
-                      }}
-                    >
-                      <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
-                      Your interview analysis will be available in the dashboard after completion
-                    </Typography>
-                    
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: 'var(--text-secondary)',
-                        mb: 1,
-                        fontSize: { xs: '0.9rem', md: '1rem' },
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1
-                      }}
-                    >
-                      <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
-                      To submit your answer: Click the submit button or press Enter
-                    </Typography>
-                    
-                    <Typography 
-                      variant="body2" 
-                      sx={{ 
-                        color: 'var(--text-secondary)',
-                        fontSize: { xs: '0.9rem', md: '1rem' },
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 1
-                      }}
-                    >
-                      <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
-                      For new line in your response: Press Shift + Enter
-                    </Typography>
-                  {interviewMode === 'Guided Mode' && (
-                      <>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: 'var(--primary-color)',
-                            mb: 1,
-                            fontSize: { xs: '0.9rem', md: '1rem' },
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 1,
-                            mt: 1
-                          }}
-                        >
-                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
-                          For question explanation type //explanation
-                        </Typography>
-                        <Typography 
-                          variant="body2" 
-                          sx={{ 
-                            color: 'var(--primary-color)',
-                            mb: 1,
-                            fontSize: { xs: '0.9rem', md: '1rem' },
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 1
-                          }}
-                        >
-                          <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
-                          After explanation, to get next question type //yes
-                        </Typography>
-                      </>
-                    )}
-                    
                   </Box>
-                </Paper>
-                
-              </Box>
-            )}
-
-            {isInterviewActive && messages.map((message) => {
-
-              if (message.sender === 'system' && message.modeChange) {
-                return (
-                  <Box 
-                    key={message.id}
-                    sx={{ 
-                      mb: { xs: 2, md: 3 },
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center'
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: 'var(--primary-color)',
+                      fontSize: { xs: '0.7rem', md: '0.75rem' },
+                      fontWeight: 600,
+                      textShadow: '0 0 8px rgba(0, 191, 165, 0.3)'
                     }}
                   >
-                    <Paper
+                    Listening...
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            {/* Messages Area */}
+            <Box
+              sx={{
+                flex: 1,
+                p: { xs: 1, md: 2 },
+                overflowY: 'auto',
+                height: '100%',
+                minHeight: 0,
+                '&::-webkit-scrollbar': {
+                  width: '6px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '3px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: 'var(--primary-color)',
+                  borderRadius: '3px',
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  background: 'var(--primary-dark)',
+                },
+              }}
+            >
+              {!isInterviewActive && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    textAlign: 'center',
+                    gap: 3
+                  }}
+                >
+
+                  <Paper
+                    sx={{
+                      p: { xs: 2, md: 3 },
+                      backgroundColor: 'rgba(0, 191, 165, 0.05)',
+                      border: '1px solid rgba(0, 191, 165, 0.2)',
+                      borderRadius: 2,
+                      maxWidth: '500px',
+                      width: '100%'
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
                       sx={{
-                        px: { xs: 3, md: 4 },
-                        py: { xs: 1.5, md: 2 },
-                        backgroundColor: 'rgba(0, 191, 165, 0.1)',
-                        border: '1px solid rgba(0, 191, 165, 0.3)',
-                        borderRadius: 3,
-                        textAlign: 'center',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5
+                        color: 'var(--text-primary)',
+                        fontWeight: 600,
+                        mb: 2,
+                        fontSize: { xs: '1.1rem', md: '1.25rem' }
                       }}
                     >
-                      {message.newMode === 'Guided Mode' ? (
-                        <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
-                      ) : (
-                        <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
-                      )}
-                      <Typography 
-                        variant="body2" 
-                        sx={{ 
+                      📋 Important Instructions
+                    </Typography>
+
+                    <Box sx={{ textAlign: 'left' }}>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--text-secondary)',
+                          mb: 1,
                           fontSize: { xs: '0.9rem', md: '1rem' },
-                          fontWeight: 600,
-                          color: 'var(--primary-color)'
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 1
                         }}
                       >
+                        <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                        Tab switching is monitored - after 3 tab switches, your interview will end automatically
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--text-secondary)',
+                          mb: 1,
+                          fontSize: { xs: '0.9rem', md: '1rem' },
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 1
+                        }}
+                      >
+                        <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                        Your interview analysis will be available in the dashboard after completion
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--text-secondary)',
+                          mb: 1,
+                          fontSize: { xs: '0.9rem', md: '1rem' },
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 1
+                        }}
+                      >
+                        <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                        To submit your answer: Click the submit button or press Enter
+                      </Typography>
+
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'var(--text-secondary)',
+                          fontSize: { xs: '0.9rem', md: '1rem' },
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 1
+                        }}
+                      >
+                        <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                        For new line in your response: Press Shift + Enter
+                      </Typography>
+                      {interviewMode === 'Guided Mode' && (
+                        <>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'var(--primary-color)',
+                              mb: 1,
+                              fontSize: { xs: '0.9rem', md: '1rem' },
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 1,
+                              mt: 1
+                            }}
+                          >
+                            <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                            For question explanation type //explanation
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: 'var(--primary-color)',
+                              mb: 1,
+                              fontSize: { xs: '0.9rem', md: '1rem' },
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 1
+                            }}
+                          >
+                            <span style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>•</span>
+                            After explanation, to get next question type //yes
+                          </Typography>
+                        </>
+                      )}
+
+                    </Box>
+                  </Paper>
+
+                </Box>
+              )}
+
+              {isInterviewActive && messages.map((message) => {
+
+                if (message.sender === 'system' && message.modeChange) {
+                  return (
+                    <Box
+                      key={message.id}
+                      sx={{
+                        mb: { xs: 2, md: 3 },
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}
+                    >
+                      <Paper
+                        sx={{
+                          px: { xs: 3, md: 4 },
+                          py: { xs: 1.5, md: 2 },
+                          backgroundColor: 'rgba(0, 191, 165, 0.1)',
+                          border: '1px solid rgba(0, 191, 165, 0.3)',
+                          borderRadius: 3,
+                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1.5
+                        }}
+                      >
+                        {message.newMode === 'Guided Mode' ? (
+                          <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                        ) : (
+                          <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
+                        )}
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontSize: { xs: '0.9rem', md: '1rem' },
+                            fontWeight: 600,
+                            color: 'var(--primary-color)'
+                          }}
+                        >
+                          {message.text}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            opacity: 0.7,
+                            fontSize: { xs: '0.65rem', md: '0.7rem' },
+                            color: 'var(--text-secondary)',
+                            ml: 1
+                          }}
+                        >
+                          {message.timestamp.toLocaleTimeString()}
+                        </Typography>
+                      </Paper>
+                    </Box>
+                  );
+                }
+
+                return (
+                  <Box
+                    key={message.id}
+                    sx={{
+                      mb: { xs: 1.5, md: 2 },
+                      display: 'flex',
+                      justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
+                      alignItems: 'flex-start',
+                      gap: 1
+                    }}
+                  >
+                    {message.sender === 'ai' && (
+                      <Avatar
+                        sx={{
+                          bgcolor: 'var(--primary-color)',
+                          width: { xs: 28, md: 32 },
+                          height: { xs: 28, md: 32 },
+                          fontSize: { xs: '0.8rem', md: '0.9rem' }
+                        }}
+                      >
+                        <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
+                      </Avatar>
+                    )}
+
+                    <Paper
+                      sx={{
+                        p: { xs: 1.5, md: 2 },
+                        maxWidth: { xs: '85%', sm: '80%', md: '75%' },
+                        backgroundColor: message.sender === 'user'
+                          ? 'var(--primary-color)'
+                          : 'rgba(255, 255, 255, 0.05)',
+                        color: message.sender === 'user'
+                          ? 'white'
+                          : 'var(--text-primary)',
+                        borderRadius: 2
+                      }}
+                    >
+                      <Typography variant="body2" sx={{
+                        fontSize: { xs: '0.85rem', md: '0.875rem' },
+                        color: message.sender === 'user' ? 'white' : 'inherit'
+                      }}>
                         {message.text}
                       </Typography>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
+                      <Typography
+                        variant="caption"
+                        sx={{
                           opacity: 0.7,
                           fontSize: { xs: '0.65rem', md: '0.7rem' },
-                          color: 'var(--text-secondary)',
-                          ml: 1
+                          mt: 0.5,
+                          display: 'block',
+                          color: message.sender === 'user' ? 'white' : 'inherit'
                         }}
                       >
                         {message.timestamp.toLocaleTimeString()}
                       </Typography>
                     </Paper>
+
+                    {message.sender === 'user' && (
+                      <Avatar
+                        sx={{
+                          bgcolor: 'var(--primary-color)',
+                          width: { xs: 28, md: 32 },
+                          height: { xs: 28, md: 32 },
+                          fontSize: { xs: '0.8rem', md: '0.9rem' }
+                        }}
+                      >
+                        <UserIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
+                      </Avatar>
+                    )}
                   </Box>
                 );
-              }
+              })}
 
-              return (
-                <Box 
-                  key={message.id}
-                  sx={{ 
-                    mb: { xs: 1.5, md: 2 },
-                    display: 'flex',
-                    justifyContent: message.sender === 'user' ? 'flex-end' : 'flex-start',
-                    alignItems: 'flex-start',
-                    gap: 1
-                  }}
-                >
-                  {message.sender === 'ai' && (
-                    <Avatar 
-                      sx={{ 
-                        bgcolor: 'var(--primary-color)', 
-                        width: { xs: 28, md: 32 },
-                        height: { xs: 28, md: 32 },
-                        fontSize: { xs: '0.8rem', md: '0.9rem' }
-                      }}
-                    >
-                      <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
-                    </Avatar>
-                  )}
-                  
+              {isInterviewActive && isLoading && (
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 1, mb: { xs: 1.5, md: 2 } }}>
+                  <Avatar
+                    sx={{
+                      bgcolor: 'var(--primary-color)',
+                      width: { xs: 28, md: 32 },
+                      height: { xs: 28, md: 32 },
+                      fontSize: { xs: '0.8rem', md: '0.9rem' }
+                    }}
+                  >
+                    <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
+                  </Avatar>
+
                   <Paper
                     sx={{
                       p: { xs: 1.5, md: 2 },
-                      maxWidth: { xs: '85%', sm: '80%', md: '75%' },
-                      backgroundColor: message.sender === 'user' 
-                        ? 'var(--primary-color)' 
-                        : 'rgba(255, 255, 255, 0.05)',
-                      color: message.sender === 'user' 
-                        ? 'white' 
-                        : 'var(--text-primary)',
-                      borderRadius: 2
+                      backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                      borderRadius: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
                     }}
                   >
-                    <Typography variant="body2" sx={{ 
-                      fontSize: { xs: '0.85rem', md: '0.875rem' },
-                      color: message.sender === 'user' ? 'white' : 'inherit'
+                    <CircularProgress size={16} sx={{ color: 'var(--primary-color)' }} />
+                    <Typography variant="body2" sx={{
+                      color: 'var(--text-secondary)',
+                      fontSize: { xs: '0.85rem', md: '0.875rem' }
                     }}>
-                      {message.text}
-                    </Typography>
-                    <Typography 
-                      variant="caption" 
-                      sx={{ 
-                        opacity: 0.7,
-                        fontSize: { xs: '0.65rem', md: '0.7rem' },
-                        mt: 0.5,
-                        display: 'block',
-                        color: message.sender === 'user' ? 'white' : 'inherit'
-                      }}
-                    >
-                      {message.timestamp.toLocaleTimeString()}
+                      AI is typing...
                     </Typography>
                   </Paper>
-
-                  {message.sender === 'user' && (
-                    <Avatar 
-                      sx={{ 
-                        bgcolor: 'var(--primary-color)', 
-                        width: { xs: 28, md: 32 },
-                        height: { xs: 28, md: 32 },
-                        fontSize: { xs: '0.8rem', md: '0.9rem' }
-                      }}
-                    >
-                      <UserIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
-                    </Avatar>
-                  )}
                 </Box>
-              );
-            })}
-            
-            {isInterviewActive && isLoading && (
-              <Box sx={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', gap: 1, mb: { xs: 1.5, md: 2 } }}>
-                <Avatar 
-                  sx={{ 
-                    bgcolor: 'var(--primary-color)', 
-                    width: { xs: 28, md: 32 },
-                    height: { xs: 28, md: 32 },
-                    fontSize: { xs: '0.8rem', md: '0.9rem' }
-                  }}
-                >
-                  <AIIcon sx={{ fontSize: { xs: '1rem', md: '1.1rem' } }} />
-                </Avatar>
-                
-                <Paper
+              )}
+
+              <div ref={chatEndRef} />
+            </Box>
+
+            {/* Input Area - Only show when interview is active */}
+            {isInterviewActive ? (
+              <Box
+                sx={{
+                  p: { xs: 1, md: 1 },
+                  borderTop: '1px solid rgba(0, 191, 165, 0.2)',
+                  display: 'flex',
+                  gap: { xs: 0.5, md: 1 }
+                }}
+              >
+                <TextField
+                  fullWidth
+                  multiline
+                  maxRows={window.innerWidth < 600 ? 2 : 3}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  onPaste={handleInputPaste}
+                  onCopy={handleInputCopy}
+                  onCut={handleInputCut}
+                  placeholder={isLoading ? "AI is responding..." : "Type your message..."}
+                  variant="outlined"
+                  size={window.innerWidth < 600 ? 'small' : 'medium'}
+                  disabled={isLoading}
                   sx={{
-                    p: { xs: 1.5, md: 2 },
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1
+                    '& .MuiOutlinedInput-root': {
+                      backgroundColor: isLoading ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)',
+                      color: 'var(--text-primary)',
+                      fontSize: { xs: '0.85rem', md: '1rem' },
+                      '& fieldset': {
+                        borderColor: isLoading ? 'rgba(0, 191, 165, 0.1)' : 'rgba(0, 191, 165, 0.3)',
+                      },
+                      '&:hover fieldset': {
+                        borderColor: isLoading ? 'rgba(0, 191, 165, 0.1)' : 'rgba(0, 191, 165, 0.5)',
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: isLoading ? 'rgba(0, 191, 165, 0.2)' : 'var(--primary-color)',
+                      },
+                      '&.Mui-disabled': {
+                        opacity: 0.6,
+                      },
+                    },
+                    '& .MuiInputBase-input::placeholder': {
+                      color: 'var(--text-secondary)',
+                      opacity: 1,
+                    },
+                  }}
+                />
+                <Button
+                  variant="contained"
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  size={window.innerWidth < 600 ? 'small' : 'medium'}
+                  sx={{
+                    backgroundColor: 'var(--primary-color)',
+                    minWidth: { xs: '40px', md: 'auto' },
+                    px: { xs: 1, md: 2 },
+                    '&:hover': {
+                      backgroundColor: 'var(--primary-dark)',
+                    },
+                    '&:disabled': {
+                      backgroundColor: 'rgba(0, 191, 165, 0.3)',
+                    }
                   }}
                 >
-                  <CircularProgress size={16} sx={{ color: 'var(--primary-color)' }} />
-                  <Typography variant="body2" sx={{ 
+                  <SendIcon sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }} />
+                </Button>
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  p: { xs: 2, md: 3 },
+                  borderTop: '1px solid rgba(0, 191, 165, 0.2)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(0, 191, 165, 0.05)'
+                }}
+              >
+                <Typography
+                  variant="body1"
+                  sx={{
                     color: 'var(--text-secondary)',
-                    fontSize: { xs: '0.85rem', md: '0.875rem' }
-                  }}>
-                    AI is typing...
-                  </Typography>
-                </Paper>
+                    textAlign: 'center',
+                    fontSize: { xs: '0.9rem', md: '1rem' },
+                    fontStyle: 'italic'
+                  }}
+                >
+                  Click on the "Start Interview" button to begin interview
+                </Typography>
               </Box>
             )}
-            
-            <div ref={chatEndRef} />
-          </Box>
+          </Paper>
 
-          {/* Input Area - Only show when interview is active */}
-          {isInterviewActive ? (
-            <Box 
-              sx={{ 
-                p: { xs: 1, md: 1 },
-                borderTop: '1px solid rgba(0, 191, 165, 0.2)',
-                display: 'flex',
-                gap: { xs: 0.5, md: 1 }
-              }}
-            >
-              <TextField
-                fullWidth
-                multiline
-                maxRows={window.innerWidth < 600 ? 2 : 3}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                onPaste={handleInputPaste}
-                onCopy={handleInputCopy}
-                onCut={handleInputCut}
-                placeholder={isLoading ? "AI is responding..." : "Type your message..."}
-                variant="outlined"
-                size={window.innerWidth < 600 ? 'small' : 'medium'}
-                disabled={isLoading}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    backgroundColor: isLoading ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.05)',
-                    color: 'var(--text-primary)',
-                    fontSize: { xs: '0.85rem', md: '1rem' },
-                    '& fieldset': {
-                      borderColor: isLoading ? 'rgba(0, 191, 165, 0.1)' : 'rgba(0, 191, 165, 0.3)',
-                    },
-                    '&:hover fieldset': {
-                      borderColor: isLoading ? 'rgba(0, 191, 165, 0.1)' : 'rgba(0, 191, 165, 0.5)',
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: isLoading ? 'rgba(0, 191, 165, 0.2)' : 'var(--primary-color)',
-                    },
-                    '&.Mui-disabled': {
-                      opacity: 0.6,
-                    },
-                  },
-                  '& .MuiInputBase-input::placeholder': {
-                    color: 'var(--text-secondary)',
-                    opacity: 1,
-                  },
-                }}
-              />
-              <Button
-                variant="contained"
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isLoading}
-                size={window.innerWidth < 600 ? 'small' : 'medium'}
-                sx={{
-                  backgroundColor: 'var(--primary-color)',
-                  minWidth: { xs: '40px', md: 'auto' },
-                  px: { xs: 1, md: 2 },
-                  '&:hover': {
-                    backgroundColor: 'var(--primary-dark)',
-                  },
-                  '&:disabled': {
-                    backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                  }
-                }}
-              >
-                <SendIcon sx={{ fontSize: { xs: '1.2rem', md: '1.5rem' } }} />
-              </Button>
-            </Box>
-          ) : (
-            <Box 
-              sx={{ 
-                p: { xs: 2, md: 3 },
-                borderTop: '1px solid rgba(0, 191, 165, 0.2)',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                backgroundColor: 'rgba(0, 191, 165, 0.05)'
-              }}
-            >
-              <Typography 
-                variant="body1"
-                sx={{ 
-                  color: 'var(--text-secondary)',
-                  textAlign: 'center',
-                  fontSize: { xs: '0.9rem', md: '1rem' },
-                  fontStyle: 'italic'
-                }}
-              >
-                Click on the "Start Interview" button to begin interview
-              </Typography>
-            </Box>
-          )}
-        </Paper>
-
-        {/* Start/End Interview Button */}
-        <Box sx={{ flexShrink: 0 }}>
-          <Button
-            variant="contained"
-            size={window.innerWidth < 600 ? 'medium' : 'large'}
-            onClick={toggleInterview}
-            disabled={isStartingInterview || (!socketConnected && !isInterviewActive)}
-            startIcon={
-              isStartingInterview ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : isInterviewActive ? (
-                <StopIcon />
-              ) : (
-                <PlayIcon />
-              )
-            }
-            sx={{
-              backgroundColor: isStartingInterview 
-                ? '#ff9800' 
-                : isInterviewActive 
-                  ? '#ff6b6b'
-                  : 'var(--primary-color)',
-              color: 'white',
-              py: { xs: 1.5, md: 2 },
-              px: { xs: 2, md: 3 },
-              fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
-              fontWeight: 600,
-              '&:hover': {
-                backgroundColor: isStartingInterview 
-                  ? '#17171bff'
-                  : isInterviewActive 
-                    ? '#e55a5a' 
-                    : 'var(--primary-dark)', 
-              },
-              '&.Mui-disabled': {
-                backgroundColor: isStartingInterview 
-                  ? '#37374A'
-                  : 'rgba(255, 255, 255, 0.12)',
+          {/* Start/End Interview Button */}
+          <Box sx={{ flexShrink: 0 }}>
+            <Button
+              variant="contained"
+              size={window.innerWidth < 600 ? 'medium' : 'large'}
+              onClick={toggleInterview}
+              disabled={isStartingInterview || (!socketConnected && !isInterviewActive)}
+              startIcon={
+                isStartingInterview ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : isInterviewActive ? (
+                  <StopIcon />
+                ) : (
+                  <PlayIcon />
+                )
+              }
+              sx={{
+                backgroundColor: isStartingInterview
+                  ? '#ff9800'
+                  : isInterviewActive
+                    ? '#ff6b6b'
+                    : 'var(--primary-color)',
                 color: 'white',
-                opacity: isStartingInterview ? 0.9 : 0.3,
-              },
-              borderRadius: 2,
-              textTransform: 'none',
-              width: '100%',
-              minHeight: { xs: '48px', md: 'auto' }
-            }}
-          >
-            {isStartingInterview ? (
-              'Starting Interview...'
-            ) : isInterviewActive ? (
-              'End Interview'
-            ) : !socketConnected ? (
-              'Connecting to Server...'
-            ) : (
-              'Start Interview'
-            )}
-          </Button>
+                py: { xs: 1.5, md: 2 },
+                px: { xs: 2, md: 3 },
+                fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
+                fontWeight: 600,
+                '&:hover': {
+                  backgroundColor: isStartingInterview
+                    ? '#17171bff'
+                    : isInterviewActive
+                      ? '#e55a5a'
+                      : 'var(--primary-dark)',
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: isStartingInterview
+                    ? '#37374A'
+                    : 'rgba(255, 255, 255, 0.12)',
+                  color: 'white',
+                  opacity: isStartingInterview ? 0.9 : 0.3,
+                },
+                borderRadius: 2,
+                textTransform: 'none',
+                width: '100%',
+                minHeight: { xs: '48px', md: 'auto' }
+              }}
+            >
+              {isStartingInterview ? (
+                'Starting Interview...'
+              ) : isInterviewActive ? (
+                'End Interview'
+              ) : !socketConnected ? (
+                'Connecting to Server...'
+              ) : (
+                'Start Interview'
+              )}
+            </Button>
+          </Box>
         </Box>
       </Box>
-    </Box>
     </>
   );
 };
