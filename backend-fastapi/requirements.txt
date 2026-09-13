@@ -82,3 +82,5 @@ xxhash==4.0.1
 zstandard==0.25.0
 edge-tts==7.2.8
 fakeredis==2.27.0
+mongomock==4.3.0
+mongomock-motor==0.0.36
