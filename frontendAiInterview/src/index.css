@@ -7,82 +7,51 @@ html, body, #root {
   padding: 0;
 }
 
-/* Animated teal glow for dashboard */
+/* No glowing dashboard */
 .dashboard-glow {
-  pointer-events: none;
-  background: radial-gradient(circle at 60% 40%, #00bfa5 0%, #1de9b6 30%, transparent 70%);
-  filter: blur(120px);
-  opacity: 0.7;
-  animation: dashboardGlowAnim 8s ease-in-out infinite alternate;
+  display: none;
 }
-
-@keyframes dashboardGlowAnim {
-  0% {
-    transform: scale(1) translate(0px, 0px);
-    opacity: 0.7;
-    background: radial-gradient(circle at 60% 40%, #00bfa5 0%, #1de9b6 30%, transparent 70%);
-  }
-  50% {
-    transform: scale(1.07) translate(30px, 20px);
-    opacity: 1;
-    background: radial-gradient(circle at 50% 60%, #1de9b6 0%, #00bfa5 40%, transparent 70%);
-  }
-  100% {
-    transform: scale(1) translate(0px, 0px);
-    opacity: 0.7;
-    background: radial-gradient(circle at 60% 40%, #00bfa5 0%, #1de9b6 30%, transparent 70%);
-  }
-}
-
-/* Optionally, smooth out the background transitions */
-.hero-background,
-.features-background {
-  transition: background 0.7s ease;
-}
-
 
 /* Custom Toast Styles */
 .Toastify__toast {
-  border-radius: 8px !important;
-  font-family: 'Roboto', sans-serif !important;
+  border-radius: 0 !important;
+  font-family: 'Courier New', Courier, monospace !important;
   font-size: 14px !important;
   padding: 12px 16px !important;
-  box-shadow: 0 4px 20px rgba(29, 233, 182, 0.2) !important;
+  box-shadow: 4px 4px 0 #111 !important;
+  border: 1px solid #111 !important;
+  background: #FFF !important;
+  color: #111 !important;
 }
 
 .Toastify__toast--success {
-  background: #1a1f2e !important;
-  border-left: 4px solid #1de9b6 !important;
+  border-left: 8px solid #0044CC !important;
 }
 
 .Toastify__toast--error {
-  background: #1a1f2e !important;
-  border-left: 4px solid #ff5252 !important;
+  border-left: 8px solid #E63946 !important;
 }
 
 .Toastify__progress-bar {
-  height: 3px !important;
-  background: linear-gradient(to right, #1de9b6, #00bfa5) !important;
+  height: 2px !important;
+  background: #111 !important;
 }
 
 .Toastify__close-button {
-  color: #ffffff !important;
-  opacity: 0.7 !important;
-}
-
-.Toastify__close-button:hover {
+  color: #111 !important;
   opacity: 1 !important;
 }
 
-/* Glass-morphic card styling */
+/* Editorial Card styling (replacing glass-morphic) */
 .glass-card {
   position: relative;
   z-index: 2;
-  padding: 24px;       /* roughly your xs:3, sm:5 */
+  padding: 24px;
   width: 100%;
   max-width: 380px;
-  border-radius: 12px; /* half of the sx borderRadius:3*/
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 0 60px rgba(29, 233, 182, 0.4);
-  border: 1px solid rgba(29, 233, 182, 0.5);
+  border-radius: 0;
+  background: #FFFFFF;
+  box-shadow: 4px 4px 0 #111;
+  border: 1px solid #111;
+  color: #111;
 }

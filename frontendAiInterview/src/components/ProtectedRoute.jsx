@@ -14,23 +14,54 @@ const ProtectedRoute = () => {
           justifyContent: 'center',
           alignItems: 'center',
           minHeight: '100vh',
-          background: 'linear-gradient(-45deg, #0a0f1a, #1a1a2e, #16213e, #0d1b2a)',
-          color: '#ffffff',
+          backgroundColor: '#ECECE9',
+          color: '#111111',
+          p: 3,
         }}
       >
-        <CircularProgress 
-          size={60} 
-          sx={{ 
-            color: '#00bfa5',
-            mb: 2 
-          }} 
-        />
-        <Typography variant="h6" sx={{ opacity: 0.8 }}>
-          Verifying authentication...
-        </Typography>
-        <Typography variant="body2" sx={{ opacity: 0.6, mt: 1 }}>
-          Checking with server for security
-        </Typography>
+        <Box
+          sx={{
+            p: 4,
+            backgroundColor: '#FFFFFF',
+            border: '2px solid #111111',
+            boxShadow: '6px 6px 0 #111111',
+            textAlign: 'center',
+            maxWidth: 380,
+            width: '100%',
+          }}
+        >
+          <CircularProgress 
+            size={40} 
+            thickness={4}
+            sx={{ 
+              color: '#0044CC',
+              mb: 2.5 
+            }} 
+          />
+          <Typography
+            sx={{
+              fontFamily: '"Courier New", Courier, monospace',
+              fontWeight: 800,
+              fontSize: '0.8rem',
+              color: '#0044CC',
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              mb: 1,
+            }}
+          >
+            [ AUTHENTICATION VERIFICATION ]
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              fontFamily: '"Courier New", Courier, monospace',
+              color: '#555555',
+              fontSize: '0.85rem',
+            }}
+          >
+            Validating session tokens and access permissions...
+          </Typography>
+        </Box>
       </Box>
     );
   }

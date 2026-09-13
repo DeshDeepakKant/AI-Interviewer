@@ -132,7 +132,6 @@ dist
 
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
-.gitignore
 
 # yarn v2
 .yarn/cache
@@ -145,14 +144,72 @@ dist
 # Serverless Webpack directories
 .webpack/
 
-# Optional stylelint cache
-
 # SvelteKit build / generate output
 .svelte-kit
 
-# End of https://www.toptal.com/developers/gitignore/api/node
-.env
+# Frontend build output
+dist/
+dist-ssr/
 
-# Backend uploads directory (temporary files)
-backendAiInterview/uploads/*
-!backendAiInterview/uploads/.gitkeep
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment and secrets
+.env
+.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+!.env.example
+!.env.template
+
+# AI Assistant & Agent Files (Do NOT push to GitHub)
+.agents/
+skills-lock.json
+open_conversations.sh
+.antigravity/
+.antigravity*
+*.antigravity*
+.cloud/
+.cloud*
+*.cloud*
+.ai/
+.ai*
+*.ai*
+a.md
+*a.md
+PROJECT_CONTEXT.md
+*PROJECT_CONTEXT.md
+*project*context*.md
+*Project*Context*.md
+
+# Backend uploads and temporary files
+uploads/*
+!uploads/.gitkeep
+temp/*
+!temp/.gitkeep

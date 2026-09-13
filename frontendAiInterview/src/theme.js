@@ -1,25 +1,40 @@
-// theme.js
 import { createTheme } from '@mui/material';
 
 const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#6c63ff',
-      light: '#9c95ff',
-      dark: '#3a36cb',
+      main: '#0044CC',
+      light: '#3366FF',
+      dark: '#002299',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#ff6b6b',
-      light: '#ff9e9e',
-      dark: '#c73e3e',
+      main: '#111111',
+      light: '#333333',
+      dark: '#000000',
       contrastText: '#ffffff',
     },
     background: {
-      default: '#0a0f1a',
-      paper: '#1a1f2e',
+      default: '#ECECE9',
+      paper: '#FFFFFF',
     },
+    text: {
+      primary: '#111111',
+      secondary: '#555555',
+    }
+  },
+  typography: {
+    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+    h1: { fontWeight: 800, letterSpacing: '-0.04em' },
+    h2: { fontWeight: 800, letterSpacing: '-0.04em' },
+    h3: { fontWeight: 700, letterSpacing: '-0.02em' },
+    h4: { fontWeight: 700, letterSpacing: '-0.02em' },
+    h5: { fontWeight: 700, letterSpacing: '-0.02em' },
+    h6: { fontWeight: 700 },
+    body1: { fontFamily: '"Courier New", Courier, monospace' },
+    body2: { fontFamily: '"Courier New", Courier, monospace' },
+    button: { fontFamily: '"Helvetica Neue", Arial, sans-serif', fontWeight: 700, textTransform: 'uppercase' },
   },
   components: {
     MuiCssBaseline: {
@@ -27,25 +42,44 @@ const theme = createTheme({
         body: {
           position: 'relative',
           minHeight: '100vh',
-          backgroundColor: '#0a0f1a',
-          overflow: 'hidden',
-          '&::before': {
-            content: '""',
-            position: 'absolute',
-            top: '10%',
-            left: '10%',
-            width: '60vw',
-            height: '60vw',
-            background: 'radial-gradient(circle at center, #00bfa5, transparent 70%)',
-            filter: 'blur(200px)',
-            zIndex: 1,
-          },
+          backgroundColor: '#ECECE9',
+          color: '#111111',
         },
         '#root': {
           height: '100%',
         },
       },
     },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          border: '1px solid #111',
+          boxShadow: '4px 4px 0 #111',
+          '&:hover': {
+            boxShadow: '2px 2px 0 #111',
+            transform: 'translate(2px, 2px)',
+          }
+        },
+        contained: {
+          backgroundColor: '#111',
+          color: '#FFF',
+          '&:hover': {
+            backgroundColor: '#0044CC',
+            borderColor: '#0044CC',
+          }
+        }
+      }
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
+          border: '1px solid #111',
+          boxShadow: '4px 4px 0 #111',
+        }
+      }
+    }
   },
 });
 

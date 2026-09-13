@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link as RouterLink, useNavigate, useLocation } from "react-router";
+import { Link as RouterLink, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   AppBar,
@@ -37,6 +37,10 @@ import AnnouncementIcon from '@mui/icons-material/Announcement';
 import LogoutIcon from "@mui/icons-material/Logout";
 import PersonIcon from "@mui/icons-material/Person";
 import SettingsIcon from "@mui/icons-material/Settings";
+import LoginIcon from "@mui/icons-material/Login";
+import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
+import SchoolIcon from "@mui/icons-material/School";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
@@ -63,11 +67,19 @@ const scaleUp = {
   tap: { scale: 0.98 }
 };
 
-const navItems = [
-  { name: "Mock Interview", path: "/mockInterviewWay" },
-  { name: "Features", path: "/features" },
-  { name: "Pricing", path: "/pricing" },
-];
+const getNavItems = (role) => {
+  if (role === "employer" || role === "admin") {
+    return [
+      { name: "Candidate Pipeline", path: "/employer", tab: "candidates" },
+      { name: "Schedule Interview", path: "/employer?tab=invite", tab: "invite" },
+      { name: "Job Campaigns", path: "/employer?tab=jobs", tab: "jobs" },
+    ];
+  }
+  return [
+    { name: "Mock Interview", path: "/mockInterviewWay" },
+    { name: "Features", path: "/features" },
+  ];
+};
 
 const Header = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -78,19 +90,28 @@ const Header = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const { user, isLoading, isAuthenticated, logout: authLogout } = useAuth();
+  const navItems = getNavItems(user?.role);
 
   const navigate = useNavigate();
   const location = useLocation();
   const open = Boolean(anchorEl);
   const profileMenuOpen = Boolean(profileAnchorEl);
   
-  const isActive = (path) => {
-
-    if (path === '/') {
-      return location.pathname === path;
+  const isActive = (item) => {
+    const itemPath = typeof item === 'string' ? item : item.path;
+    const currentTab = new URLSearchParams(location.search).get("tab");
+    
+    if (location.pathname === "/employer") {
+      if (item?.tab === "invite") return currentTab === "invite";
+      if (item?.tab === "jobs") return currentTab === "jobs";
+      if (item?.tab === "candidates" || itemPath === "/employer") return !currentTab || currentTab === "candidates";
     }
 
-    return location.pathname.startsWith(path);
+    if (itemPath === '/') {
+      return location.pathname === '/';
+    }
+
+    return location.pathname.startsWith(itemPath);
   };
 
   const handleMenu = (e) => setAnchorEl(e.currentTarget);
@@ -226,17 +247,11 @@ const Header = () => {
     <AppBar
       position="fixed"
       sx={{
-        background: "rgba(16, 20, 30, 0.98)",
-        backdropFilter: "blur(10px)",
-        color: "#fff",
+        background: "#FFFFFF",
+        color: "#111111",
         zIndex: 1200,
-        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
-        transition: "all 0.3s ease",
-        '&:hover': {
-          background: "rgba(20, 25, 35, 0.98)",
-          boxShadow: "0 6px 35px rgba(0, 0, 0, 0.15)"
-        }
+        boxShadow: "none",
+        borderBottom: "2px solid #111111",
       }}
     >
       <Container maxWidth="lg">
@@ -247,12 +262,13 @@ const Header = () => {
             to="/"
             sx={{
               flexGrow: 1,
-              fontWeight: 700,
-              background: "linear-gradient(90deg, #00bfa5, #00acc1)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
+              fontWeight: 800,
+              fontFamily: '"Helvetica Neue", Arial, sans-serif',
+              color: "#111111",
+              textTransform: "uppercase",
+              letterSpacing: "-0.02em",
               textDecoration: "none",
-              "&:hover": { opacity: 0.9 },
+              "&:hover": { color: "#0044CC" },
             }}
           >
             AI Interviewer
@@ -263,42 +279,48 @@ const Header = () => {
             sx={{
               display: { xs: "none", md: "flex" },
               alignItems: "center",
-              gap: 1,
+              gap: 1.5,
             }}
           >
             {navItems.map((item) => {
-              const active = isActive(item.path);
+              const active = isActive(item);
               return (
                 <Button
                   key={item.name}
-                  component={RouterLink}
-                  to={item.path}
+                  onClick={() => navigate(item.path)}
                   sx={{
-                    color: active ? "#00e5c9" : "rgba(255,255,255,0.9)",
-                    textTransform: "none",
-                    fontSize: "0.95rem",
-                    fontWeight: active ? 600 : 500,
-                    px: 2,
-                    position: 'relative',
-                    '&:after': {
+                    color: active ? "#0044CC" : "#111111",
+                    textTransform: "uppercase",
+                    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                    fontSize: "0.85rem",
+                    fontWeight: active ? 800 : 600,
+                    letterSpacing: "0.03em",
+                    px: 1.8,
+                    py: 1,
+                    position: "relative",
+                    borderRadius: 0,
+                    border: "none",
+                    boxShadow: "none",
+                    backgroundColor: active ? "rgba(0, 68, 204, 0.05)" : "transparent",
+                    "&:after": {
                       content: '""',
-                      position: 'absolute',
+                      position: "absolute",
                       bottom: 0,
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                      width: active ? '60%' : '0%',
-                      height: '2px',
-                      background: '#00e5c9',
-                      borderRadius: '2px',
-                      transition: 'all 0.3s ease',
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: active ? "80%" : "0%",
+                      height: "3px",
+                      background: "#0044CC",
+                      transition: "all 0.2s ease",
                     },
-                    '&:hover': {
-                      color: "#00e5c9",
-                      background: "rgba(0,191,165,0.1)",
-                      borderRadius: 1,
-                      '&:after': {
-                        width: '60%',
-                      }
+                    "&:hover": {
+                      color: "#0044CC",
+                      background: "rgba(0, 68, 204, 0.08)",
+                      boxShadow: "none",
+                      transform: "none",
+                      "&:after": {
+                        width: "80%",
+                      },
                     },
                   }}
                 >
@@ -308,32 +330,44 @@ const Header = () => {
             })}
 
             {isAuthenticated ? (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, ml: 1 }}>
                 {/* Notifications */}
                 <Tooltip title="Notifications" arrow>
-                  <motion.div whileHover="hover" whileTap="tap" variants={scaleUp}>
-                    <IconButton
-                      onClick={handleNotificationOpen}
+                  <IconButton
+                    onClick={handleNotificationOpen}
+                    sx={{
+                      borderRadius: 0,
+                      border: "1px solid #111111",
+                      boxShadow: notificationAnchorEl ? "1px 1px 0 #111111" : "2px 2px 0 #111111",
+                      backgroundColor: notificationAnchorEl ? "#ECECE9" : "#FFFFFF",
+                      color: "#111111",
+                      p: 1,
+                      transform: notificationAnchorEl ? "translate(1px, 1px)" : "none",
+                      transition: "all 0.1s ease",
+                      "&:hover": { 
+                        backgroundColor: "#ECECE9",
+                        color: "#0044CC",
+                      }
+                    }}
+                  >
+                    <Badge 
+                      badgeContent={unreadCount > 0 ? unreadCount : null} 
                       sx={{
-                        color: notificationAnchorEl ? "#00e5c9" : "rgba(255,255,255,0.8)",
-                        position: "relative",
-                        "&:hover": { 
-                          color: "#00e5c9",
-                          background: "rgba(0,191,165,0.1)" 
-                        }
+                        "& .MuiBadge-badge": {
+                          borderRadius: 0,
+                          backgroundColor: "#0044CC",
+                          color: "#FFFFFF",
+                          fontFamily: '"Courier New", Courier, monospace',
+                          fontWeight: 700,
+                          fontSize: "0.68rem",
+                          height: 18,
+                          minWidth: 18,
+                        },
                       }}
                     >
-                      <Badge 
-                        badgeContent={unreadCount > 0 ? unreadCount : null} 
-                        color="error" 
-                        variant={unreadCount > 0 ? "standard" : "dot"}
-                        overlap="circular"
-                        max={9}
-                      >
-                        {unreadCount > 0 ? <NotificationsActiveIcon /> : <NotificationsIcon />}
-                      </Badge>
-                    </IconButton>
-                  </motion.div>
+                      {unreadCount > 0 ? <NotificationsActiveIcon sx={{ fontSize: 20, color: "#0044CC" }} /> : <NotificationsIcon sx={{ fontSize: 20 }} />}
+                    </Badge>
+                  </IconButton>
                 </Tooltip>
                 
                 {/* Notifications Dropdown */}
@@ -349,27 +383,14 @@ const Header = () => {
                       width: 360,
                       maxHeight: 480,
                       overflow: 'hidden',
-                      borderRadius: 2,
-                      boxShadow: '0 12px 32px rgba(0,0,0,0.2)',
-                      background: 'rgba(22, 28, 42, 0.98)',
-                      backdropFilter: 'blur(20px)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: 0,
+                      boxShadow: '6px 6px 0 #111111',
+                      backgroundColor: '#FFFFFF',
+                      border: '2px solid #111111',
+                      color: '#111111',
+                      p: 0,
                       '& .MuiMenu-list': {
                         p: 0,
-                      },
-                      '&:before': {
-                        content: '""',
-                        display: 'block',
-                        position: 'absolute',
-                        top: -6,
-                        right: 20,
-                        width: 12,
-                        height: 12,
-                        bgcolor: 'rgba(22, 28, 42, 0.98)',
-                        borderTop: '1px solid rgba(255,255,255,0.1)',
-                        borderLeft: '1px solid rgba(255,255,255,0.1)',
-                        transform: 'translateY(-50%) rotate(45deg)',
-                        zIndex: 0,
                       },
                     },
                   }}
@@ -378,232 +399,186 @@ const Header = () => {
                   TransitionComponent={Fade}
                   transitionDuration={150}
                 >
-                  <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#fff' }}>
-                        Notifications
-                      </Typography>
-                      {unreadCount > 0 && (
-                        <Chip 
-                          label={`${unreadCount} new`} 
-                          size="small" 
-                          color="primary"
-                          sx={{ height: 20, fontSize: '0.65rem', fontWeight: 600 }}
-                        />
-                      )}
-                    </Box>
+                  <Box sx={{ p: 2, backgroundColor: '#111111', color: '#FFFFFF', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography sx={{ fontFamily: '"Courier New", Courier, monospace', fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      [ NOTIFICATION FEED ]
+                    </Typography>
+                    {unreadCount > 0 && (
+                      <Box sx={{ px: 1, py: 0.2, backgroundColor: '#0044CC', color: '#FFFFFF', fontFamily: '"Courier New", Courier, monospace', fontSize: '0.75rem', fontWeight: 700 }}>
+                        {unreadCount} NEW
+                      </Box>
+                    )}
                   </Box>
                   
-                  <Box sx={{ overflowY: 'auto', maxHeight: 380 }}>
+                  <Box sx={{ overflowY: 'auto', maxHeight: 360 }}>
                     {loadingNotifications ? (
                       <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                        <CircularProgress size={24} sx={{ color: '#00e5c9' }} />
+                        <CircularProgress size={24} sx={{ color: '#0044CC' }} />
                       </Box>
                     ) : notifications.length > 0 ? (
                       <List dense sx={{ p: 0 }}>
                         <AnimatePresence>
                           {notifications.map((notification) => (
-                            <motion.div
-                              key={notification.id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, height: 0, padding: 0, margin: 0, overflow: 'hidden' }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <ListItem 
-                                disablePadding
+                            <Box key={notification.id}>
+                              <ListItemButton 
                                 sx={{
-                                  bgcolor: !notification.read ? 'rgba(0, 191, 165, 0.05)' : 'transparent',
-                                  borderLeft: !notification.read ? '3px solid #00e5c9' : '3px solid transparent',
+                                  py: 1.5,
+                                  px: 2,
+                                  borderBottom: '1px solid #ECECE9',
+                                  backgroundColor: !notification.read ? '#F6F9FF' : '#FFFFFF',
+                                  borderLeft: !notification.read ? '4px solid #0044CC' : '4px solid transparent',
                                   '&:hover': {
-                                    bgcolor: 'rgba(255, 255, 255, 0.03)',
+                                    backgroundColor: '#ECECE9',
                                   },
                                 }}
                               >
-                                <ListItemButton sx={{ py: 1.5, px: 2 }}>
-                                  <ListItemAvatar sx={{ minWidth: 40, mr: 1 }}>
-                                    <Box
-                                      sx={{
-                                        width: 36,
-                                        height: 36,
-                                        borderRadius: '50%',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        bgcolor: 'rgba(0, 191, 165, 0.1)',
-                                        color: '#00e5c9',
-                                      }}
-                                    >
-                                      {notification.type === 'interview' && <EventAvailableIcon fontSize="small" />}
-                                      {notification.type === 'feedback' && <MarkEmailReadIcon fontSize="small" />}
-                                      {notification.type === 'announcement' && <AnnouncementIcon fontSize="small" />}
-                                    </Box>
-                                  </ListItemAvatar>
-                                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography 
-                                      variant="subtitle2" 
-                                      sx={{
-                                        fontWeight: 600,
-                                        color: '#fff',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis',
-                                        mb: 0.25,
-                                      }}
-                                    >
-                                      {notification.title}
-                                    </Typography>
-                                    <Typography 
-                                      variant="caption" 
-                                      sx={{
-                                        color: 'rgba(255, 255, 255, 0.7)',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        overflow: 'hidden',
-                                        fontSize: '0.75rem',
-                                        lineHeight: 1.3,
-                                      }}
-                                    >
-                                      {notification.message}
-                                    </Typography>
-                                    <Typography 
-                                      variant="caption" 
-                                      sx={{
-                                        display: 'block',
-                                        color: 'rgba(255, 255, 255, 0.4)',
-                                        fontSize: '0.65rem',
-                                        mt: 0.5,
-                                      }}
-                                    >
-                                      {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
-                                    </Typography>
+                                <ListItemAvatar sx={{ minWidth: 40, mr: 1 }}>
+                                  <Box
+                                    sx={{
+                                      width: 32,
+                                      height: 32,
+                                      borderRadius: 0,
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      backgroundColor: '#111111',
+                                      color: '#FFFFFF',
+                                    }}
+                                  >
+                                    {notification.type === 'interview' && <EventAvailableIcon fontSize="small" />}
+                                    {notification.type === 'feedback' && <MarkEmailReadIcon fontSize="small" />}
+                                    {notification.type === 'announcement' && <AnnouncementIcon fontSize="small" />}
                                   </Box>
-                                  {!notification.read && (
-                                    <Box 
-                                      sx={{
-                                        position: 'absolute',
-                                        top: 8,
-                                        right: 8,
-                                        width: 8,
-                                        height: 8,
-                                        borderRadius: '50%',
-                                        bgcolor: '#00e5c9',
-                                      }}
-                                    />
-                                  )}
-                                </ListItemButton>
-                              </ListItem>
-                              <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.05)' }} />
-                            </motion.div>
+                                </ListItemAvatar>
+                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                  <Typography 
+                                    variant="subtitle2" 
+                                    sx={{
+                                      fontWeight: 700,
+                                      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                                      color: '#111111',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      fontSize: '0.85rem',
+                                      mb: 0.25,
+                                    }}
+                                  >
+                                    {notification.title}
+                                  </Typography>
+                                  <Typography 
+                                    variant="body2" 
+                                    sx={{
+                                      color: '#555555',
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      fontSize: '0.78rem',
+                                      lineHeight: 1.3,
+                                    }}
+                                  >
+                                    {notification.message}
+                                  </Typography>
+                                  <Typography 
+                                    variant="caption" 
+                                    sx={{
+                                      display: 'block',
+                                      color: '#888888',
+                                      fontFamily: '"Courier New", Courier, monospace',
+                                      fontSize: '0.68rem',
+                                      mt: 0.5,
+                                    }}
+                                  >
+                                    {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
+                                  </Typography>
+                                </Box>
+                              </ListItemButton>
+                            </Box>
                           ))}
                         </AnimatePresence>
                       </List>
                     ) : (
                       <Box sx={{ p: 3, textAlign: 'center' }}>
-                        <NotificationsIcon sx={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.2)', mb: 1 }} />
-                        <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                          No notifications right now
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.4)', display: 'block', mt: 0.5 }}>
-                          We'll let you know when something new comes up
+                        <NotificationsIcon sx={{ fontSize: 36, color: '#999999', mb: 1 }} />
+                        <Typography variant="body2" sx={{ color: '#555555', fontFamily: '"Courier New", Courier, monospace', fontWeight: 600 }}>
+                          [ NO PENDING ALERTS ]
                         </Typography>
                       </Box>
                     )}
                   </Box>
-                  
-                  {notifications.length > 0 && (
-                    <Box sx={{ p: 1.5, borderTop: '1px solid rgba(255,255,255,0.05)', textAlign: 'center' }}>
-                      <Button 
-                        size="small" 
-                        sx={{ 
-                          color: '#00e5c9',
-                          textTransform: 'none',
-                          fontSize: '0.75rem',
-                          '&:hover': {
-                            bgcolor: 'rgba(0, 191, 165, 0.1)',
-                          },
-                        }}
-                      >
-                        View All Notifications
-                      </Button>
-                    </Box>
-                  )}
                 </Menu>
                 
                 {/* User Profile */}
-                <Tooltip title="Account settings" arrow>
-                  <motion.div 
-                    variants={scaleUp}
-                    whileHover="hover"
-                    whileTap="tap"
-                    style={{ display: 'flex', alignItems: 'center' }}
+                <Tooltip title="Account session" arrow>
+                  <Box 
+                    onClick={handleProfileMenuOpen}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.2,
+                      py: 0.6,
+                      px: 1.2,
+                      borderRadius: 0,
+                      border: '1px solid #111111',
+                      boxShadow: profileMenuOpen ? '1px 1px 0 #111111' : '3px 3px 0 #111111',
+                      backgroundColor: profileMenuOpen ? '#ECECE9' : '#FFFFFF',
+                      cursor: 'pointer',
+                      transform: profileMenuOpen ? 'translate(1px, 1px)' : 'none',
+                      transition: 'all 0.1s ease',
+                      '&:hover': {
+                        backgroundColor: '#ECECE9',
+                        borderColor: '#0044CC',
+                      }
+                    }}
                   >
-                    <Box 
-                      onClick={handleProfileMenuOpen}
+                    <Box
                       sx={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 0,
+                        backgroundColor: '#111111',
+                        color: '#FFFFFF',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 1,
-                        p: 0.5,
-                        pr: 1.5,
-                        borderRadius: 4,
-                        border: `1px solid ${profileMenuOpen ? 'rgba(0,191,165,0.3)' : 'rgba(255,255,255,0.05)'}`,
-                        background: profileMenuOpen ? 'rgba(0,191,165,0.1)' : 'transparent',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          background: 'rgba(0,191,165,0.15)',
-                          borderColor: 'rgba(0,191,165,0.5)'
-                        }
+                        justifyContent: 'center',
+                        fontFamily: '"Courier New", Courier, monospace',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
                       }}
                     >
-                      <Avatar
-                        sx={{
-                          width: 36,
-                          height: 36,
-                          bgcolor: "primary.main",
-                          background: "linear-gradient(135deg, #00bfa5 0%, #00acc1 100%)",
-                          fontWeight: 600,
-                          fontSize: "1rem",
-                          boxShadow: "0 4px 12px rgba(0,191,165,0.2)",
-                          border: "2px solid rgba(255,255,255,0.1)",
-                          transition: "all 0.3s ease",
+                      {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'U'}
+                    </Box>
+                    <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'left' }}>
+                      <Typography 
+                        sx={{ 
+                          fontWeight: 800,
+                          fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                          color: '#111111',
+                          lineHeight: 1.1,
+                          fontSize: '0.8rem',
+                          textTransform: 'uppercase',
                         }}
                       >
-                        {user?.fullName
-                          ? user.fullName.charAt(0).toUpperCase()
-                          : isLoading
-                            ? '...'
-                            : <AccountCircle />}
-                      </Avatar>
-                      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-                        <Typography 
-                          variant="subtitle2" 
-                          sx={{ 
-                            fontWeight: 600,
-                            color: "rgba(255,255,255,0.9)",
-                            lineHeight: 1.2,
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          {user?.fullName || (isLoading ? 'Loading...' : 'User')}
-                        </Typography>
-                        <Typography 
-                          variant="caption" 
-                          sx={{ 
-                            display: 'block', 
-                            color: "rgba(255,255,255,0.6)",
-                            fontSize: '0.7rem',
-                            lineHeight: 1.2
-                          }}
-                        >
-                          {user?.email || (isLoading ? 'Verifying...' : 'Premium Member')}
-                        </Typography>
-                      </Box>
+                        {user?.fullName || (isLoading ? 'Loading...' : 'User')}
+                      </Typography>
+                      <Typography 
+                        sx={{ 
+                          display: 'block', 
+                          color: '#0044CC',
+                          fontFamily: '"Courier New", Courier, monospace',
+                          fontWeight: 700,
+                          fontSize: '0.68rem',
+                          lineHeight: 1.1,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        [{user?.role || 'CANDIDATE'}]
+                      </Typography>
                     </Box>
-                  </motion.div>
+                  </Box>
                 </Tooltip>
+                
                 <Menu
                   anchorEl={profileAnchorEl}
                   open={profileMenuOpen}
@@ -612,41 +587,24 @@ const Header = () => {
                   PaperProps={{
                     elevation: 0,
                     sx: {
-                      minWidth: 220,
-                      overflow: "visible",
-                      filter: "drop-shadow(0 10px 25px rgba(0,0,0,0.2))",
+                      minWidth: 240,
+                      borderRadius: 0,
+                      boxShadow: '6px 6px 0 #111111',
+                      backgroundColor: '#FFFFFF',
+                      border: '2px solid #111111',
+                      color: '#111111',
+                      p: 0,
                       mt: 1.5,
-                      background: "rgba(22, 28, 42, 0.98)",
-                      backdropFilter: "blur(20px)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: '12px',
-                      py: 0.5,
-                      "& .MuiMenuItem-root": {
-                        px: 2,
-                        py: '10px',
-                        color: "rgba(255,255,255,0.8)",
-                        transition: 'all 0.2s ease',
+                      '& .MuiMenuItem-root': {
+                        fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                        fontSize: '0.85rem',
+                        fontWeight: 700,
+                        px: 2.5,
+                        py: 1.2,
                         '&:hover': {
-                          background: 'rgba(0, 191, 165, 0.1)',
-                          color: '#00e5c9',
-                          '& .MuiSvgIcon-root': {
-                            color: '#00e5c9',
-                          }
+                          backgroundColor: '#ECECE9',
+                          color: '#0044CC',
                         },
-                      },
-                      "&:before": {
-                        content: '""',
-                        display: "block",
-                        position: "absolute",
-                        top: -6,
-                        right: 20,
-                        width: 12,
-                        height: 12,
-                        bgcolor: "rgba(22, 28, 42, 0.98)",
-                        borderTop: "1px solid rgba(255,255,255,0.1)",
-                        borderLeft: "1px solid rgba(255,255,255,0.1)",
-                        transform: "translateY(-50%) rotate(45deg)",
-                        zIndex: 0,
                       },
                     },
                   }}
@@ -655,98 +613,125 @@ const Header = () => {
                   TransitionComponent={Fade}
                   transitionDuration={150}
                 >
-                  <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                    <Typography variant="subtitle2" sx={{ color: '#00e5c9', fontWeight: 600, fontSize: '0.9rem' }}>
-                      {user?.fullName || 'Welcome Back'}
+                  <Box sx={{ p: 2, backgroundColor: '#111111', color: '#FFFFFF' }}>
+                    <Typography sx={{ fontFamily: '"Courier New", Courier, monospace', fontSize: '0.7rem', color: '#66B2FF', fontWeight: 700, letterSpacing: '0.06em' }}>
+                      [ AUTHENTICATED SESSION ]
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)', display: 'block', fontSize: '0.75rem' }}>
-                      {user?.email || 'Premium Member'}
+                    <Typography sx={{ fontFamily: '"Helvetica Neue", Arial, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#FFFFFF', textTransform: 'uppercase', mt: 0.5 }}>
+                      {user?.fullName || 'Active User'}
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"Courier New", Courier, monospace', fontSize: '0.75rem', color: '#AAAAAA' }}>
+                      {user?.email || 'No email recorded'}
                     </Typography>
                   </Box>
                   
                   <MenuItem 
-                    component={motion.div}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
-                      <PersonIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText onClick={() => {
+                    onClick={() => {
                       handleProfileMenuClose();
-                      navigate("/dashboard");
-                    }}>My Profile</ListItemText>
+                      if (user?.role === "employer" || user?.role === "admin") {
+                        navigate("/employer");
+                      } else {
+                        navigate("/dashboard");
+                      }
+                    }}
+                    sx={{
+                      borderBottom: '1px solid #ECECE9',
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 34, color: 'inherit' }}>
+                      {user?.role === "employer" || user?.role === "admin" ? <BusinessCenterIcon fontSize="small" /> : <SchoolIcon fontSize="small" />}
+                    </ListItemIcon>
+                    <ListItemText primary={user?.role === "employer" || user?.role === "admin" ? "Employer Command Center" : "Candidate Dossier"} />
                   </MenuItem>
                   
-                  <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.05)' }} />
-                  
                   <MenuItem 
-                    component={motion.div}
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
                     onClick={handleLogout}
-                    sx={{ color: '#ff6b6b' }}
+                    sx={{ 
+                      color: '#D32F2F !important',
+                      '&:hover': {
+                        backgroundColor: '#FFF0F0 !important',
+                        color: '#B71C1C !important',
+                      },
+                    }}
                   >
-                    <ListItemIcon sx={{ color: 'inherit' }}>
+                    <ListItemIcon sx={{ minWidth: 34, color: '#D32F2F' }}>
                       <LogoutIcon fontSize="small" />
                     </ListItemIcon>
-                    <ListItemText>Logout</ListItemText>
+                    <ListItemText primary="Sign Out" />
                   </MenuItem>
                 </Menu>
               </Box>
             ) : (
-              <>
-              {isLoading ? (
-                <Box sx={{ display: 'flex', gap: 1, ml: 2 }}>
-                  <Box sx={{ width: 80, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
-                  <Box sx={{ width: 100, height: 36, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.1)' }} />
-                </Box>
-              ) : !isAuthenticated ? (
-                <>
-                  <Button
-                    component={RouterLink}
-                    to="/login"
-                    sx={{
-                      ml: 1,
-                      color: "rgba(255,255,255,0.9)",
-                      textTransform: "none",
-                      fontWeight: 500,
-                      "&:hover": {
-                        color: "#00e5c9",
-                        background: "rgba(0,191,165,0.15)",
-                        borderRadius: 1,
-                      },
-                    }}
-                  >
-                    Login
-                  </Button>
-                  <Button
-                    variant="contained"
-                    component={RouterLink}
-                    to="/login?tab=signup"
-                    sx={{
-                      ml: 2,
-                      background:
-                        "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                      "&:hover": {
-                        background:
-                          "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
-                      },
-                    }}
-                  >
-                    Sign Up
-                  </Button>
-                </>
-              ) : null}
-              </>
+              <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+                {isLoading ? (
+                  <Box sx={{ width: 100, height: 36, border: '1px solid #CCCCCC', bgcolor: '#F0F0F0' }} />
+                ) : !isAuthenticated ? (
+                  <>
+                    <Button
+                      onClick={() => navigate("/login")}
+                      startIcon={<LoginIcon sx={{ fontSize: '18px !important' }} />}
+                      sx={{
+                        borderRadius: 0,
+                        backgroundColor: "transparent",
+                        color: "#111111",
+                        border: "1px solid #111111",
+                        boxShadow: "2px 2px 0 #111111",
+                        py: 0.8,
+                        px: 2,
+                        fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                        letterSpacing: "0.04em",
+                        textTransform: "uppercase",
+                        transition: "all 0.1s ease",
+                        "&:hover": {
+                          backgroundColor: "#111111",
+                          color: "#FFFFFF",
+                          boxShadow: "1px 1px 0 #111111",
+                          transform: "translate(1px, 1px)",
+                        },
+                      }}
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      variant="contained"
+                      onClick={() => navigate("/login?tab=signup")}
+                      startIcon={<PersonAddIcon sx={{ fontSize: '18px !important' }} />}
+                      sx={{
+                        ml: 1.5,
+                        borderRadius: 0,
+                        backgroundColor: "#0044CC",
+                        color: "#FFFFFF",
+                        border: "1px solid #111111",
+                        boxShadow: "3px 3px 0 #111111",
+                        py: 0.8,
+                        px: 2.2,
+                        fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                        fontWeight: 800,
+                        fontSize: "0.85rem",
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        transition: "all 0.1s ease",
+                        "&:hover": {
+                          backgroundColor: "#003399",
+                          borderColor: "#111111",
+                          boxShadow: "1px 1px 0 #111111",
+                          transform: "translate(1px, 1px)",
+                        },
+                      }}
+                    >
+                      Sign Up
+                    </Button>
+                  </>
+                ) : null}
+              </Box>
             )}
           </Box>
 
           {/* Mobile Nav */}
           <Box sx={{ display: { xs: "flex", md: "none" } }}>
-            <IconButton edge="end" onClick={handleMenu} sx={{ color: "#e0e0e0" }}>
+            <IconButton edge="end" onClick={handleMenu} sx={{ color: "#111111" }}>
               <MenuIcon />
             </IconButton>
             <Menu
@@ -758,31 +743,39 @@ const Header = () => {
                 elevation: 0,
                 sx: {
                   mt: 1.5,
-                  minWidth: 200,
-                  borderRadius: 2,
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                  background: "rgba(10, 15, 26, 0.98)",
-                  backdropFilter: "blur(20px)",
+                  minWidth: 240,
+                  borderRadius: 0,
+                  border: "2px solid #111111",
+                  boxShadow: "4px 4px 0 #111111",
+                  backgroundColor: "#FFFFFF",
+                  color: "#111111",
+                  p: 0,
                 },
               }}
             >
               {navItems.map((item) => (
                 <MenuItem
                   key={item.name}
-                  component={RouterLink}
-                  to={item.path}
-                  onClick={handleClose}
+                  onClick={() => {
+                    handleClose();
+                    navigate(item.path);
+                  }}
                   sx={{
                     px: 3,
                     py: 1.5,
-                    minHeight: '48px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    color: isActive(item.path) ? "#00e5c9" : "#e0e0e0",
-                    fontWeight: isActive(item.path) ? 600 : 400,
-                    "&:hover": { 
-                      background: "rgba(0,191,165,0.1)", 
-                      color: "#00e5c9" 
+                    minHeight: "48px",
+                    display: "flex",
+                    alignItems: "center",
+                    color: isActive(item) ? "#0044CC" : "#111111",
+                    fontWeight: isActive(item) ? 800 : 600,
+                    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                    textTransform: "uppercase",
+                    fontSize: "0.85rem",
+                    letterSpacing: "0.03em",
+                    borderBottom: "1px solid #ECECE9",
+                    "&:hover": {
+                      background: "#ECECE9",
+                      color: "#0044CC",
                     },
                   }}
                 >
@@ -792,29 +785,34 @@ const Header = () => {
               
               {isAuthenticated ? (
                 <>
-                  <Divider sx={{ my: 0.5, bgcolor: 'rgba(255,255,255,0.1)' }} />
                   <MenuItem
                     onClick={() => {
                       handleClose();
-                      navigate("/dashboard");
+                      if (user?.role === "employer" || user?.role === "admin") {
+                        navigate("/employer");
+                      } else {
+                        navigate("/dashboard");
+                      }
                     }}
                     sx={{
                       px: 3,
                       py: 1.5,
-                      minHeight: '48px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: "#e0e0e0",
-                      "&:hover": { 
-                        background: "rgba(0,191,165,0.1)", 
-                        color: "#00e5c9" 
+                      minHeight: "48px",
+                      display: "flex",
+                      alignItems: "center",
+                      color: "#111111",
+                      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                      fontWeight: 700,
+                      gap: 1.5,
+                      borderBottom: "1px solid #ECECE9",
+                      "&:hover": {
+                        background: "#ECECE9",
+                        color: "#0044CC",
                       },
                     }}
                   >
-                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40, margin: 0 }}>
-                      <PersonIcon fontSize="small" />
-                    </ListItemIcon>
-                    <span>Profile</span>
+                    {user?.role === "employer" || user?.role === "admin" ? <BusinessCenterIcon fontSize="small" /> : <SchoolIcon fontSize="small" />}
+                    <span>{user?.role === "employer" || user?.role === "admin" ? "Recruiter Portal" : "Candidate Dossier"}</span>
                   </MenuItem>
                   <MenuItem
                     onClick={() => {
@@ -824,62 +822,80 @@ const Header = () => {
                     sx={{
                       px: 3,
                       py: 1.5,
-                      minHeight: '48px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: "#e0e0e0",
-                      "&:hover": { 
-                        background: "rgba(0,191,165,0.1)", 
-                        color: "#00e5c9" 
+                      minHeight: "48px",
+                      display: "flex",
+                      alignItems: "center",
+                      color: "#D32F2F",
+                      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                      fontWeight: 700,
+                      gap: 1.5,
+                      "&:hover": {
+                        background: "#FFF0F0",
+                        color: "#B71C1C",
                       },
                     }}
                   >
-                    <ListItemIcon sx={{ color: 'inherit', minWidth: 40, margin: 0 }}>
-                      <LogoutIcon fontSize="small" />
-                    </ListItemIcon>
-                    <span>Logout</span>
-                  </MenuItem>
-                </> 
-              ) : !isLoading && !isAuthenticated ? (
-                <>
-                  <MenuItem
-                    component={RouterLink}
-                    to="/login"
-                    onClick={handleClose}
-                    sx={{
-                      px: 3,
-                      py: 1.5,
-                      minHeight: '48px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: "#e0e0e0",
-                      "&:hover": { 
-                        background: "rgba(0,191,165,0.1)", 
-                        color: "#00e5c9" 
-                      },
-                    }}
-                  >
-                    <span>Login</span>
-                  </MenuItem>
-                  <MenuItem onClick={handleClose}>
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      component={RouterLink}
-                      to="/login?tab=signup"
-                      sx={{
-                        background:
-                          "linear-gradient(45deg, #00bfa5 30%, #00acc1 90%)",
-                        "&:hover": {
-                          background:
-                            "linear-gradient(45deg, #00897b 30%, #00838f 90%)",
-                        },
-                      }}
-                    >
-                      Sign Up
-                    </Button>
+                    <LogoutIcon fontSize="small" />
+                    <span>Sign Out</span>
                   </MenuItem>
                 </>
+              ) : !isLoading && !isAuthenticated ? (
+                <Box sx={{ p: 2 }}>
+                  <MenuItem
+                    onClick={() => {
+                      handleClose();
+                      navigate("/login");
+                    }}
+                    sx={{
+                      py: 1.2,
+                      display: "flex",
+                      alignItems: "center",
+                      color: "#111111",
+                      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      fontSize: "0.85rem",
+                      gap: 1.5,
+                      border: "1px solid #111111",
+                      boxShadow: "2px 2px 0 #111111",
+                      mb: 1.5,
+                      "&:hover": {
+                        background: "#111111",
+                        color: "#FFFFFF",
+                      },
+                    }}
+                  >
+                    <LoginIcon fontSize="small" />
+                    <span>Login</span>
+                  </MenuItem>
+                  <Button
+                    variant="contained"
+                    fullWidth
+                    startIcon={<PersonAddIcon />}
+                    onClick={() => {
+                      handleClose();
+                      navigate("/login?tab=signup");
+                    }}
+                    sx={{
+                      borderRadius: 0,
+                      backgroundColor: "#0044CC",
+                      color: "#FFFFFF",
+                      border: "1px solid #111111",
+                      boxShadow: "3px 3px 0 #111111",
+                      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      py: 1.2,
+                      "&:hover": {
+                        backgroundColor: "#003399",
+                        borderColor: "#111111",
+                      },
+                    }}
+                  >
+                    Sign Up
+                  </Button>
+                </Box>
               ) : null}
             </Menu>
           </Box>

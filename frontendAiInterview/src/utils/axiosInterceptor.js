@@ -43,12 +43,15 @@ axios.interceptors.response.use(
 
     // If error is 401 and we haven't tried to refresh yet
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't retry refresh token endpoint itself
-      if (originalRequest.url?.includes('/refresh-token')) {
-        clearAllUserData();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
+      const refreshToken = getRefreshToken();
+
+      // Don't retry refresh token or auth endpoints itself, or if no refresh token exists at all
+      if (
+        originalRequest.url?.includes('/refresh-token') ||
+        originalRequest.url?.includes('/login') ||
+        originalRequest.url?.includes('/signUp') ||
+        !refreshToken
+      ) {
         return Promise.reject(error);
       }
 

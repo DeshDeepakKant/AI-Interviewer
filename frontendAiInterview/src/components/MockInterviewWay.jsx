@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import {
   Container,
@@ -14,92 +15,80 @@ import {
   Stack,
   Typography,
   Paper,
-  Avatar,
   CircularProgress,
-  Fade,
-  Zoom,
-  Slide,
-  Grow,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import DescriptionIcon from '@mui/icons-material/Description';
-import WorkIcon from '@mui/icons-material/Work';
-import QuizIcon from '@mui/icons-material/Quiz';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CloseIcon from '@mui/icons-material/Close';
-import BusinessIcon from '@mui/icons-material/Business';
-import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import SchoolIcon from '@mui/icons-material/School';
 import WhatshotIcon from '@mui/icons-material/Whatshot';
-import { styled, keyframes } from '@mui/material/styles';
-import { motion } from 'framer-motion';
-const gradient = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-`;
+import { toast } from 'react-toastify';
 
-const pulse = keyframes`
-  0% { transform: scale(1); }
-  50% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-`;
-
-const VisuallyHiddenInput = styled('input')({
-  clip: 'rect(0 0 0 0)',
-  clipPath: 'inset(50%)',
-  height: 1,
-  overflow: 'hidden',
-  position: 'absolute',
-  bottom: 0,
-  left: 0,
-  whiteSpace: 'nowrap',
-  width: 1,
-  opacity: 0,
-});
-
-const StyledCard = styled(Card)(({ theme }) => ({
-  width: '100%',
-  borderRadius: 16,
-  overflow: 'hidden',
-  background: 'rgba(255, 255, 255, 0.03)',
-  backdropFilter: 'blur(12px)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.36)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: '0 12px 48px 0 rgba(0, 0, 0, 0.4)',
+const fieldStyle = {
+  '& .MuiOutlinedInput-root': {
+    borderRadius: 0,
+    backgroundColor: '#FFFFFF',
+    color: '#111111',
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: '0.95rem',
+    fontWeight: 600,
+    '& fieldset': {
+      borderColor: '#111111',
+      borderWidth: '1px',
+      transition: 'border-color 0.15s ease',
+    },
+    '&:hover fieldset': {
+      borderColor: '#0044CC',
+    },
+    '&.Mui-focused fieldset': {
+      borderColor: '#0044CC',
+      borderWidth: '2px',
+    },
   },
-}));
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  textTransform: 'none',
-  fontWeight: 600,
-  borderRadius: 12,
-  padding: '12px 24px',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+  '& .MuiInputLabel-root': {
+    color: '#555555',
+    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+    fontWeight: 700,
+    fontSize: '0.85rem',
+    letterSpacing: '0.05em',
+    textTransform: 'uppercase',
+    '&.Mui-focused': {
+      color: '#0044CC',
+    },
   },
-}));
+};
 
-const UploadArea = styled(Paper)(({ theme, isDragActive }) => ({
-  border: `2px dashed ${isDragActive ? theme.palette.primary.main : theme.palette.divider}`,
-  borderRadius: 12,
-  padding: theme.spacing(3),
-  textAlign: 'center',
-  cursor: 'pointer',
-  transition: 'all 0.3s ease',
-  backgroundColor: isDragActive ? 'rgba(0, 191, 165, 0.05)' : 'transparent',
-  '&:hover': {
-    borderColor: theme.palette.primary.main,
-    backgroundColor: 'rgba(0, 191, 165, 0.05)',
+const menuProps = {
+  PaperProps: {
+    sx: {
+      borderRadius: 0,
+      border: '1px solid #111111',
+      boxShadow: '4px 4px 0 #111111',
+      backgroundColor: '#FFFFFF',
+      color: '#111111',
+      '& .MuiMenuItem-root': {
+        fontFamily: '"Courier New", Courier, monospace',
+        fontSize: '0.9rem',
+        padding: '10px 16px',
+        '&:hover': {
+          backgroundColor: '#ECECE9',
+        },
+        '&.Mui-selected': {
+          backgroundColor: '#0044CC',
+          color: '#FFFFFF',
+          fontWeight: 700,
+          '&:hover': {
+            backgroundColor: '#003399',
+          },
+        },
+      },
+    },
   },
-}));
+};
 
 const positions = [
   'Auto - AI will ask questions based on your resume',
@@ -114,60 +103,94 @@ const positions = [
   'Product Manager',
 ];
 
+const experienceLevels = ['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'];
+const interviewModes = ['Guided Mode', 'Hard Mode'];
+const questionCounts = ['5', '10', '15', '20', '25+'];
+
 const MockInterviewWay = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const jobId = searchParams.get('jobId');
+  const { user } = useAuth();
+
+  const [jobDetails, setJobDetails] = useState(null);
+  const [loadingJob, setLoadingJob] = useState(false);
   const [numQuestions, setNumQuestions] = useState('5');
   const [position, setPosition] = useState(positions[0]);
-  const experienceLevels = ['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'];
   const [experience, setExperience] = useState(experienceLevels[0]);
-  const interviewModes = ['Guided Mode', 'Hard Mode'];
   const [interviewMode, setInterviewMode] = useState(interviewModes[0]);
   const [resumeFile, setResumeFile] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [isFileUploaded, setIsFileUploaded] = useState(false);
   const [sessionId, setSessionId] = useState('');
+  const [isDragActive, setIsDragActive] = useState(false);
 
-  const handleNumQuestionsChange = (event) => setNumQuestions(event.target.value);
-  const handleExperienceChange = (event) => setExperience(event.target.value);
-  const handlePositionChange = (event) => setPosition(event.target.value);
-  const handleInterviewModeChange = (event) => setInterviewMode(event.target.value);
+  const fileInputRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  useEffect(() => {
+    if (!jobId) return;
+    const fetchJob = async () => {
+      try {
+        setLoadingJob(true);
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/v1/employer/jobs/public/${jobId}`);
+        if (res.data?.success && res.data?.data) {
+          const job = res.data.data;
+          setJobDetails(job);
+          if (job.title) setPosition(job.title);
+          if (job.experienceLevel) setExperience(job.experienceLevel);
+          if (job.numberOfQuestions) setNumQuestions(String(job.numberOfQuestions));
+          if (job.interviewMode) setInterviewMode(job.interviewMode);
+        }
+      } catch (err) {
+        console.warn('Could not fetch job campaign details:', err);
+      } finally {
+        setLoadingJob(false);
+      }
+    };
+    fetchJob();
+  }, [jobId]);
+
+  useEffect(() => {
+    return () => {
+      if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
+        URL.revokeObjectURL(resumeFile.url);
+      }
+    };
+  }, [resumeFile]);
+
   const handleFileUpload = async (event) => {
     const file = event?.target?.files?.[0] || event;
 
-    if (!file) {
-      console.error('No file selected');
-      return;
-    }
+    if (!file) return;
 
     if (!(file instanceof File || file instanceof Blob)) {
-      console.error('Invalid file object:', file);
+      toast.error('Invalid file selected.');
       return;
     }
 
     if (file.type !== 'application/pdf') {
-      alert('Please select a PDF file only.');
+      toast.error('Format restriction: Please upload a PDF file.');
       return;
     }
 
-    // Validate file size (max 5MB)
     const maxSize = 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      alert('File size must be less than 5MB.');
+      toast.error('File size exceeds maximum threshold (5 MB).');
       return;
     }
 
     try {
       setUploadProgress(0);
       setIsUploading(true);
-      setIsFileUploaded(false);
 
       const formData = new FormData();
       formData.append('resumePdf', file);
 
       const response = await axios.post(
-        import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/aiUploadResume',
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/ai/aiUploadResume`,
         formData,
         {
           withCredentials: true,
@@ -177,7 +200,7 @@ const MockInterviewWay = () => {
           onUploadProgress: (progressEvent) => {
             const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploadProgress(progress);
-          }
+          },
         }
       );
 
@@ -185,53 +208,41 @@ const MockInterviewWay = () => {
         let fileUrl;
         try {
           fileUrl = URL.createObjectURL(file);
-        } catch (e) {
-          console.warn('Could not create object URL');
+        } catch {
           fileUrl = null;
         }
 
         setUploadProgress(100);
-        setIsFileUploaded(true);
         setSessionId(response.data.data.sessionId);
 
         setResumeFile({
-          file: file,
+          file,
           url: fileUrl,
           name: file.name,
           size: file.size,
-          sessionId: response.data.data.sessionId
+          sessionId: response.data.data.sessionId,
         });
 
-        console.log('File uploaded successfully, sessionId:', response.data.data.sessionId);
+        toast.success(`Dossier processed: ${file.name}`);
       } else {
         throw new Error(response.data.message || 'Upload failed');
       }
-
     } catch (error) {
       console.error('Upload error:', error);
-      let errorMessage = 'Failed to upload file. Please try again.';
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      alert(errorMessage);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to process resume.';
+      toast.error(errorMessage);
     } finally {
       setIsUploading(false);
     }
   };
+
   const handleRemoveFile = () => {
     if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
       URL.revokeObjectURL(resumeFile.url);
     }
-
     setResumeFile(null);
     setUploadProgress(0);
-    setIsFileUploaded(false);
     setSessionId('');
-
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -243,40 +254,35 @@ const MockInterviewWay = () => {
     }
 
     if (!position) {
-      const errorMsg = 'Please select a position';
-      console.error('Validation Error:', errorMsg);
-      alert(errorMsg);
+      toast.error('Please designate a target position.');
       return;
     }
 
     if (!sessionId || !resumeFile) {
-      const errorMsg = 'Please upload a resume first';
-      console.error('Validation Error:', errorMsg);
-      alert(errorMsg);
+      toast.error('Resume submission required before initializing interview.');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const currentSessionId = sessionId;
-
-      sessionStorage.setItem('interviewSessionId', currentSessionId);
+      sessionStorage.setItem('interviewSessionId', sessionId);
 
       const response = await axios.post(
-        import.meta.env.VITE_BACKEND_URL + '/api/v1/ai/ai',
+        `${import.meta.env.VITE_BACKEND_URL}/api/v1/ai/ai`,
         {
-          sessionId: currentSessionId,
-          position: position,
+          sessionId,
+          position,
           experienceLevel: experience,
           numberOfQuestionYouShouldAsk: numQuestions,
-          interviewMode: interviewMode,
+          interviewMode,
+          jobId: jobId || undefined,
         },
         {
           withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            Accept: 'application/json',
           },
         }
       );
@@ -284,58 +290,23 @@ const MockInterviewWay = () => {
       if (response.data.success) {
         navigate('/interview', {
           state: {
-            sessionId: currentSessionId,
+            sessionId,
             numberOfQuestions: response.data.data.numberOfQuestion,
-            interviewMode: interviewMode,
+            interviewMode,
           },
-          replace: true
+          replace: true,
         });
       } else {
         throw new Error(response.data.message || 'Failed to start interview');
       }
-
     } catch (error) {
-      console.error('Submit Error:', {
-        name: error.name,
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-
-      let errorMessage = 'Failed to start interview. Please try again.';
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      alert(errorMessage);
+      console.error('Submit Error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to initialize session.';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [isMounted, setIsMounted] = useState(false);
-  const fileInputRef = useRef(null);
-  const [isDragActive, setIsDragActive] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-
-    return () => {
-      setIsMounted(false);
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (resumeFile?.url && resumeFile.url.startsWith('blob:')) {
-        URL.revokeObjectURL(resumeFile.url);
-      }
-    };
-  }, [resumeFile]);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -354,673 +325,670 @@ const MockInterviewWay = () => {
     }
   };
 
-  const handleUploadClick = () => {
-    fileInputRef.current?.click();
-  };
-
   return (
     <Box
       sx={{
-        background: 'linear-gradient(-45deg, #0a0f1a, #1a1a2e, #16213e, #0d1b2a)',
-        backgroundSize: '400% 400%',
-        animation: `${gradient} 15s ease infinite`,
-        color: '#fff',
+        backgroundColor: '#ECECE9',
         minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'flex-start',
-        alignItems: 'center',
-        padding: {
-          xs: '140px 16px 40px',
-          sm: '160px 24px 40px',
-          md: '100px 32px 40px'
-        },
-        boxSizing: 'border-box',
-        overflowX: 'hidden',
-        position: 'relative',
-        '&::before': {
-          content: '""',
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '120px',
-          background: 'linear-gradient(to bottom, rgba(10, 15, 26, 0.98), rgba(10, 15, 26, 0.85), transparent)',
-          zIndex: 1,
-          pointerEvents: 'none',
-        },
+        py: { xs: 5, md: 8 },
+        px: { xs: 2, sm: 3 },
       }}
     >
-      {/* Decorative elements */}
-      <Box sx={{
-        position: 'fixed',
-        top: '20%',
-        right: '10%',
-        width: '300px',
-        height: '300px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0, 191, 165, 0.15) 0%, rgba(0, 172, 193, 0) 70%)',
-        zIndex: 0,
-        animation: `${pulse} 8s ease-in-out infinite`,
-      }} />
-      <Box sx={{
-        position: 'fixed',
-        bottom: '10%',
-        left: '5%',
-        width: '200px',
-        height: '200px',
-        borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(0, 172, 193, 0.1) 0%, rgba(0, 172, 193, 0) 70%)',
-        zIndex: 0,
-        animation: `${pulse} 10s ease-in-out infinite 2s`,
-      }} />
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          duration: 0.3,
-          ease: 'easeOut'
-        }}
-        style={{
-          width: '100%',
-          maxWidth: '640px',
-          margin: '0 auto',
-          position: 'relative',
-          zIndex: 1,
-        }}
-      >
-        <StyledCard sx={{
-          position: 'relative',
-          overflow: 'visible',
-        }}>
-          <Box
+      <Container maxWidth="md">
+        {/* Header Title Block */}
+        <Box sx={{ mb: 4, textAlign: 'left' }}>
+          <Typography
+            variant="caption"
             sx={{
-              background: 'linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)',
-              color: '#ffffff',
-              p: { xs: 2, sm: 3 },
-              textAlign: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+              display: 'inline-block',
+              fontFamily: '"Courier New", Courier, monospace',
+              fontWeight: 700,
+              fontSize: '0.8rem',
+              color: '#0044CC',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              mb: 1,
             }}
           >
-            <Box
+            [ PROTOCOL FORM // CANDIDATE INTAKE ]
+          </Typography>
+          <Typography
+            variant="h3"
+            component="h1"
+            sx={{
+              fontFamily: '"Helvetica Neue", Arial, sans-serif',
+              fontWeight: 800,
+              color: '#111111',
+              letterSpacing: '-0.03em',
+              textTransform: 'uppercase',
+              fontSize: { xs: '2rem', md: '2.5rem' },
+              lineHeight: 1.1,
+            }}
+          >
+            Assessment Configuration
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              fontFamily: '"Courier New", Courier, monospace',
+              color: '#555555',
+              mt: 1.5,
+              maxWidth: '680px',
+              fontSize: '0.95rem',
+            }}
+          >
+            Configure evaluation parameters, role requirements, and upload candidate resume to instantiate the adaptive LangGraph interview agent.
+          </Typography>
+        </Box>
+
+        {/* Recruiter Notice Banner */}
+        {user?.role === 'employer' && !jobId && (
+          <Box
+            sx={{
+              p: 3,
+              mb: 4,
+              backgroundColor: '#FFFBE6',
+              border: '2px solid #111111',
+              boxShadow: '4px 4px 0 #111111',
+            }}
+          >
+            <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
+              <SchoolIcon sx={{ color: '#0044CC', fontSize: 24 }} />
+              <Typography
+                sx={{
+                  fontFamily: '"Courier New", Courier, monospace',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  color: '#111111',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                [ RECRUITER / EMPLOYER NOTIFICATION ]
+              </Typography>
+            </Stack>
+            <Typography
               sx={{
-                position: 'absolute',
-                top: -50,
-                right: -50,
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.1)',
+                fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                fontWeight: 700,
+                fontSize: '1.05rem',
+                color: '#111111',
+                mb: 0.5,
               }}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
             >
-              <Typography
-                variant="h4"
-                fontWeight="bold"
-                sx={{
-                  fontSize: { xs: '1.75rem', sm: '2.125rem' },
-                  mb: 1,
-                  textShadow: '0 2px 10px rgba(0, 0, 0, 0.2)'
-                }}
-              >
-                AI-Powered Mock Interview
-              </Typography>
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  opacity: 0.9,
-                  fontWeight: 300,
-                  fontSize: { xs: '0.9rem', sm: '1rem' },
-                  maxWidth: '90%',
-                  mx: 'auto',
-                }}
-              >
-                Get instant feedback on your interview performance
-              </Typography>
-            </motion.div>
+              You are currently accessing the candidate interview assessment portal.
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                fontSize: '0.85rem',
+                color: '#555555',
+                mb: 2,
+              }}
+            >
+              As an Employer, you do not need to take your own interview. Visit your Recruiter Command Center to view candidate scorecards, dossiers, and schedule invitations.
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => navigate('/employer')}
+              sx={{
+                borderRadius: 0,
+                backgroundColor: '#0044CC',
+                color: '#FFFFFF',
+                fontFamily: '"Courier New", Courier, monospace',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                boxShadow: '3px 3px 0 #111111',
+                border: '1px solid #111111',
+                textTransform: 'none',
+                px: 2.5,
+                py: 1,
+                '&:hover': {
+                  backgroundColor: '#003399',
+                  boxShadow: '1px 1px 0 #111111',
+                },
+              }}
+            >
+              Go to Employer Command Center →
+            </Button>
           </Box>
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+        )}
+
+        {/* Invited Candidate Campaign Banner */}
+        {jobDetails && (
+          <Box
+            sx={{
+              p: 3,
+              mb: 4,
+              backgroundColor: '#0044CC',
+              color: '#FFFFFF',
+              border: '2px solid #111111',
+              boxShadow: '5px 5px 0 #111111',
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                fontWeight: 800,
+                fontSize: '0.8rem',
+                letterSpacing: '0.05em',
+                color: '#FFCC00',
+                textTransform: 'uppercase',
+                mb: 0.5,
+              }}
+            >
+              [ INVITATION VERIFIED // OFFICIAL CANDIDATE ASSESSMENT ]
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                fontWeight: 800,
+                letterSpacing: '-0.02em',
+                mb: 0.5,
+              }}
+            >
+              {jobDetails.title}
+            </Typography>
+            <Stack direction="row" spacing={2} sx={{ mb: 1.5, flexWrap: 'wrap' }}>
+              {jobDetails.department && (
+                <Typography sx={{ fontFamily: '"Courier New", Courier, monospace', fontSize: '0.85rem', opacity: 0.9 }}>
+                  Dept: {jobDetails.department}
+                </Typography>
+              )}
+              {jobDetails.experienceLevel && (
+                <Typography sx={{ fontFamily: '"Courier New", Courier, monospace', fontSize: '0.85rem', opacity: 0.9 }}>
+                  Level: {jobDetails.experienceLevel}
+                </Typography>
+              )}
+              {jobDetails.numberOfQuestions && (
+                <Typography sx={{ fontFamily: '"Courier New", Courier, monospace', fontSize: '0.85rem', opacity: 0.9 }}>
+                  Questions: {jobDetails.numberOfQuestions}
+                </Typography>
+              )}
+            </Stack>
+            {jobDetails.description && (
+              <Typography
+                sx={{
+                  fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                  fontSize: '0.9rem',
+                  lineHeight: 1.5,
+                  color: '#E0E7FF',
+                  borderTop: '1px solid rgba(255,255,255,0.2)',
+                  pt: 1,
+                }}
+              >
+                {jobDetails.description}
+              </Typography>
+            )}
+          </Box>
+        )}
+
+        {/* Dossier Card Container */}
+        <Card
+          sx={{
+            borderRadius: 0,
+            border: '2px solid #111111',
+            boxShadow: '6px 6px 0 #111111',
+            backgroundColor: '#FFFFFF',
+            overflow: 'visible',
+          }}
+        >
+          {/* Top Classification Banner */}
+          <Box
+            sx={{
+              backgroundColor: '#111111',
+              color: '#FFFFFF',
+              px: 3,
+              py: 1.5,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid #111111',
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                fontWeight: 700,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+            >
+              FORM SPEC: INT-SETUP-2026
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                color: '#0044CC',
+                bgcolor: '#FFFFFF',
+                px: 1,
+                py: 0.25,
+                fontWeight: 800,
+                fontSize: '0.75rem',
+              }}
+            >
+              ACTIVE SYSTEM
+            </Typography>
+          </Box>
+
+          <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
             <form onSubmit={handleSubmit}>
-              <Stack spacing={3.5}>
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="position-label" sx={{ color: '#ffffff' }}>
-                      Select Position
-                    </InputLabel>
-                    <Select
-                      labelId="position-label"
-                      id="position"
-                      value={position}
-                      onChange={handlePositionChange}
-                      required
-                      label="Select Position"
-                      startAdornment={
-                        <WorkIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', mr: 1, fontSize: 20 }} />
-                      }
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: '#1a1f2e',
-                            color: '#ffffff',
-                            '& .MuiMenuItem-root': {
-                              padding: '8px 16px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                              },
-                              '&.Mui-selected': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                                },
-                              },
-                            },
-                          },
-                        },
-                      }}
-                      sx={{
-                        color: '#ffffff',
-                        '& .MuiSelect-icon': {
-                          color: 'rgba(255, 255, 255, 0.7)',
-                        },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(0, 191, 165, 0.5)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#00bfa5',
-                        },
-                      }}
-                    >
-                      {positions.map((pos) => (
-                        <MenuItem
-                          key={pos}
-                          value={pos}
-                          sx={{
-                            color: '#ffffff',
-                            '&:hover': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                            },
-                            '&.Mui-selected': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                              },
-                            },
-                          }}
-                        >
-                          {pos}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </motion.div>
+              <Stack spacing={4}>
+                {/* SECTION 01: POSITION & SENIORITY */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: 'block',
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontWeight: 800,
+                      color: '#111111',
+                      borderBottom: '1px solid #111111',
+                      pb: 0.5,
+                      mb: 2.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    01 // TARGET ROLE & SENIORITY
+                  </Typography>
 
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="experience-label" sx={{ color: '#ffffff' }}>
-                      Experience Level
-                    </InputLabel>
-                    <Select
-                      labelId="experience-label"
-                      id="experience"
-                      value={experience}
-                      onChange={handleExperienceChange}
-                      label="Experience Level"
-                      startAdornment={
-                        <BusinessIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', mr: 1, fontSize: 20 }} />
-                      }
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: '#1a1f2e',
-                            color: '#ffffff',
-                            '& .MuiMenuItem-root': {
-                              padding: '8px 16px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                              },
-                              '&.Mui-selected': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                                },
-                              },
-                            },
-                          },
-                        },
-                      }}
-                      sx={{
-                        color: '#ffffff',
-                        '& .MuiSelect-icon': {
-                          color: 'rgba(255, 255, 255, 0.7)',
-                        },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(0, 191, 165, 0.5)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#00bfa5',
-                        },
-                        mb: 2
-                      }}
-                    >
-                      {['Student/Fresher', '0-2 years', '2-5 years', '5-10 years', '10+ years'].map((exp) => (
-                        <MenuItem
-                          key={exp}
-                          value={exp}
-                          sx={{
-                            color: '#ffffff',
-                            '&:hover': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                            },
-                            '&.Mui-selected': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                              },
-                            },
-                          }}
-                        >
-                          {exp}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </motion.div>
+                  <Stack spacing={3}>
+                    <FormControl fullWidth sx={fieldStyle}>
+                      <InputLabel id="position-label">Target Position</InputLabel>
+                      <Select
+                        labelId="position-label"
+                        id="position"
+                        value={position}
+                        onChange={(e) => setPosition(e.target.value)}
+                        label="Target Position"
+                        MenuProps={menuProps}
+                      >
+                        {positions.map((pos) => (
+                          <MenuItem key={pos} value={pos}>
+                            {pos}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
 
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.45 }}
-                >
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="interview-mode-label" sx={{ color: '#ffffff' }}>
-                      Interview Mode
-                    </InputLabel>
-                    <Select
-                      labelId="interview-mode-label"
-                      id="interview-mode"
-                      value={interviewMode}
-                      onChange={handleInterviewModeChange}
-                      label="Interview Mode"
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {selected === 'Guided Mode' ? (
-                            <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
-                          ) : (
-                            <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
-                          )}
-                          {selected}
-                        </Box>
-                      )}
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: '#1a1f2e',
-                            color: '#ffffff',
-                            '& .MuiMenuItem-root': {
-                              padding: '8px 16px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                              },
-                              '&.Mui-selected': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                                },
-                              },
-                            },
-                          },
-                        },
-                      }}
-                      sx={{
-                        color: '#ffffff',
-                        '& .MuiSelect-icon': {
-                          color: 'rgba(255, 255, 255, 0.7)',
-                        },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(0, 191, 165, 0.5)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#00bfa5',
-                        },
-                        mb: 2
-                      }}
-                    >
-                      {interviewModes.map((mode) => (
-                        <MenuItem
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3 }}>
+                      <FormControl fullWidth sx={fieldStyle}>
+                        <InputLabel id="experience-label">Experience Tier</InputLabel>
+                        <Select
+                          labelId="experience-label"
+                          id="experience"
+                          value={experience}
+                          onChange={(e) => setExperience(e.target.value)}
+                          label="Experience Tier"
+                          MenuProps={menuProps}
+                        >
+                          {experienceLevels.map((exp) => (
+                            <MenuItem key={exp} value={exp}>
+                              {exp}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <FormControl fullWidth sx={fieldStyle}>
+                        <InputLabel id="num-questions-label">Questions To Administer</InputLabel>
+                        <Select
+                          labelId="num-questions-label"
+                          id="num-questions"
+                          value={numQuestions}
+                          onChange={(e) => setNumQuestions(e.target.value)}
+                          label="Questions To Administer"
+                          MenuProps={menuProps}
+                        >
+                          {questionCounts.map((n) => (
+                            <MenuItem key={n} value={n}>
+                              {n} Questions
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Box>
+                  </Stack>
+                </Box>
+
+                {/* SECTION 02: ASSESSMENT MODE */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: 'block',
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontWeight: 800,
+                      color: '#111111',
+                      borderBottom: '1px solid #111111',
+                      pb: 0.5,
+                      mb: 2.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    02 // EVALUATION PROTOCOL
+                  </Typography>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+                    {interviewModes.map((mode) => {
+                      const isSelected = interviewMode === mode;
+                      return (
+                        <Box
                           key={mode}
-                          value={mode}
+                          onClick={() => setInterviewMode(mode)}
                           sx={{
-                            color: '#ffffff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
+                            border: isSelected ? '2px solid #0044CC' : '1px solid #111111',
+                            boxShadow: isSelected ? '4px 4px 0 #0044CC' : 'none',
+                            p: 2.5,
+                            cursor: 'pointer',
+                            backgroundColor: isSelected ? '#F4F7FF' : '#FFFFFF',
+                            transition: 'all 0.15s ease',
                             '&:hover': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                            },
-                            '&.Mui-selected': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                              },
+                              borderColor: '#0044CC',
                             },
                           }}
                         >
-                          {mode === 'Guided Mode' ? (
-                            <>
-                              <SchoolIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
-                              <Box component="span" sx={{ ml: 1 }}>{mode}</Box>
-                            </>
-                          ) : (
-                            <>
-                              <WhatshotIcon sx={{ fontSize: 20, color: '#BCBCC4' }} />
-                              <Box component="span" sx={{ ml: 1 }}>{mode}</Box>
-                            </>
-                          )}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <FormControl fullWidth variant="outlined">
-                    <InputLabel id="num-questions-label" sx={{ color: '#ffffff' }}>
-                      Number of Questions
-                    </InputLabel>
-                    <Select
-                      labelId="num-questions-label"
-                      id="num-questions"
-                      value={numQuestions}
-                      onChange={handleNumQuestionsChange}
-                      label="Number of Questions"
-                      startAdornment={
-                        <QuizIcon sx={{ color: 'rgba(255, 255, 255, 0.7)', mr: 1, fontSize: 20 }} />
-                      }
-                      MenuProps={{
-                        PaperProps: {
-                          sx: {
-                            bgcolor: '#1a1f2e',
-                            color: '#ffffff',
-                            '& .MuiMenuItem-root': {
-                              padding: '8px 16px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                              },
-                              '&.Mui-selected': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                                '&:hover': {
-                                  backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                                },
-                              },
-                            },
-                          },
-                        },
-                      }}
-                      sx={{
-                        color: '#ffffff',
-                        '& .MuiSelect-icon': {
-                          color: 'rgba(255, 255, 255, 0.7)',
-                        },
-                        '& .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(255, 255, 255, 0.1)',
-                        },
-                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                          borderColor: 'rgba(0, 191, 165, 0.5)',
-                        },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                          borderColor: '#00bfa5',
-                        },
-                      }}
-                    >
-                      {['5', '10', '15', '20', '25+'].map((n) => (
-                        <MenuItem
-                          key={n}
-                          value={n}
-                          sx={{
-                            color: '#ffffff',
-                            '&:hover': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.15)',
-                            },
-                            '&.Mui-selected': {
-                              backgroundColor: 'rgba(0, 191, 165, 0.25)',
-                              '&:hover': {
-                                backgroundColor: 'rgba(0, 191, 165, 0.3)',
-                              },
-                            },
-                          }}
-                        >
-                          {n} Questions
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  <Box>
-                    <Typography
-                      variant="subtitle2"
-                      gutterBottom
-                      sx={{
-                        mb: 2,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        fontWeight: 500
-                      }}
-                    >
-                      <DescriptionIcon fontSize="small" sx={{ color: 'rgba(255, 255, 255, 0.9)' }} />
-                      Upload Your Resume
-                    </Typography>
-                    {!resumeFile && !isUploading ? (
-                      <UploadArea
-                        elevation={0}
-                        isDragActive={isDragActive}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        onClick={handleUploadClick}
-                      >
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".pdf"
-                          onChange={handleFileUpload}
-                          style={{ display: 'none' }}
-                        />
-                        <Box sx={{ py: 2 }}>
-                          <CloudUploadIcon sx={{
-                            fontSize: 48,
-                            color: 'rgba(255, 255, 255, 0.9)',
-                            mb: 1,
-                            transition: 'all 0.3s ease',
-                          }} />
-                          <Typography variant="body2" color="rgba(255,255,255,0.85)" gutterBottom>
-                            Drag & drop your resume here, or <Box component="span" sx={{ color: '#00e5ff', fontWeight: 600, textDecoration: 'underline' }}>browse</Box>
-                          </Typography>
-                          <Typography variant="caption" color="#ffffff" sx={{ display: 'block', mt: 1, opacity: 0.9, fontSize: '0.75rem' }}>
-                            Supports PDF (max 5MB)
-                          </Typography>
-                        </Box>
-                      </UploadArea>
-                    ) : isUploading ? (
-                      <Box sx={{ width: '100%', mt: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                          <Typography variant="caption" color="rgba(255,255,255,0.8)">
-                            Uploading...
-                          </Typography>
-                          <Typography variant="caption" color="rgba(255,255,255,0.8)">
-                            {Math.round(uploadProgress)}%
-                          </Typography>
-                        </Box>
-                        <Box sx={{ width: '100%', bgcolor: 'rgba(255,255,255,0.1)', borderRadius: 1, overflow: 'hidden' }}>
-                          <Box
-                            sx={{
-                              height: 8,
-                              width: `${uploadProgress}%`,
-                              bgcolor: 'primary.main',
-                              transition: 'width 0.3s ease',
-                              borderRadius: 1,
-                              background: 'linear-gradient(90deg, #00e5ff, #00b8d4)'
-                            }}
-                          />
-                        </Box>
-                        <Typography variant="caption" color="rgba(255,255,255,0.6)" sx={{ display: 'block', mt: 0.5, textAlign: 'right' }}>
-                          {uploadProgress < 100 ? 'Uploading...' : 'Processing...'}
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        <Paper
-                          variant="outlined"
-                          sx={{
-                            p: 2,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            borderRadius: 2,
-                            borderColor: 'rgba(0, 191, 165, 0.3)',
-                            backgroundColor: 'rgba(0, 191, 165, 0.05)',
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Avatar
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                            {mode === 'Guided Mode' ? (
+                              <SchoolIcon sx={{ color: isSelected ? '#0044CC' : '#111111', fontSize: 22 }} />
+                            ) : (
+                              <WhatshotIcon sx={{ color: isSelected ? '#0044CC' : '#111111', fontSize: 22 }} />
+                            )}
+                            <Typography
+                              variant="subtitle1"
                               sx={{
-                                bgcolor: 'rgba(0, 191, 165, 0.15)',
-                                color: '#00bfa5',
-                                width: 44,
-                                height: 44,
+                                fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                fontSize: '0.95rem',
+                                color: isSelected ? '#0044CC' : '#111111',
                               }}
                             >
-                              <DescriptionIcon />
-                            </Avatar>
-                            <Box>
-                              <Typography variant="body2" fontWeight={900}>
-                                {resumeFile.name.length > 20
-                                  ? `${resumeFile.name.substring(0, 17)}...${resumeFile.name.split('.').pop()}`
-                                  : resumeFile.name}
-                              </Typography>
-                              <Typography variant="caption" fontWeight={900} sx={{ color: '#A0A0A0' }}>
-                                {(resumeFile.size / 1024).toFixed(1)} KB • {resumeFile.name.split('.').pop().toUpperCase()}
-                              </Typography>
-                            </Box>
+                              {mode}
+                            </Typography>
                           </Box>
-                          <Button
-                            size="small"
-
-                            onClick={handleRemoveFile}
-                            variant="outlined"
-                            color="error"
-                            startIcon={<CloseIcon />}
+                          <Typography
+                            variant="body2"
                             sx={{
-                              minWidth: 'auto',
-                              p: 1,
-                              '& .MuiButton-startIcon': {
-                                margin: 0,
-                              },
+                              fontFamily: '"Courier New", Courier, monospace',
+                              fontSize: '0.8rem',
+                              color: '#555555',
+                              lineHeight: 1.4,
                             }}
                           >
-                            {!isMobile && 'Remove'}
-                          </Button>
-                        </Paper>
-                      </motion.div>
-                    )}
+                            {mode === 'Guided Mode'
+                              ? 'Interactive hints available via //explanation prompt. Balanced drill-downs.'
+                              : 'Rigorous real-time assessment with strict depth probing and zero hints.'}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
                   </Box>
-                </motion.div>
+                </Box>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{
-                    duration: 0.2,
-                    delay: 0.4
-                  }}
-                >
-                  <StyledButton
+                {/* SECTION 03: RESUME DOSSIER */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: 'block',
+                      fontFamily: '"Courier New", Courier, monospace',
+                      fontWeight: 800,
+                      color: '#111111',
+                      borderBottom: '1px solid #111111',
+                      pb: 0.5,
+                      mb: 2.5,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    03 // CANDIDATE DOSSIER INGESTION
+                  </Typography>
+
+                  {!resumeFile && !isUploading ? (
+                    <Box
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      sx={{
+                        border: isDragActive ? '2px dashed #0044CC' : '2px dashed #111111',
+                        backgroundColor: isDragActive ? '#EEF2FF' : '#FAF9F6',
+                        p: { xs: 4, sm: 5 },
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        '&:hover': {
+                          backgroundColor: '#F0EFEA',
+                          borderColor: '#0044CC',
+                        },
+                      }}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileUpload}
+                        style={{ display: 'none' }}
+                      />
+                      <UploadFileIcon sx={{ fontSize: 44, color: '#111111', mb: 1 }} />
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          color: '#111111',
+                          mb: 0.5,
+                        }}
+                      >
+                        Click to upload or drag & drop PDF
+                      </Typography>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          fontFamily: '"Courier New", Courier, monospace',
+                          color: '#666666',
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        MAXIMUM SIZE: 5 MB // APPLICATION/PDF ONLY
+                      </Typography>
+                    </Box>
+                  ) : isUploading ? (
+                    <Box
+                      sx={{
+                        p: 4,
+                        border: '1px solid #111111',
+                        backgroundColor: '#FFFFFF',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          display: 'block',
+                          fontFamily: '"Courier New", Courier, monospace',
+                          fontWeight: 700,
+                          mb: 1.5,
+                          textTransform: 'uppercase',
+                        }}
+                      >
+                        PARSING PDF STREAM INTO VECTOR MEMORY... ({uploadProgress}%)
+                      </Typography>
+                      <Box
+                        sx={{
+                          width: '100%',
+                          height: 10,
+                          backgroundColor: '#ECECE9',
+                          border: '1px solid #111111',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            height: '100%',
+                            width: `${uploadProgress}%`,
+                            backgroundColor: '#0044CC',
+                            transition: 'width 0.2s ease',
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  ) : (
+                    <Box
+                      sx={{
+                        border: '2px solid #111111',
+                        boxShadow: '3px 3px 0 #111111',
+                        backgroundColor: '#FFFFFF',
+                        p: 2.5,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: 44,
+                            height: 44,
+                            backgroundColor: '#111111',
+                            color: '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <DescriptionIcon fontSize="small" />
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            sx={{
+                              fontFamily: '"Courier New", Courier, monospace',
+                              fontWeight: 800,
+                              color: '#111111',
+                              fontSize: '0.95rem',
+                            }}
+                          >
+                            {resumeFile.name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontFamily: '"Courier New", Courier, monospace',
+                              color: '#666666',
+                              fontSize: '0.75rem',
+                            }}
+                          >
+                            {(resumeFile.size / 1024).toFixed(1)} KB // VERIFIED PDF STREAM
+                          </Typography>
+                        </Box>
+                      </Box>
+                      <Button
+                        onClick={handleRemoveFile}
+                        variant="outlined"
+                        size="small"
+                        startIcon={<CloseIcon />}
+                        sx={{
+                          borderRadius: 0,
+                          borderColor: '#111111',
+                          color: '#111111',
+                          fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          boxShadow: '2px 2px 0 #111111',
+                          '&:hover': {
+                            backgroundColor: '#FFEEEE',
+                            borderColor: '#D32F2F',
+                            color: '#D32F2F',
+                            boxShadow: '1px 1px 0 #D32F2F',
+                          },
+                        }}
+                      >
+                        {!isMobile && 'REMOVE'}
+                      </Button>
+                    </Box>
+                  )}
+                </Box>
+
+                {/* SUBMIT ACTION BUTTON */}
+                <Box sx={{ pt: 2 }}>
+                  <Button
                     type="submit"
-                    variant="contained"
-                    size="large"
                     fullWidth
                     disabled={isLoading || !position || !sessionId}
+                    variant="contained"
                     sx={{
-                      py: 1.75,
-                      borderRadius: 3,
-                      background: 'linear-gradient(90deg, #00bfa5 0%, #00acc1 100%)',
-                      color: '#fff',
+                      py: 2,
+                      borderRadius: 0,
+                      backgroundColor: '#111111',
+                      color: '#FFFFFF',
+                      fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                      fontWeight: 800,
                       fontSize: '1rem',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      letterSpacing: '0.5px',
-                      boxShadow: '0 4px 14px rgba(0, 191, 165, 0.4)',
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      border: '2px solid #111111',
+                      boxShadow: '4px 4px 0 #111111',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 1.5,
                       '&:hover': {
-                        background: 'linear-gradient(90deg, #00a58e 0%, #0097a7 100%)',
-                        boxShadow: '0 6px 20px rgba(0, 191, 165, 0.5)',
-                        transform: 'translateY(-2px)',
-                      },
-                      '&:active': {
-                        transform: 'translateY(0)',
+                        backgroundColor: '#0044CC',
+                        borderColor: '#0044CC',
+                        boxShadow: '2px 2px 0 #111111',
+                        transform: 'translate(2px, 2px)',
                       },
                       '&.Mui-disabled': {
-                        background: 'rgba(255, 255, 255, 0.1)',
-                        color: 'rgba(255, 255, 255, 0.3)',
+                        backgroundColor: '#E0E0DB',
+                        borderColor: '#999999',
+                        color: '#888888',
                         boxShadow: 'none',
                       },
                     }}
                   >
                     {isLoading ? (
                       <>
-                        <CircularProgress size={24} color="inherit" sx={{ mr: 1.5 }} />
-                        Preparing Interview...
+                        <CircularProgress size={20} color="inherit" />
+                        INSTANTIATING ASSESSMENT AGENT...
                       </>
                     ) : (
                       <>
-                        <CheckCircleIcon sx={{ mr: 1, fontSize: 20 }} />
-                        Start Mock Interview
+                        INITIALIZE ASSESSMENT PROTOCOL
+                        <ArrowForwardIcon sx={{ fontSize: 20 }} />
                       </>
                     )}
-                  </StyledButton>
-                </motion.div>
+                  </Button>
+
+                  {!sessionId && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        textAlign: 'center',
+                        fontFamily: '"Courier New", Courier, monospace',
+                        color: '#666666',
+                        mt: 1.5,
+                        fontSize: '0.75rem',
+                      }}
+                    >
+                      * DOSSIER UPLOAD IS REQUIRED BEFORE INITIATING INTERVIEW SESSION
+                    </Typography>
+                  )}
+                </Box>
               </Stack>
             </form>
           </CardContent>
-        </StyledCard>
-      </motion.div>
+        </Card>
+      </Container>
     </Box>
   );
 };

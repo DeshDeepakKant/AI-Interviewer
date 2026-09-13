@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  ThemeProvider,
-  createTheme,
-  CssBaseline,
   Box,
   Paper,
   Tabs,
@@ -10,82 +7,69 @@ import {
   TextField,
   Button,
   Typography,
-  Fade,
   InputAdornment,
   IconButton,
 } from "@mui/material";
-import { motion } from "framer-motion";
 import {
   Visibility,
   VisibilityOff,
-  Login,
-  PersonAdd,
-  Email,
-  Person,
-  Badge,
-  Lock,
+  Login as LoginIcon,
+  PersonAdd as PersonAddIcon,
+  Email as EmailIcon,
+  Person as PersonIcon,
+  Badge as BadgeIcon,
+  Lock as LockIcon,
 } from "@mui/icons-material";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuth } from "../contexts/AuthContext";
-const theme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: { main: "#1de9b6" },
-    secondary: { main: "#00bfa5" },
-    background: { default: "#0a0f1a" },
-  },
-  typography: {
-    fontFamily: "Roboto, sans-serif",
-    button: { textTransform: "none" },
-  },
-  shape: { borderRadius: 10 },
-});
-
-const tabVariants = {
-  initial: { opacity: 0, y: 30 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-};
 
 const fieldStyle = {
+  mb: 2,
   "& .MuiOutlinedInput-root": {
-    borderRadius: 10,
-    background: "rgba(255,255,255,0.05)",
+    borderRadius: 0,
+    backgroundColor: "#FFFFFF",
+    color: "#111111",
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: "0.95rem",
     "& fieldset": {
-      borderColor: "rgba(255,255,255,0.2)",
-      transition: "border-color 0.3s ease",
+      borderColor: "#111111",
+      borderWidth: "1px",
+      transition: "border-color 0.15s ease",
     },
     "&:hover fieldset": {
-      borderColor: "rgba(29,233,182,0.7)",
+      borderColor: "#0044CC",
     },
     "&.Mui-focused fieldset": {
-      borderColor: "#1de9b6",
+      borderColor: "#0044CC",
+      borderWidth: "2px",
     },
     "& input:-webkit-autofill": {
-      WebkitBoxShadow: "0 0 0 1000px rgba(255,255,255,0.05) inset",
-      WebkitTextFillColor: "white",
-      caretColor: "white",
-      borderRadius: 10,
+      WebkitBoxShadow: "0 0 0 1000px #FFFFFF inset",
+      WebkitTextFillColor: "#111111",
+      caretColor: "#111111",
     },
     "& input:-webkit-autofill:focus": {
-      WebkitBoxShadow: "0 0 0 1000px rgba(255,255,255,0.05) inset",
-      WebkitTextFillColor: "white",
+      WebkitBoxShadow: "0 0 0 1000px #FFFFFF inset",
+      WebkitTextFillColor: "#111111",
     },
   },
   "& .MuiInputLabel-root": {
-    color: "rgba(255,255,255,0.7)",
+    color: "#555555",
+    fontFamily: '"Helvetica Neue", Arial, sans-serif',
+    fontWeight: 600,
+    fontSize: "0.9rem",
     "&.Mui-focused": {
-      color: "#1de9b6",
+      color: "#0044CC",
     },
   },
-  "& .MuiOutlinedInput-input": {
-    color: "white",
-    "&:-webkit-autofill": {
-      transition: "background-color 5000s ease-in-out 0s",
-      WebkitBoxShadow: "0 0 0 1000px rgba(255,255,255,0.05) inset",
-      WebkitTextFillColor: "white",
-    },
+  "& .MuiFormHelperText-root": {
+    fontFamily: '"Courier New", Courier, monospace',
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    color: "#D32F2F",
+    mt: 0.5,
   },
 };
 
@@ -93,7 +77,7 @@ function LoginForm({ onShowPassword, showPassword }) {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [loginInfo, setLogInfio] = useState({
+  const [loginInfo, setLoginInfo] = useState({
     emailOrUsername: "",
     password: "",
   });
@@ -101,14 +85,21 @@ function LoginForm({ onShowPassword, showPassword }) {
     emailOrUsername: "",
     password: "",
   });
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const copyLoginInfo = { ...loginInfo };
-    copyLoginInfo[name] = value;
-    setLogInfio(copyLoginInfo);
+    setLoginInfo((prev) => ({ ...prev, [name]: value }));
     if (value.trim() !== "") {
-      setErrors({ ...errors, [name]: "" });
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  const fillDemo = (identifier, password) => {
+    setLoginInfo({
+      emailOrUsername: identifier,
+      password: password,
+    });
+    setErrors({});
   };
 
   const handleSubmit = async () => {
@@ -119,7 +110,7 @@ function LoginForm({ onShowPassword, showPassword }) {
     }
 
     if (!loginInfo.password) {
-      newErrors.password = "This field is required.";
+      newErrors.password = "Password is required.";
     }
 
     setErrors(newErrors);
@@ -140,127 +131,265 @@ function LoginForm({ onShowPassword, showPassword }) {
           if (response.data.success) {
             const { user, accessToken, refreshToken } = response.data.data;
 
-            // Store tokens
             if (accessToken) {
-              localStorage.setItem('accessToken', accessToken);
+              localStorage.setItem("accessToken", accessToken);
             }
             if (refreshToken) {
-              localStorage.setItem('refreshToken', refreshToken);
+              localStorage.setItem("refreshToken", refreshToken);
             }
 
-            // Store user data
-            login(user || response.data.data);
+            const loggedInUser = user || response.data.data?.user || response.data.data;
+            login(loggedInUser);
             resolve(response.data);
-            navigate("/dashboard");
+            if (loggedInUser?.role === "employer" || loggedInUser?.role === "admin") {
+              navigate("/employer");
+            } else {
+              navigate("/dashboard");
+            }
           } else {
-            reject(new Error(response.data.message || "Login failed"));
+            reject(new Error(response.data.message || "Authentication failed."));
           }
         } catch (error) {
-          reject(error.response?.data?.message || "Something went wrong.");
+          reject(error.response?.data?.message || "Invalid credentials or system error.");
         }
       });
 
       toast.promise(loginPromise, {
-        pending: 'Logging in...',
+        pending: "Verifying credentials...",
         success: {
-          render({ data }) {
-            return `Welcome back!`;
+          render() {
+            return "Authentication verified. Access granted.";
           },
-          icon: '🟢',
         },
         error: {
           render({ data }) {
-            return data || 'Login failed. Please try again.';
+            return data || "Authentication failed.";
           },
-          icon: '🔴',
         },
       });
     }
   };
+
   return (
-    <Fade in timeout={400}>
-      <Box
-        component="form"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleSubmit();
+    <Box
+      component="form"
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+      noValidate
+    >
+      <TextField
+        label="Email or Username"
+        variant="outlined"
+        fullWidth
+        onChange={handleChange}
+        name="emailOrUsername"
+        autoComplete="username"
+        required
+        value={loginInfo.emailOrUsername}
+        error={!!errors.emailOrUsername}
+        helperText={errors.emailOrUsername}
+        sx={fieldStyle}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start" sx={{ mr: 1.5 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 0,
+                  backgroundColor: "#F6F6F4",
+                  border: "1px solid #111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#111111",
+                }}
+              >
+                <EmailIcon sx={{ fontSize: 17 }} />
+              </Box>
+            </InputAdornment>
+          ),
         }}
+      />
+
+      <TextField
+        label="Password"
+        variant="outlined"
+        fullWidth
+        name="password"
+        onChange={handleChange}
+        type={showPassword ? "text" : "password"}
+        autoComplete="current-password"
+        value={loginInfo.password}
+        error={!!errors.password}
+        required
+        helperText={errors.password}
+        sx={fieldStyle}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start" sx={{ mr: 1.5 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 0,
+                  backgroundColor: "#F6F6F4",
+                  border: "1px solid #111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#111111",
+                }}
+              >
+                <LockIcon sx={{ fontSize: 17 }} />
+              </Box>
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={onShowPassword} edge="end" size="small" sx={{ color: "#111111", borderRadius: 0 }}>
+                {showPassword ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      <Button
+        fullWidth
+        variant="contained"
+        type="submit"
+        size="large"
+        sx={{
+          mt: 2,
+          borderRadius: 0,
+          backgroundColor: "#111111",
+          color: "#FFFFFF",
+          border: "1px solid #111111",
+          boxShadow: "4px 4px 0 #111111",
+          py: 1.6,
+          fontWeight: 800,
+          fontFamily: '"Helvetica Neue", Arial, sans-serif',
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          fontSize: "0.9rem",
+          transition: "all 0.1s ease",
+          "&:hover": {
+            backgroundColor: "#0044CC",
+            borderColor: "#0044CC",
+            boxShadow: "2px 2px 0 #111111",
+            transform: "translate(2px, 2px)",
+          },
+        }}
+        endIcon={<LoginIcon />}
       >
-        <Box
-          component={motion.div}
-          variants={tabVariants}
-          initial="initial"
-          animate="animate"
-          sx={{ mt: 1 }}
+        Authenticate & Sign In
+      </Button>
+
+      {/* Quick Demo Access Bar */}
+      <Box sx={{ mt: 3.5, pt: 2.5, borderTop: "1px dashed #CCCCCC" }}>
+        <Typography
+          variant="caption"
+          sx={{
+            fontFamily: '"Courier New", Courier, monospace',
+            fontWeight: 800,
+            fontSize: "0.75rem",
+            color: "#0044CC",
+            display: "block",
+            mb: 1.5,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+          }}
         >
-          <TextField
-            label="Email or Username"
-            variant="outlined"
-            fullWidth
-            margin="dense"
-            onChange={handleChange}
-            name="emailOrUsername"
-            autoComplete="email"
-            required
-            value={loginInfo.emailOrUsername}
-            error={!!errors.emailOrUsername}
-            helperText={errors.emailOrUsername}
-            sx={fieldStyle}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            label="Password"
-            variant="outlined"
-            fullWidth
-            margin="dense"
-            name="password"
-            onChange={handleChange}
-            type={showPassword ? "text" : "password"}
-            autoComplete="current-password"
-            value={loginInfo.password}
-            error={!!errors.password}
-            required
-            helperText={errors.password}
-            sx={fieldStyle}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={onShowPassword}>
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+          [ PRE-CONFIGURED DEMO CREDENTIALS ]
+        </Typography>
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 1 }}>
           <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            size="large"
+            size="small"
+            type="button"
+            onClick={() => fillDemo("alex", "StudentPass123!")}
             sx={{
-              mt: 3,
-              borderRadius: 16,
-              boxShadow: "0 0 20px rgba(29,233,182,0.5)",
+              borderRadius: 0,
+              border: "1px solid #111111",
+              boxShadow: "2px 2px 0 #111111",
+              color: "#111111",
+              fontFamily: '"Courier New", Courier, monospace',
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              py: 1,
+              px: 1,
+              backgroundColor: "#FFFFFF",
+              textAlign: "center",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#111111",
+                color: "#FFFFFF",
+                boxShadow: "1px 1px 0 #111111",
+                transform: "translate(1px, 1px)",
+              },
             }}
-            endIcon={<Login />}
-            type="submit"
           >
-            Login
+            Candidate (Alex)
+          </Button>
+          <Button
+            size="small"
+            type="button"
+            onClick={() => fillDemo("sarah", "EmployerPass123!")}
+            sx={{
+              borderRadius: 0,
+              border: "1px solid #111111",
+              boxShadow: "2px 2px 0 #111111",
+              color: "#FFFFFF",
+              fontFamily: '"Courier New", Courier, monospace',
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              py: 1,
+              px: 1,
+              backgroundColor: "#0044CC",
+              borderColor: "#0044CC",
+              textAlign: "center",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#003399",
+                boxShadow: "1px 1px 0 #111111",
+                transform: "translate(1px, 1px)",
+              },
+            }}
+          >
+            Recruiter (Sarah)
+          </Button>
+          <Button
+            size="small"
+            type="button"
+            onClick={() => fillDemo("david", "AdminPass123!")}
+            sx={{
+              borderRadius: 0,
+              border: "1px solid #111111",
+              boxShadow: "2px 2px 0 #111111",
+              color: "#111111",
+              fontFamily: '"Courier New", Courier, monospace',
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              py: 1,
+              px: 1,
+              backgroundColor: "#FFFFFF",
+              textAlign: "center",
+              textTransform: "none",
+              "&:hover": {
+                backgroundColor: "#111111",
+                color: "#FFFFFF",
+                boxShadow: "1px 1px 0 #111111",
+                transform: "translate(1px, 1px)",
+              },
+            }}
+          >
+            Admin (David)
           </Button>
         </Box>
       </Box>
-    </Fade>
+    </Box>
   );
 }
 
@@ -272,7 +401,7 @@ function SignupForm({ onShowPassword, showPassword }) {
     username: "",
     email: "",
     password: "",
-  })
+  });
 
   useEffect(() => {
     if (shouldNavigate) {
@@ -288,10 +417,8 @@ function SignupForm({ onShowPassword, showPassword }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    const copySignupInfo = { ...signupInfo };
-    copySignupInfo[name] = value;
-    setSignupInfo(copySignupInfo)
-  }
+    setSignupInfo((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = () => {
     const signupPromise = new Promise(async (resolve, reject) => {
@@ -305,27 +432,25 @@ function SignupForm({ onShowPassword, showPassword }) {
         if (response.data.success) {
           resolve(response.data);
         } else {
-          reject(new Error(response.data.message || "Signup failed"));
+          reject(new Error(response.data.message || "Registration failed."));
         }
       } catch (error) {
-        reject(error.response?.data?.message || "Something went wrong.");
+        reject(error.response?.data?.message || "Registration error occurred.");
       }
     });
 
     toast.promise(signupPromise, {
-      pending: 'Signing up...',
+      pending: "Registering candidate dossier...",
       success: {
-        render({ data }) {
+        render() {
           setShouldNavigate(true);
-          return `Signed up successfully! Redirecting to login...`;
+          return "Account created successfully. Redirecting to sign in...";
         },
-        icon: '🟢',
       },
       error: {
         render({ data }) {
-          return data || 'Signup failed. Please try again.';
+          return data || "Registration failed.";
         },
-        icon: '🔴',
       },
     });
   };
@@ -337,113 +462,174 @@ function SignupForm({ onShowPassword, showPassword }) {
         e.preventDefault();
         handleSubmit();
       }}
+      noValidate
     >
-      <Fade in timeout={400}>
-        <Box
-          component={motion.div}
-          variants={tabVariants}
-          initial="initial"
-          animate="animate"
-          sx={{ mt: 1 }}
-        >
-          <TextField
-            label="Full Name"
-            variant="outlined"
-            fullWidth
-            name="fullName"
-            required
-            margin="dense"
-            onChange={handleChange}
-            autoComplete="name"
-            sx={fieldStyle}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Person />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
+      <TextField
+        label="Full Name"
+        variant="outlined"
+        fullWidth
+        name="fullName"
+        required
+        onChange={handleChange}
+        autoComplete="name"
+        sx={fieldStyle}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start" sx={{ mr: 1.5 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 0,
+                  backgroundColor: "#F6F6F4",
+                  border: "1px solid #111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#111111",
+                }}
+              >
+                <PersonIcon sx={{ fontSize: 17 }} />
+              </Box>
+            </InputAdornment>
+          ),
+        }}
+      />
 
-            label="User Name"
-            name="username"
-            variant="outlined"
-            required
-            fullWidth
-            onChange={handleChange}
-            margin="dense"
-            autoComplete="username"
-            sx={fieldStyle}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Badge />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            label="Email Address"
-            required
-            variant="outlined"
-            fullWidth
-            margin="dense"
-            name="email"
-            onChange={handleChange}
-            autoComplete="email"
-            sx={fieldStyle}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <TextField
-            label="Password"
-            variant="outlined"
-            required
-            fullWidth
-            margin="dense"
-            name="password"
-            type={showPassword ? "text" : "password"}
-            autoComplete="new-password"
-            sx={fieldStyle}
-            onChange={handleChange}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Lock />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={onShowPassword}>
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            fullWidth
-            variant="contained"
-            type="submit"
-            color="secondary"
-            size="large"
-            sx={{
-              mt: 3,
-              borderRadius: 16,
-              boxShadow: "0 0 20px rgba(0,191,165,0.5)",
-            }}
-            endIcon={<PersonAdd />}
-          >
-            Create Account
-          </Button>
-        </Box>
-      </Fade>
+      <TextField
+        label="Username"
+        name="username"
+        variant="outlined"
+        required
+        fullWidth
+        onChange={handleChange}
+        autoComplete="username"
+        sx={fieldStyle}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start" sx={{ mr: 1.5 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 0,
+                  backgroundColor: "#F6F6F4",
+                  border: "1px solid #111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#111111",
+                }}
+              >
+                <BadgeIcon sx={{ fontSize: 17 }} />
+              </Box>
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      <TextField
+        label="Email Address"
+        required
+        variant="outlined"
+        fullWidth
+        name="email"
+        onChange={handleChange}
+        autoComplete="email"
+        sx={fieldStyle}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start" sx={{ mr: 1.5 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 0,
+                  backgroundColor: "#F6F6F4",
+                  border: "1px solid #111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#111111",
+                }}
+              >
+                <EmailIcon sx={{ fontSize: 17 }} />
+              </Box>
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      <TextField
+        label="Password"
+        variant="outlined"
+        required
+        fullWidth
+        name="password"
+        type={showPassword ? "text" : "password"}
+        autoComplete="new-password"
+        sx={fieldStyle}
+        onChange={handleChange}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start" sx={{ mr: 1.5 }}>
+              <Box
+                sx={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 0,
+                  backgroundColor: "#F6F6F4",
+                  border: "1px solid #111111",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#111111",
+                }}
+              >
+                <LockIcon sx={{ fontSize: 17 }} />
+              </Box>
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={onShowPassword} edge="end" size="small" sx={{ color: "#111111", borderRadius: 0 }}>
+                {showPassword ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      <Button
+        fullWidth
+        variant="contained"
+        type="submit"
+        size="large"
+        sx={{
+          mt: 2,
+          borderRadius: 0,
+          backgroundColor: "#0044CC",
+          color: "#FFFFFF",
+          border: "1px solid #111111",
+          boxShadow: "4px 4px 0 #111111",
+          py: 1.6,
+          fontWeight: 800,
+          fontFamily: '"Helvetica Neue", Arial, sans-serif',
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          fontSize: "0.9rem",
+          transition: "all 0.1s ease",
+          "&:hover": {
+            backgroundColor: "#003399",
+            borderColor: "#111111",
+            boxShadow: "2px 2px 0 #111111",
+            transform: "translate(2px, 2px)",
+          },
+        }}
+        endIcon={<PersonAddIcon />}
+      >
+        Register Candidate Dossier
+      </Button>
     </Box>
   );
 }
@@ -470,84 +656,159 @@ export default function LoginPage() {
   const togglePwd = () => setShowPassword((p) => !p);
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-
-      <Box
+    <Box
+      sx={{
+        minHeight: "calc(100vh - 120px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        py: { xs: 6, sm: 8 },
+        px: 2,
+        backgroundColor: "var(--dark-bg)",
+      }}
+    >
+      <Paper
+        elevation={0}
         sx={{
+          width: "100%",
+          maxWidth: 480,
+          p: { xs: 3, sm: 4.5 },
+          backgroundColor: "#FFFFFF",
+          border: "2px solid #111111",
+          borderRadius: 0,
+          boxShadow: "6px 6px 0 #111111",
           position: "relative",
-          minHeight: "100vh",
-          backgroundColor: "#0a0f1a",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          pt: "80px",
-          pb: 2,
-          px: 2,
-          "&::before": {
-            content: '""',
-            position: "absolute",
-            top: "10%",
-            left: "10%",
-            width: "60vw",
-            height: "60vw",
-            background:
-              "radial-gradient(circle at center, #00bfa5, transparent 70%)",
-            filter: "blur(200px)",
-            zIndex: 1,
-          },
         }}
       >
-        <Paper
-          component={motion.div}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.6 }}
+        {/* Terminal Header Eyebrow */}
+        <Box
           sx={{
-            position: "relative",
-            zIndex: 2,
-            p: { xs: 3, sm: 5 },
-            width: { xs: "90vw", sm: 380 },
-            borderRadius: 3,
-            background: "rgba(255,255,255,0.05)",
-            boxShadow: "0 0 60px rgba(29,233,182,0.4)",
-            border: "1px solid rgba(29,233,182,0.5)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid #111111",
+            pb: 1.5,
+            mb: 2.5,
           }}
         >
           <Typography
-            variant="h4"
-            align="center"
-            sx={{ color: "#fff", mb: 2, fontWeight: 600 }}
-          >
-            {tab === 0 ? "Login" : "Signup"}
-          </Typography>
-          <Tabs
-            value={tab}
-            onChange={onTabChange}
-            variant="fullWidth"
+            variant="caption"
             sx={{
-              mb: 2,
-              "& .MuiTabs-indicator": {
-                backgroundColor: "#1de9b6",
-                height: 4,
-                borderRadius: 2,
-              },
+              fontFamily: '"Courier New", Courier, monospace',
+              fontWeight: 700,
+              fontSize: "0.75rem",
+              letterSpacing: "0.08em",
+              color: "#0044CC",
+              textTransform: "uppercase",
             }}
           >
-            <Tab label="Login" sx={{ color: "rgba(255,255,255,0.7)" }} />
-            <Tab label="Sign Up" sx={{ color: "rgba(255,255,255,0.7)" }} />
-          </Tabs>
-          {tab === 0 ? (
-            <LoginForm onShowPassword={togglePwd} showPassword={showPassword} />
-          ) : (
-            <SignupForm
-              onShowPassword={togglePwd}
-              showPassword={showPassword}
-            />
-          )}
-        </Paper>
-      </Box>
-    </ThemeProvider>
+            [AUTH-TERMINAL // PROTO-2026]
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              fontFamily: '"Courier New", Courier, monospace',
+              color: "#777777",
+              fontSize: "0.75rem",
+              textTransform: "uppercase",
+            }}
+          >
+            SECURE ACCESS
+          </Typography>
+        </Box>
+
+        {/* Heading */}
+        <Typography
+          variant="h4"
+          sx={{
+            fontFamily: '"Helvetica Neue", Arial, sans-serif',
+            fontWeight: 800,
+            fontSize: "1.75rem",
+            letterSpacing: "-0.03em",
+            color: "#111111",
+            textTransform: "uppercase",
+            mb: 0.5,
+          }}
+        >
+          {tab === 0 ? "Candidate Access" : "Create Dossier"}
+        </Typography>
+
+        <Typography
+          variant="body2"
+          sx={{
+            fontFamily: '"Courier New", Courier, monospace',
+            color: "#555555",
+            fontSize: "0.82rem",
+            mb: 3,
+            lineHeight: 1.4,
+          }}
+        >
+          {tab === 0
+            ? "Sign in with your credentials to access interview telemetry and scorecards."
+            : "Register a new profile to calibrate question difficulty and track performance."}
+        </Typography>
+
+        {/* Segmented Switch Tabs */}
+        <Tabs
+          value={tab}
+          onChange={onTabChange}
+          variant="fullWidth"
+          sx={{
+            mb: 3,
+            border: "1px solid #111111",
+            backgroundColor: "#ECECE9",
+            p: 0.5,
+            minHeight: 42,
+            "& .MuiTabs-indicator": {
+              display: "none",
+            },
+          }}
+        >
+          <Tab
+            label="01. Sign In"
+            sx={{
+              borderRadius: 0,
+              fontFamily: '"Courier New", Courier, monospace',
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              letterSpacing: "0.05em",
+              color: tab === 0 ? "#FFFFFF !important" : "#111111",
+              backgroundColor: tab === 0 ? "#111111" : "transparent",
+              minHeight: 34,
+              py: 0.8,
+              transition: "all 0.15s ease",
+              "&:hover": {
+                backgroundColor: tab === 0 ? "#111111" : "rgba(0,0,0,0.05)",
+              },
+            }}
+          />
+          <Tab
+            label="02. Create Account"
+            sx={{
+              borderRadius: 0,
+              fontFamily: '"Courier New", Courier, monospace',
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              letterSpacing: "0.05em",
+              color: tab === 1 ? "#FFFFFF !important" : "#111111",
+              backgroundColor: tab === 1 ? "#111111" : "transparent",
+              minHeight: 34,
+              py: 0.8,
+              transition: "all 0.15s ease",
+              "&:hover": {
+                backgroundColor: tab === 1 ? "#111111" : "rgba(0,0,0,0.05)",
+              },
+            }}
+          />
+        </Tabs>
+
+        {/* Active Form */}
+        {tab === 0 ? (
+          <LoginForm onShowPassword={togglePwd} showPassword={showPassword} />
+        ) : (
+          <SignupForm onShowPassword={togglePwd} showPassword={showPassword} />
+        )}
+      </Paper>
+    </Box>
   );
 }

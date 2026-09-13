@@ -18,10 +18,9 @@ const Footer = () => {
         mt: "auto",
         position: "relative",
         zIndex: 2,
-        background: "rgba(10, 15, 26, 0.95)",
-        backdropFilter: "blur(10px)",
-        borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-        color: "rgba(255, 255, 255, 0.9)",
+        backgroundColor: "var(--dark-bg)",
+        borderTop: "2px solid #111111",
+        color: "#111111",
       }}
     >
       <Container maxWidth="lg">
@@ -29,70 +28,119 @@ const Footer = () => {
           sx={{
             display: "flex",
             flexDirection: { xs: "column", sm: "row" },
-            alignItems: "center",
+            alignItems: { xs: "flex-start", sm: "center" },
             justifyContent: "space-between",
             gap: 2,
-            py: 1,
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{ color: "rgba(255, 255, 255, 0.8)" }}
-          >
-            © {new Date().getFullYear()} AI Interviewer
-          </Typography>
+          <Box>
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                fontWeight: 700,
+                fontSize: "0.85rem",
+                letterSpacing: "0.02em",
+                color: "#111111",
+              }}
+            >
+              AI INTERVIEWER DOSSIER // SYS.VER.2.4
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#555555",
+                fontSize: "0.75rem",
+                display: "block",
+                mt: 0.5,
+              }}
+            >
+              © {new Date().getFullYear()} CANDIDATE EVALUATION ENGINE. ALL RIGHTS RESERVED.
+            </Typography>
+          </Box>
 
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: 2, sm: 3 },
+              alignItems: "center",
+            }}
+          >
             <MuiLink
               href="#"
               variant="body2"
               sx={{
-                color: "rgba(255, 255, 255, 0.8)",
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#111111",
                 textDecoration: "none",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 "&:hover": {
-                  color: "#00e5c9",
+                  color: "#0044CC",
                   textDecoration: "underline",
                 },
-                transition: "all 0.2s",
-                px: 1,
-                fontSize: "0.875rem",
+                transition: "color 0.15s ease",
               }}
             >
-              Privacy
+              PRIVACY PROTOCOL
             </MuiLink>
-            <Box sx={{ color: "rgba(255, 255, 255, 0.3)" }}>•</Box>
+            
+            <Typography
+              component="span"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#888888",
+                fontSize: "0.8rem",
+              }}
+            >
+              /
+            </Typography>
+
             <MuiLink
               href="#"
               variant="body2"
               sx={{
-                color: "rgba(255, 255, 255, 0.8)",
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#111111",
                 textDecoration: "none",
+                fontSize: "0.8rem",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
                 "&:hover": {
-                  color: "#00e5c9",
+                  color: "#0044CC",
                   textDecoration: "underline",
                 },
-                transition: "all 0.2s",
-                px: 1,
-                fontSize: "0.875rem",
+                transition: "color 0.15s ease",
               }}
             >
-              Terms
+              TERMS OF SERVICE
             </MuiLink>
-            <Box sx={{ color: "rgba(255, 255, 255, 0.1)" }}>•</Box>
-            <Box sx={{ display: "flex", gap: 0.5, ml: 1 }}>
+
+            <Box sx={{ display: "flex", gap: 1, ml: { xs: 0, sm: 1 } }}>
               <IconButton
                 href="https://github.com/DeshDeepakKant/AI-Interviewer"
                 target="_blank"
+                rel="noopener noreferrer"
                 size="small"
+                aria-label="GitHub Repository"
                 sx={{
-                  color: "rgba(255, 255, 255, 0.8)",
-                  "&:hover": {
-                    color: "#00e5c9",
-                    background: "rgba(0, 229, 201, 0.15)",
-                  },
-                  transition: "all 0.2s",
+                  color: "#111111",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #111111",
+                  borderRadius: 0,
+                  boxShadow: "2px 2px 0 #111111",
                   width: 32,
                   height: 32,
+                  transition: "all 0.1s ease",
+                  "&:hover": {
+                    backgroundColor: "#111111",
+                    color: "#FFFFFF",
+                    boxShadow: "1px 1px 0 #111111",
+                    transform: "translate(1px, 1px)",
+                  },
                 }}
               >
                 <GitHubIcon fontSize="small" />
@@ -100,16 +148,24 @@ const Footer = () => {
               <IconButton
                 href="https://www.linkedin.com/in/deshdeepakkant/"
                 target="_blank"
+                rel="noopener noreferrer"
                 size="small"
+                aria-label="LinkedIn Profile"
                 sx={{
-                  color: "rgba(255, 255, 255, 0.8)",
-                  "&:hover": {
-                    color: "#00e5c9",
-                    background: "rgba(0, 229, 201, 0.15)",
-                  },
-                  transition: "all 0.2s",
+                  color: "#111111",
+                  backgroundColor: "#FFFFFF",
+                  border: "1px solid #111111",
+                  borderRadius: 0,
+                  boxShadow: "2px 2px 0 #111111",
                   width: 32,
                   height: 32,
+                  transition: "all 0.1s ease",
+                  "&:hover": {
+                    backgroundColor: "#111111",
+                    color: "#FFFFFF",
+                    boxShadow: "1px 1px 0 #111111",
+                    transform: "translate(1px, 1px)",
+                  },
                 }}
               >
                 <LinkedInIcon fontSize="small" />

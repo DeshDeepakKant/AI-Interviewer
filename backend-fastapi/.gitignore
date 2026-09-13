@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Temporary / logs
+*.log
+temp/
+uploads/
+
+# AI context / agent files
+PROJECT_CONTEXT.md
+*project*context*.md
+a.md
+.agents/
+skills-lock.json
+.antigravity*
+.cloud*
+.ai*

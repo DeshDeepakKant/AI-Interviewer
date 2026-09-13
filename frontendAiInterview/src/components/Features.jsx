@@ -1,10 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, memo } from "react";
 import {
   Box,
   Container,
   Typography,
-  useTheme,
-  useMediaQuery,
+  Grid,
+  Button,
 } from "@mui/material";
 import {
   School as SchoolIcon,
@@ -14,335 +14,407 @@ import {
   Psychology as PsychologyIcon,
   Work as WorkIcon,
   QuestionAnswer as QuestionAnswerIcon,
+  ArrowForward as ArrowForwardIcon,
 } from "@mui/icons-material";
-import { motion } from "framer-motion";
+import { NavLink } from "react-router";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      when: "beforeChildren",
-      staggerChildren: 0.1,
-    },
+const MODULES_DATA = [
+  {
+    code: "MOD-01",
+    title: "Adaptive Mock Interviews",
+    icon: SchoolIcon,
+    tag: "SIMULATION ENGINE",
+    description:
+      "Full-duplex technical simulation customized to target companies, engineering stacks, and candidate seniority levels.",
+    specs: [
+      { label: "LATENCY", value: "< 800ms" },
+      { label: "DIFFICULTY", value: "DYNAMIC" },
+      { label: "MODE", value: "GUIDED / HARD" },
+    ],
   },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "tween",
-      duration: 0.4,
-      ease: "easeOut",
-    },
+  {
+    code: "MOD-02",
+    title: "Performance Telemetry",
+    icon: AssessmentIcon,
+    tag: "DIAGNOSTIC",
+    description:
+      "Multidimensional answer evaluation parsing clarity, domain depth, architectural reasoning, and communication cadence.",
+    specs: [
+      { label: "METRICS", value: "ACCURACY / PACE" },
+      { label: "RECORD", value: "SAVED TO DOSSIER" },
+      { label: "SCORING", value: "STANDARDIZED" },
+    ],
   },
-};
-
-const fadeInUp = {
-  hidden: { y: 30, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: {
-      type: "tween",
-      duration: 0.6,
-      ease: "easeOut",
-    },
+  {
+    code: "MOD-03",
+    title: "Voice-Based Synthesis",
+    icon: VoiceIcon,
+    tag: "AUDIO SYNTHESIS",
+    description:
+      "Acoustic interviewer generation delivering questions naturally with realistic follow-ups to simulate live panel evaluations.",
+    specs: [
+      { label: "PROTOCOL", value: "AUDIO TTS / STT" },
+      { label: "FIDELITY", value: "HIGH BITRATE" },
+      { label: "ENVIRONMENT", value: "HANDS-FREE" },
+    ],
   },
-};
+  {
+    code: "MOD-04",
+    title: "Dynamic Branching Questions",
+    icon: QuestionAnswerIcon,
+    tag: "CONTEXT TREE",
+    description:
+      "Non-linear follow-ups probing deeper into edge cases, architecture decisions, and potential flaws in candidate responses.",
+    specs: [
+      { label: "DEPTH", value: "RECURSIVE DRILL" },
+      { label: "PROBING", value: "EDGE-CASE DETECTION" },
+      { label: "LOGIC", value: "SEMANTIC CHAIN" },
+    ],
+  },
+  {
+    code: "MOD-05",
+    title: "Resume Parsing & Ingestion",
+    icon: UploadFileIcon,
+    tag: "RESUME PARSER",
+    description:
+      "Automated extraction of prior achievements, tech stacks, and career milestones to calibrate interview difficulty and relevance.",
+    specs: [
+      { label: "INPUT", value: "PDF / DOCX" },
+      { label: "PARSER", value: "STRUCTURAL NLP" },
+      { label: "ALIGNMENT", value: "PROJECT-BASED" },
+    ],
+  },
+  {
+    code: "MOD-06",
+    title: "Role & Position Calibration",
+    icon: WorkIcon,
+    tag: "TARGET MATRIX",
+    description:
+      "Fine-tuned evaluation standards targeting Frontend, Backend, Fullstack, DevOps, ML Engineering, and System Architecture.",
+    specs: [
+      { label: "COVERAGE", value: "10+ ROLES" },
+      { label: "STANDARDS", value: "INDUSTRY PEER" },
+      { label: "LEVELS", value: "JUNIOR TO PRINCIPAL" },
+    ],
+  },
+  {
+    code: "MOD-07",
+    title: "Comprehensive Intelligence Dossier",
+    icon: PsychologyIcon,
+    tag: "EVALUATION REPORT",
+    description:
+      "Actionable debrief summarizing strengths, architectural blindspots, suggested study tracks, and transcript replays.",
+    specs: [
+      { label: "OUTPUT", value: "STRUCTURED AUDIT" },
+      { label: "EXPORT", value: "DOSSIER ARCHIVE" },
+      { label: "HISTORY", value: "LONGITUDINAL" },
+    ],
+  },
+];
 
-const FeatureCard = React.memo(({ icon: IconComponent, title, description, index, color, isReversed }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  const cardStyles = useMemo(() => ({
-    flex: 1,
-    p: { xs: 2, sm: 3 },
-    background: `linear-gradient(145deg, ${color}15, ${color}05)`,
-    borderRadius: 2,
-    border: `1px solid ${color}20`,
-    transition: "all 0.3s ease",
-    "&:hover": {
-      transform: "translateY(-4px)",
-      boxShadow: `0 8px 25px -5px ${color}33`,
-    },
-  }), [color]);
-
-  const iconContainerStyles = useMemo(() => ({
-    width: { xs: 60, sm: 80 },
-    height: { xs: 60, sm: 80 },
-    borderRadius: "50%",
-    background: `linear-gradient(135deg, ${color}30, ${color}10)`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    mb: { xs: 2, sm: 3 },
-    mx: "auto",
-  }), [color]);
-
-  const placeholderStyles = useMemo(() => ({
-    flex: 1,
-    height: { xs: 200, sm: 250, md: 300 },
-    background: `linear-gradient(145deg, ${color}10, ${color}05)`,
-    borderRadius: 2,
-    border: `1px solid ${color}20`,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    color: color,
-    fontSize: { xs: "1.5rem", sm: "2rem" },
-    fontWeight: "bold",
-    transition: "all 0.3s ease",
-    "&:hover": {
-      transform: "scale(1.02)",
-    },
-  }), [color]);
-
+const FeatureModuleCard = memo(({ module }) => {
+  const Icon = module.icon;
   return (
-    <motion.div
-      variants={itemVariants}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-50px" }}
-      style={{
-        display: "flex",
-        flexDirection: isMobile ? "column" : (isReversed ? "row-reverse" : "row"),
-        alignItems: "center",
-        marginBottom: "3rem",
-        gap: "2rem",
-        width: "100%",
-      }}
-    >
+    <Grid item xs={12} md={6} lg={4}>
       <Box
-        component={motion.div}
-        whileHover={{ y: -4 }}
-        sx={cardStyles}
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          p: 3.5,
+          backgroundColor: "#FFFFFF",
+          border: "1px solid #111111",
+          boxShadow: "4px 4px 0 #111111",
+          transition: "all 0.15s ease",
+          "&:hover": {
+            boxShadow: "2px 2px 0 #111111",
+            transform: "translate(2px, 2px)",
+            borderColor: "#0044CC",
+          },
+        }}
       >
-        <Box sx={iconContainerStyles}>
-          <IconComponent sx={{ fontSize: { xs: 30, sm: 40 }, color: color }} />
+        {/* Header bar of card */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            borderBottom: "1px solid #ECECE9",
+            pb: 2,
+            mb: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                fontWeight: 700,
+                color: "#0044CC",
+                fontSize: "0.85rem",
+                letterSpacing: "0.05em",
+              }}
+            >
+              [{module.code}]
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#666666",
+                fontSize: "0.75rem",
+                textTransform: "uppercase",
+              }}
+            >
+              {module.tag}
+            </Typography>
+          </Box>
+          <Icon sx={{ color: "#111111", fontSize: 22 }} />
         </Box>
+
+        {/* Title */}
         <Typography
           variant="h5"
           component="h3"
-          sx={{ 
-            color: "white", 
-            mb: 2, 
-            fontWeight: 600,
-            textAlign: { xs: "center", md: "left" },
-            fontSize: { xs: "1.25rem", sm: "1.5rem" }
+          sx={{
+            fontFamily: '"Helvetica Neue", Arial, sans-serif',
+            fontWeight: 800,
+            fontSize: "1.25rem",
+            letterSpacing: "-0.02em",
+            color: "#111111",
+            mb: 1.5,
+            lineHeight: 1.25,
           }}
         >
-          {title}
+          {module.title}
         </Typography>
-        <Typography
-          variant="body1"
-          sx={{ 
-            color: "rgba(255, 255, 255, 0.8)",
-            textAlign: { xs: "center", md: "left" },
-            fontSize: { xs: "0.9rem", sm: "1rem" }
-          }}
-        >
-          {description}
-        </Typography>
-      </Box>
 
-      <Box
-        component={motion.div}
-        whileHover={{ scale: 1.02 }}
-        sx={placeholderStyles}
-      >
-        {index + 1}
+        {/* Description */}
+        <Typography
+          variant="body2"
+          sx={{
+            fontFamily: '"Courier New", Courier, monospace',
+            fontSize: "0.875rem",
+            color: "#555555",
+            lineHeight: 1.6,
+            mb: 3,
+            flexGrow: 1,
+          }}
+        >
+          {module.description}
+        </Typography>
+
+        {/* Technical Specs Footer in Card */}
+        <Box
+          sx={{
+            borderTop: "1px solid #111111",
+            pt: 2,
+            mt: "auto",
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: 1,
+          }}
+        >
+          {module.specs.map((spec, i) => (
+            <Box key={i}>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontFamily: '"Courier New", Courier, monospace',
+                  fontSize: "0.65rem",
+                  color: "#777777",
+                  fontWeight: 700,
+                  letterSpacing: "0.05em",
+                }}
+              >
+                {spec.label}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  display: "block",
+                  fontFamily: '"Courier New", Courier, monospace',
+                  fontSize: "0.72rem",
+                  color: "#111111",
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {spec.value}
+              </Typography>
+            </Box>
+          ))}
+        </Box>
       </Box>
-    </motion.div>
+    </Grid>
   );
 });
 
+FeatureModuleCard.displayName = "FeatureModuleCard";
+
 const Features = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-
-  const features = useMemo(() => [
-    {
-      icon: SchoolIcon,
-      title: "Mock Interviews",
-      description:
-        "Practice with AI-powered mock interviews tailored to your target companies and roles.",
-      color: "#00e5c9",
-    },
-    {
-      icon: AssessmentIcon,
-      title: "Performance Analysis",
-      description:
-        "Get detailed feedback on your answers, You can check all the feedback from your dashboard",
-      color: "#00b8d4",
-    },
-    {
-      icon: VoiceIcon,
-      title: "AI Voice-Based Questions",
-      description:
-        "Experience realistic interviews with AI-generated voice questions and intelligent follow-up questions based on your previous answers.",
-      color: "#00e5c9",
-    },
-    {
-      icon: QuestionAnswerIcon,
-      title: "Dynamic Follow-Up Questions",
-      description:
-        "AI intelligently asks follow-up questions based on your previous answers to dive deeper into your responses.",
-      color: "#00b8d4",
-    },
-    {
-      icon: UploadFileIcon,
-      title: "Resume-Based Interviews",
-      description:
-        "Upload your resume and get personalized interview questions tailored to your skills and experience.",
-      color: "#00b8d4",
-    },
-    {
-      icon: WorkIcon,
-      title: "Position-Specific Questions",
-      description:
-        "Select your target position and receive role-specific questions that match industry standards and scenarios.",
-      color: "#00e5c9",
-    },
-    {
-      icon: PsychologyIcon,
-      title: "AI-Powered Analysis",
-      description:
-        "Get comprehensive feedback and actionable insights based on your resume, position, and experience level.",
-      color: "#00b8d4",
-    },
-  ], []);
-
-  const titleChars = useMemo(() => "Key Features".split(""), []);
-
-  const containerStyles = useMemo(() => ({
-    position: "relative",
-    py: { xs: 6, sm: 8, md: 10 },
-    overflow: "hidden",
-    "&::before": {
-      content: '""',
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: `radial-gradient(circle at 20% 30%, ${theme.palette.primary.main}15 0%, transparent 40%)`,
-      zIndex: -1,
-    },
-  }), [theme.palette.primary.main]);
-
-  const titleStyles = useMemo(() => ({
-    color: "white",
-    display: "flex",
-    justifyContent: "center",
-    gap: 0.5,
-    fontFamily: '"Poppins", "Roboto", "Helvetica", "Arial", sans-serif',
-    fontWeight: 800,
-    letterSpacing: "0.05em",
-    textTransform: "uppercase",
-    textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-    mb: 4,
-    fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
-    flexWrap: "wrap",
-  }), []);
-
   return (
     <Box
-      component={motion.section}
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
+      component="section"
       id="features"
-      sx={containerStyles}
+      sx={{
+        py: { xs: 6, sm: 8, md: 10 },
+        px: { xs: 2, sm: 3, md: 4 },
+        backgroundColor: "var(--dark-bg)",
+        minHeight: "100vh",
+      }}
     >
-      <Container maxWidth="lg">
-        <Box 
-          component={motion.div}
-          variants={fadeInUp}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          textAlign="center" 
-          mb={{ xs: 4, sm: 6 }}
+      <Container maxWidth="lg" sx={{ px: 0 }}>
+        {/* Section Header */}
+        <Box
+          sx={{
+            borderBottom: "2px solid #111111",
+            pb: 4,
+            mb: { xs: 5, md: 7 },
+          }}
         >
           <Typography
-            variant="h3"
-            align="center"
-            gutterBottom
-            sx={titleStyles}
-          >
-            {titleChars.map((char, index) => (
-              <motion.span
-                key={index}
-                animate={!isMobile ? {
-                  y: [0, -10, 0],
-                  scale: [1, 1.1, 1],
-                  textShadow: [
-                    "0 2px 10px rgba(0, 0, 0, 0.2)",
-                    "0 5px 20px rgba(0, 199, 174, 0.5)",
-                    "0 2px 10px rgba(0, 0, 0, 0.2)",
-                  ],
-                } : {}}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: index * 0.05,
-                  ease: [0.4, 0, 0.2, 1],
-                  times: [0, 0.5, 1],
-                }}
-                style={{
-                  display: "inline-block",
-                  color: index % 2 === 0 ? "#ffffff" : "#00e5c9",
-                  minWidth: char === " " ? "0.5em" : "auto",
-                  textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-                }}
-              >
-                {char === " " ? "\u00A0" : char}
-              </motion.span>
-            ))}
-          </Typography>
-          <Typography
-            variant="subtitle1"
+            variant="caption"
             sx={{
-              color: "rgba(255, 255, 255, 0.8)",
-              maxWidth: 700,
-              mx: "auto",
-              mb: 2,
-              px: { xs: 2, sm: 0 },
-              fontSize: { xs: "0.9rem", sm: "1rem" },
+              display: "block",
+              fontFamily: '"Courier New", Courier, monospace',
+              color: "#0044CC",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              letterSpacing: "0.1em",
+              mb: 1.5,
+              textTransform: "uppercase",
             }}
           >
-            Everything you need to ace your next technical interview
+            SYS.SPEC // ARCHITECTURE OVERVIEW
+          </Typography>
+          
+          <Typography
+            variant="h1"
+            sx={{
+              fontFamily: '"Helvetica Neue", Arial, sans-serif',
+              fontWeight: 800,
+              fontSize: { xs: "2.5rem", sm: "3.5rem", md: "4.5rem" },
+              letterSpacing: "-0.04em",
+              lineHeight: 0.95,
+              textTransform: "uppercase",
+              color: "#111111",
+              mb: 3,
+            }}
+          >
+            System Capabilities <br />& Specifications
+          </Typography>
+
+          <Typography
+            variant="body1"
+            sx={{
+              fontFamily: '"Courier New", Courier, monospace',
+              color: "#555555",
+              fontSize: { xs: "0.95rem", sm: "1.1rem" },
+              maxWidth: "750px",
+              lineHeight: 1.6,
+              borderLeft: "2px solid #111111",
+              pl: 2.5,
+            }}
+          >
+            Comprehensive technical modules powering systematic candidate assessment, acoustic interview synthesis, and resume-driven probing.
           </Typography>
         </Box>
 
-        <Box 
-          component={motion.div}
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-          sx={{ 
-            width: "100%", 
-            maxWidth: "1200px", 
-            mx: "auto",
-            px: { xs: 1, sm: 2 }
+        {/* Module Grid */}
+        <Grid container spacing={3.5} alignItems="stretch">
+          {MODULES_DATA.map((module) => (
+            <FeatureModuleCard key={module.code} module={module} />
+          ))}
+        </Grid>
+
+        {/* Bottom CTA Dossier Strip */}
+        <Box
+          sx={{
+            mt: { xs: 8, md: 10 },
+            p: { xs: 3, sm: 5 },
+            backgroundColor: "#FFFFFF",
+            border: "2px solid #111111",
+            boxShadow: "6px 6px 0 #111111",
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            alignItems: { xs: "flex-start", md: "center" },
+            justifyContent: "space-between",
+            gap: 3,
           }}
         >
-          {features.map((feature, index) => (
-            <FeatureCard
-              key={`${feature.title}-${index}`}
-              icon={feature.icon}
-              title={feature.title}
-              description={feature.description}
-              index={index}
-              color={feature.color}
-              isReversed={index % 2 !== 0}
-            />
-          ))}
+          <Box>
+            <Typography
+              variant="caption"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#0044CC",
+                fontWeight: 700,
+                fontSize: "0.8rem",
+                letterSpacing: "0.08em",
+                display: "block",
+                mb: 0.5,
+              }}
+            >
+              READY TO COMMENCE EVALUATION?
+            </Typography>
+            <Typography
+              variant="h4"
+              sx={{
+                fontFamily: '"Helvetica Neue", Arial, sans-serif',
+                fontWeight: 800,
+                letterSpacing: "-0.03em",
+                color: "#111111",
+                textTransform: "uppercase",
+              }}
+            >
+              Configure Your Assessment Session
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                fontFamily: '"Courier New", Courier, monospace',
+                color: "#555555",
+                fontSize: "0.875rem",
+                mt: 1,
+              }}
+            >
+              Select role, target difficulty level, upload documentation, and run live interview.
+            </Typography>
+          </Box>
+
+          <Button
+            component={NavLink}
+            to="/mockInterviewWay"
+            variant="contained"
+            endIcon={<ArrowForwardIcon />}
+            sx={{
+              borderRadius: 0,
+              backgroundColor: "#111111",
+              color: "#FFFFFF",
+              border: "1px solid #111111",
+              boxShadow: "4px 4px 0 #111111",
+              px: 4,
+              py: 1.8,
+              fontSize: "0.95rem",
+              fontWeight: 700,
+              fontFamily: '"Helvetica Neue", Arial, sans-serif',
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              flexShrink: 0,
+              "&:hover": {
+                backgroundColor: "#0044CC",
+                borderColor: "#0044CC",
+                boxShadow: "2px 2px 0 #111111",
+                transform: "translate(2px, 2px)",
+              },
+            }}
+          >
+            Launch Interview
+          </Button>
         </Box>
       </Container>
     </Box>
