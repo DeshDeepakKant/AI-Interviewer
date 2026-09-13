@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: ai-interviewer-backend
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend-fastapi
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:socket_app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        value: https://ai-interviewer-lovat.vercel.app,http://localhost:5173
+      - key: DB_NAME
+        value: ai_interviewer
+      - key: MONGODB_URI
+        sync: false
+      - key: REDIS_URL
+        value: rediss://default:gQAAAAAAASYLAAIgcDFjZmJmODlkZTJjNTI0MmNmYjA0ZTgxOTM3MjVmYzRiNw@tough-firefly-75275.upstash.io:6379
+      - key: ACCESS_TOKEN_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
