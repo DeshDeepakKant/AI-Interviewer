@@ -1,6 +1,10 @@
 import os
 import redis.asyncio as redis
-import fakeredis.aioredis
+try:
+    import fakeredis.aioredis as fakeredis_aioredis
+except ImportError:
+    fakeredis_aioredis = None
+
 
 _redis_instance = None
 
@@ -17,7 +21,26 @@ async def init_redis():
         _redis_instance = real_client
     except Exception as e:
         print(f"[DB Warning] Redis not reachable at {url} ({e}). Using in-memory FakeRedis.")
-        _redis_instance = fakeredis.aioredis.FakeRedis(decode_responses=False)
+        if fakeredis_aioredis:
+            _redis_instance = fakeredis_aioredis.FakeRedis(decode_responses=False)
+        else:
+            class MockRedis:
+                def __init__(self):
+                    self._data = {}
+                async def get(self, k):
+                    return self._data.get(k)
+                async def set(self, k, v, *args, **kwargs):
+                    self._data[k] = v
+                async def delete(self, *keys):
+                    for k in keys:
+                        self._data.pop(k, None)
+                async def exists(self, *keys):
+                    return sum(1 for k in keys if k in self._data)
+                async def ping(self):
+                    return True
+                async def close(self):
+                    pass
+            _redis_instance = MockRedis()
         
     return _redis_instance
 
@@ -26,12 +49,15 @@ class RedisProxy:
     def __getattr__(self, name):
         global _redis_instance
         if _redis_instance is None:
-            # Synchronously create fallback if not yet initialized
             try:
                 real_client = redis.from_url(os.getenv("REDIS_URL", "redis://localhost:6379"), socket_timeout=1.0)
                 _redis_instance = real_client
             except Exception:
-                _redis_instance = fakeredis.aioredis.FakeRedis(decode_responses=False)
+                if fakeredis_aioredis:
+                    _redis_instance = fakeredis_aioredis.FakeRedis(decode_responses=False)
+                else:
+                    _redis_instance = dict()
         return getattr(_redis_instance, name)
 
 redis_client = RedisProxy()
+
